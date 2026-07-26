@@ -1,0 +1,14 @@
+# dependencies
+node_modules/
+
+# build output (OpenShip rebuilds on every deploy)
+dist/
+.astro/
+
+# env / secrets
+.env
+.env.*
+
+# misc
+.DS_Store
+npm-debug.log*
