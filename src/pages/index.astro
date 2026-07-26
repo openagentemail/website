@@ -352,6 +352,40 @@ const jsonOut = `{
       </div>
     </section>
 
+    <!-- 8.5 ── WHAT IT TAKES TO RUN ───────────────────────────────────── -->
+    <section>
+      <div class="wrap">
+        <p class="kicker reveal">Before you ask</p>
+        <h2 class="reveal">Runs on the smallest VPS<br />you can buy.</h2>
+        <p class="sub reveal">
+          Measured on our own production instance, sitting idle: the whole stack — mail server,
+          API, everything — sips about 190&nbsp;MB of RAM and roughly zero CPU.
+        </p>
+        <div class="grid grid-3" style="margin-top: 2.5rem">
+          <div class="card reveal">
+            <span class="num">MINIMUM</span>
+            <h3>1 vCPU · 1 GB · 10 GB</h3>
+            <p>Works with the defaults. That's a $5/mo VPS — or a $10–15/<em>year</em> deal box.</p>
+          </div>
+          <div class="card reveal">
+            <span class="num">COMFORTABLE</span>
+            <h3>1 vCPU · 2 GB · 20 GB</h3>
+            <p>Headroom to turn on spam filtering (SpamAssassin) and never think about it again.</p>
+          </div>
+          <div class="card reveal">
+            <span class="num">WITH ANTIVIRUS</span>
+            <h3>4 GB RAM</h3>
+            <p>ClamAV alone eats ~1 GB, so it ships off by default. Agent mail rarely needs it.</p>
+          </div>
+        </div>
+        <p class="honest reveal">
+          The real prerequisite isn't size — it's port 25. AWS, GCP, Azure, DigitalOcean and Vultr
+          block it by default (some open it on request). Check before you buy — or route outbound
+          through a relay like Amazon SES and skip the fight entirely.
+        </p>
+      </div>
+    </section>
+
     <!-- 9 ── OPEN SOURCE + FINAL CTA ───────────────────────────────────── -->
     <section class="oss">
       <div class="wrap">
