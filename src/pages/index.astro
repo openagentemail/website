@@ -1,0 +1,636 @@
+---
+import '../styles/global.css';
+
+const rawMail = `From: noreply@github.com
+To: fox-k7d2@yourdomain
+Subject: [GitHub] Verify your email
+
+Here's your GitHub launch code:
+
+  <mark>59162834</mark>
+
+Or <mark>verify your email address</mark> directly:
+https://github.com/users/…/confirm_
+verification/abc123?via_launch_…
+
+This code expires in 10 minutes.`;
+
+const jsonOut = `{
+  <span class="k">"from"</span>: "noreply@github.com",
+  <span class="k">"subject"</span>: "[GitHub] Verify your email",
+  <span class="k">"otp"</span>: {
+    <span class="k">"codes"</span>: [<span class="k">"59162834"</span>],
+    <span class="k">"links"</span>: [
+      <span class="k">"https://github.com/…/confirm_verification/…"</span>
+    ]
+  }
+}`;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>openagent.email — Self-hosted email for AI agents</title>
+    <meta
+      name="description"
+      content="The open-source, self-hosted alternative to AgentMail. One docker compose up gives every agent you run unlimited real mailboxes on your own domain — with OTP and verification-link extraction built in."
+    />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preload" href="/fonts/Satoshi-Regular.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/Satoshi-Bold.woff2" as="font" type="font/woff2" crossorigin />
+    <meta property="og:title" content="openagent.email — Self-hosted email for AI agents" />
+    <meta
+      property="og:description"
+      content="Unlimited agent mailboxes on your own domain. REST + MCP. OTP extraction built in. Apache-2.0."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://openagent.email" />
+    <meta property="og:image" content="https://openagent.email/og.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content="https://openagent.email/og.png" />
+  </head>
+  <body>
+    <nav>
+      <div class="wrap">
+        <a class="brand" href="/">
+          <img src="/favicon.svg" alt="" />
+          openagent<span class="gold">.email</span>
+        </a>
+        <span class="spacer"></span>
+        <a class="navlink" href="https://github.com/openagentemail/openagentemail/tree/main/docs">Docs</a>
+        <a class="navlink" href="https://github.com/openagentemail/openagentemail">GitHub</a>
+      </div>
+    </nav>
+
+    <!-- 1 ── HERO ──────────────────────────────────────────────────────── -->
+    <header class="hero">
+      <div class="aurora aurora-1"></div>
+      <div class="aurora aurora-2"></div>
+      <div class="aurora aurora-3"></div>
+      <div class="envs" aria-hidden="true">
+        <svg class="env" data-x="86" data-y="16" data-rot="6" style="width: 120px" viewBox="0 0 64 64" fill="none">
+          <rect x="6" y="14" width="52" height="38" rx="6" stroke="#fbbf24" stroke-width="3" fill="#14161f" />
+          <path d="M9 19 32 36l23-17" stroke="#fbbf24" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+        <svg class="env" data-x="68" data-y="56" data-rot="-8" style="width: 74px" viewBox="0 0 64 64" fill="none">
+          <rect x="6" y="14" width="52" height="38" rx="6" stroke="#fbbf24" stroke-width="3" fill="#14161f" />
+          <path d="M9 19 32 36l23-17" stroke="#fbbf24" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+        <svg class="env" data-x="50" data-y="72" data-rot="11" style="width: 52px" viewBox="0 0 64 64" fill="none">
+          <rect x="6" y="14" width="52" height="38" rx="6" stroke="#fbbf24" stroke-width="3" fill="#14161f" />
+          <path d="M9 19 32 36l23-17" stroke="#fbbf24" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+      </div>
+      <div class="wrap">
+        <p class="kicker stagger stagger-1">Open source · Self-hosted · Apache-2.0</p>
+        <h1 class="stagger stagger-2">
+          Email for your agents.<br />
+          <span class="outline-gold">Owned by you.</span>
+        </h1>
+        <p class="sub stagger stagger-3">
+          The open-source alternative to AgentMail. One <code>docker compose up</code> on your own
+          VPS gives every agent you run unlimited real mailboxes on your own domain — over REST and
+          MCP — with OTP and verification-link extraction built in.
+        </p>
+        <div class="cta-row stagger stagger-4">
+          <a class="btn btn-gold" href="https://github.com/openagentemail/openagentemail">Get started on GitHub</a>
+          <a class="btn btn-ghost" href="#demo">See it work ↓</a>
+        </div>
+        <div class="cmdline stagger stagger-5">
+          <span class="cmd">git clone …/openagentemail && cd openagentemail && docker compose up -d</span>
+          <button class="copy-btn" data-copy="git clone https://github.com/openagentemail/openagentemail.git && cd openagentemail && cp .env.example .env && docker compose up -d">copy</button>
+        </div>
+      </div>
+    </header>
+
+    <!-- 2 ── WORKS WITH (marquee) ──────────────────────────────────────── -->
+    <div class="logos">
+      <p>WORKS WITH ANY MCP CLIENT — AND ANYTHING THAT CAN CURL</p>
+      <div class="marquee">
+        <div class="marquee-track">
+          <span class="item"><img src="/icons/claude.svg" alt="" />Claude Code</span>
+          <span class="item"><img src="/icons/cursor.svg" alt="" />Cursor</span>
+          <span class="item"><img src="/icons/windsurf.svg" alt="" />Windsurf</span>
+          <span class="item"><img src="/icons/docker.svg" alt="" />Docker</span>
+          <span class="item">✦ Kimi Code</span>
+          <span class="item">✦ Any MCP client</span>
+          <span class="item">✦ Plain REST</span>
+          <span class="item" aria-hidden="true"><img src="/icons/claude.svg" alt="" />Claude Code</span>
+          <span class="item" aria-hidden="true"><img src="/icons/cursor.svg" alt="" />Cursor</span>
+          <span class="item" aria-hidden="true"><img src="/icons/windsurf.svg" alt="" />Windsurf</span>
+          <span class="item" aria-hidden="true"><img src="/icons/docker.svg" alt="" />Docker</span>
+          <span class="item" aria-hidden="true">✦ Kimi Code</span>
+          <span class="item" aria-hidden="true">✦ Any MCP client</span>
+          <span class="item" aria-hidden="true">✦ Plain REST</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3 ── TERMINAL DEMO ─────────────────────────────────────────────── -->
+    <section id="demo">
+      <div class="wrap">
+        <p class="kicker reveal">Live workflow</p>
+        <h2 class="reveal">From deploy to OTP, in one terminal.</h2>
+        <p class="sub reveal">
+          This is the actual loop your agent runs: create an identity, trigger a signup, wait for
+          the mail, read the code. Typed out for you below — no video, no mockup.
+        </p>
+        <div class="terminal reveal" style="margin-top: 2.5rem">
+          <div class="bar">
+            <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+            <span class="title">agent@your-vps — openagent.email</span>
+          </div>
+          <pre id="term" aria-label="Terminal demo"><span id="term-out"></span><span class="cursor" id="term-cursor"></span></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3.5 ── REAL MAIL CARDS (fan) ───────────────────────────────────── -->
+    <section>
+      <div class="wrap">
+        <p class="kicker reveal">Real mail, really parsed</p>
+        <h2 class="reveal">The formats your agent<br />will actually meet.</h2>
+        <p class="sub reveal">
+          Extraction is tested against the mails that real services send — US and Chinese providers
+          alike. Hover a card to read it.
+        </p>
+        <div class="fan reveal">
+          <div class="fan-card f-left">
+            <div class="mail-head"><b>From:</b> noreply@github.com<br /><b>Subject:</b> [GitHub] Your launch code</div>
+            <div class="mail-body">
+              Here's your GitHub launch code, @agent — paste it to finish signing up. It expires in 10 minutes.
+            </div>
+            <span class="code-chip">59162834</span>
+            <div class="extracted">otp.codes → ["59162834"] ✓</div>
+          </div>
+          <div class="fan-card f-mid">
+            <div class="mail-head"><b>From:</b> service@notice.aliyun.com<br /><b>Subject:</b> 【阿里云】验证码</div>
+            <div class="mail-body">
+              您正在注册阿里云账号，验证码如下，请在 15 分钟内完成验证。工作人员不会索取验证码，请勿泄露。
+            </div>
+            <span class="code-chip">509227</span>
+            <div class="extracted">otp.codes → ["509227"] ✓</div>
+          </div>
+          <div class="fan-card f-right">
+            <div class="mail-head"><b>From:</b> no-reply@accounts.google.com<br /><b>Subject:</b> Your Google verification code</div>
+            <div class="mail-body">
+              G-482916 is your Google verification code. Don't share it with anyone.
+            </div>
+            <span class="code-chip">G-482916</span>
+            <div class="extracted">otp.codes → ["482916"] ✓</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4 ── FEATURES ──────────────────────────────────────────────────── -->
+    <section>
+      <div class="wrap">
+        <p class="kicker reveal">Why it exists</p>
+        <h2 class="reveal">Everything an agent mailbox needs.<br />Nothing it doesn't.</h2>
+        <div class="grid grid-3" style="margin-top: 3rem">
+          <div class="card reveal">
+            <span class="num">01</span>
+            <h3>Unlimited identities</h3>
+            <p>One catch-all mailbox, unlimited <code>anything@yourdomain</code> addresses. No provisioning, no per-inbox cost, no caps.</p>
+          </div>
+          <div class="card reveal">
+            <span class="num">02</span>
+            <h3>Scoped tokens</h3>
+            <p>Every identity gets its own <code>oa_…</code> token that can only read and send as that address. Your admin key never touches an agent.</p>
+          </div>
+          <div class="card reveal">
+            <span class="num">03</span>
+            <h3>wait_for + OTP extraction</h3>
+            <p>Long-poll an inbox until the signup mail lands — codes and verification links come out parsed. Built for automated signups.</p>
+          </div>
+          <div class="card reveal">
+            <span class="num">04</span>
+            <h3>Safety rails</h3>
+            <p>Per-identity send rate limits (20/hour default) and automatic retention (30 days default). A leaked token can't become a spam cannon.</p>
+          </div>
+          <div class="card reveal">
+            <span class="num">05</span>
+            <h3>Bring your own relay</h3>
+            <p>Send directly from your VPS, or route outbound through Amazon SES or any SMTP relay with one env var. Your reputation, your choice.</p>
+          </div>
+          <div class="card reveal">
+            <span class="num">06</span>
+            <h3>DNS wizard + doctor</h3>
+            <p><code>dns-records.sh</code> prints your exact DNS records. <code>doctor.sh</code> runs a 13-point deliverability check before agents depend on it.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5 ── HOW IT WORKS ──────────────────────────────────────────────── -->
+    <section>
+      <div class="wrap">
+        <p class="kicker reveal">How it works</p>
+        <h2 class="reveal">Ten minutes, five steps,<br />every one of them real.</h2>
+        <div class="steps" style="margin-top: 2.5rem" id="steps">
+          <div class="step reveal">
+            <h3>Deploy</h3>
+            <p>Clone, set three env vars, bring the stack up. Two containers: docker-mailserver plus the API.</p>
+            <code>docker compose up -d</code>
+          </div>
+          <div class="step reveal">
+            <h3>DNS</h3>
+            <p>The wizard prints the exact A / MX / SPF / DKIM / DMARC records to paste into your provider.</p>
+            <code>./deploy/dns-records.sh</code>
+          </div>
+          <div class="step reveal">
+            <h3>Verify</h3>
+            <p>Thirteen checks: DNS, TLS, port 25, blocklists, PTR. Fix what it flags before your agents depend on it.</p>
+            <code>./deploy/doctor.sh</code>
+          </div>
+          <div class="step reveal">
+            <h3>Create an identity</h3>
+            <p>One API call mints an address and its scoped token. Hand the token to your agent — never the admin key.</p>
+            <code>POST /v1/identities → fox-k7d2@yourdomain</code>
+          </div>
+          <div class="step reveal">
+            <h3>Receive</h3>
+            <p>The agent waits on the inbox; the signup mail arrives; the OTP comes back parsed and ready to type.</p>
+            <code>mail_wait_for → otp.codes[0]</code>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 6 ── STATS + CAPABILITIES ──────────────────────────────────────── -->
+    <section>
+      <div class="wrap">
+        <div class="stats">
+          <div class="stat reveal"><div class="n" data-count="6">0</div><div class="l">REST endpoints</div></div>
+          <div class="stat reveal"><div class="n" data-count="6">0</div><div class="l">MCP tools</div></div>
+          <div class="stat reveal"><div class="n" data-count="44">0</div><div class="l">automated tests</div></div>
+          <div class="stat reveal"><div class="n" data-count="0">0</div><div class="l">bytes of mail leaving your infra</div></div>
+        </div>
+        <div class="caplist reveal">
+          <h3>REST API</h3>
+          <ul>
+            <li><code>POST /v1/identities</code> — mint an address + scoped token</li>
+            <li><code>POST /v1/identities/:a/token</code> — rotate (revoke) a token</li>
+            <li><code>DELETE /v1/identities/:a</code> — retire an identity</li>
+            <li><code>GET /v1/messages</code> — list an inbox</li>
+            <li><code>GET /v1/messages/:id</code> — full mail + parsed OTP</li>
+            <li><code>POST /v1/messages/wait</code> — long-poll for new mail</li>
+            <li><code>POST /v1/send</code> — send as any identity you own</li>
+          </ul>
+          <h3>MCP tools</h3>
+          <ul>
+            <li><code>mail_new_identity</code></li>
+            <li><code>mail_list_identities</code></li>
+            <li><code>mail_list_messages</code></li>
+            <li><code>mail_read_message</code></li>
+            <li><code>mail_wait_for</code></li>
+            <li><code>mail_send</code></li>
+          </ul>
+          <h3>Extraction corpus</h3>
+          <ul>
+            <li>Google, GitHub, Amazon, Microsoft, OpenAI, Discord</li>
+            <li>阿里云, 腾讯云, 网易</li>
+            <li>Verification / reset / magic links</li>
+            <li>Codes split across HTML tags</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- 7 ── OTP SPOTLIGHT ─────────────────────────────────────────────── -->
+    <section>
+      <div class="wrap">
+        <p class="kicker reveal">The core trick</p>
+        <h2 class="reveal">Raw mail in. Structured OTP out.</h2>
+        <p class="sub reveal">
+          Agents shouldn't parse MIME. Every message comes back with codes and action links already
+          extracted — and the raw text and HTML right there when extraction isn't enough.
+        </p>
+        <div class="otp-demo" style="margin-top: 2.5rem">
+          <div class="mailbox-raw reveal" set:html={rawMail}></div>
+          <div class="otp-arrow reveal">→</div>
+          <div class="mailbox-json reveal" set:html={jsonOut}></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 8 ── COMPARISON ────────────────────────────────────────────────── -->
+    <section>
+      <div class="wrap">
+        <p class="kicker reveal">Compared to the alternatives</p>
+        <h2 class="reveal">Different choices, made honestly.</h2>
+        <div class="cmp reveal" style="margin-top: 2.5rem">
+          <table>
+            <thead>
+              <tr>
+                <th></th>
+                <th class="us">openagent.email</th>
+                <th>AgentMail</th>
+                <th>MailSlurp</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>Open source</td><td class="us"><span class="yes">✓</span> Apache-2.0</td><td><span class="no">✗</span></td><td><span class="no">✗</span></td></tr>
+              <tr><td>Self-hosted</td><td class="us"><span class="yes">✓</span></td><td><span class="no">✗</span></td><td><span class="no">✗</span></td></tr>
+              <tr><td>Price</td><td class="us">Flat VPS cost (~$5/mo)</td><td>Per-inbox subscription</td><td>Usage-based subscription</td></tr>
+              <tr><td>Unlimited inboxes</td><td class="us"><span class="yes">✓</span> catch-all</td><td>Paid tiers</td><td>Paid tiers</td></tr>
+              <tr><td>MCP-native</td><td class="us"><span class="yes">✓</span></td><td><span class="yes">✓</span></td><td><span class="no">✗</span> REST/SDKs</td></tr>
+              <tr><td>OTP / link extraction</td><td class="us"><span class="yes">✓</span></td><td><span class="yes">✓</span></td><td><span class="yes">✓</span></td></tr>
+              <tr><td>Data leaves your infra</td><td class="us"><span class="yes">Never</span></td><td>Always</td><td>Always</td></tr>
+              <tr><td>You run a server</td><td class="us">Yes — that's the point</td><td>No</td><td>No</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="honest reveal">
+          To be fair: if you never want to touch a VPS, a hosted service is genuinely easier. We
+          think owning the mailbox — the OTPs, the links, the reputation — is worth ten minutes of
+          setup. Your call.
+        </p>
+      </div>
+    </section>
+
+    <!-- 9 ── OPEN SOURCE + FINAL CTA ───────────────────────────────────── -->
+    <section class="oss">
+      <div class="wrap">
+        <p class="kicker reveal">Open source</p>
+        <h2 class="reveal">Yours to run, read, and fork.</h2>
+        <p class="sub reveal" style="margin-left: auto; margin-right: auto">
+          The API, the MCP server, the deploy tooling — all public, all auditable. Run it on a
+          Raspberry Pi or a fleet. Contribute back when you want to.
+        </p>
+        <div class="reveal"><span class="badge">Apache-2.0</span></div>
+      </div>
+    </section>
+
+    <section class="final">
+      <div class="wrap">
+        <h2 class="reveal">Ready to give your agents<br /><span class="gold">their own inbox?</span></h2>
+        <div class="cta-row reveal">
+          <a class="btn btn-gold" href="https://github.com/openagentemail/openagentemail">Star on GitHub</a>
+          <a class="btn btn-ghost" href="https://github.com/openagentemail/openagentemail/tree/main/docs">Read the docs</a>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      <div class="wrap">
+        <div class="cols">
+          <div>
+            <a class="brand" href="/" style="display: flex; align-items: center; gap: 0.6rem; font-weight: 700; text-decoration: none">
+              <img src="/favicon.svg" alt="" style="width: 26px; height: 26px" />
+              openagent<span class="gold">.email</span>
+            </a>
+            <p class="tagline">
+              Self-hosted email for AI agents. Unlimited inboxes on your own domain — your mail
+              never leaves a machine you own.
+            </p>
+          </div>
+          <div>
+            <h4>Product</h4>
+            <ul>
+              <li><a href="https://github.com/openagentemail/openagentemail">GitHub</a></li>
+              <li><a href="https://github.com/openagentemail/openagentemail#quickstart">Quickstart</a></li>
+              <li><a href="https://github.com/openagentemail/openagentemail/releases">Changelog</a></li>
+            </ul>
+          </div>
+          <div>
+            <h4>Docs</h4>
+            <ul>
+              <li><a href="https://github.com/openagentemail/openagentemail/blob/main/docs/api.md">API reference</a></li>
+              <li><a href="https://github.com/openagentemail/openagentemail/blob/main/docs/security.md">Security</a></li>
+              <li><a href="https://github.com/openagentemail/openagentemail/blob/main/docs/mcp-clients.md">MCP setup</a></li>
+              <li><a href="https://github.com/openagentemail/openagentemail/blob/main/docs/deliverability.md">Deliverability</a></li>
+            </ul>
+          </div>
+          <div>
+            <h4>Project</h4>
+            <ul>
+              <li><a href="https://github.com/openagentemail/openagentemail/blob/main/LICENSE">Apache-2.0 License</a></li>
+              <li><a href="https://github.com/openagentemail/openagentemail/blob/main/CONTRIBUTING.md">Contributing</a></li>
+              <li><a href="https://github.com/openagentemail/openagentemail/issues">Issues</a></li>
+            </ul>
+          </div>
+        </div>
+        <div class="bottom">
+          <span>© 2026 openagent.email</span>
+          <span class="spacer" style="flex: 1"></span>
+          <span>No framework, no bloat — this page opens instantly, even on hotel Wi-Fi.</span>
+        </div>
+      </div>
+    </footer>
+
+    <script>
+      // ── terminal typing loop ──────────────────────────────────────────
+      const SCRIPT = [
+        { t: 'cmd',  text: '$ docker compose up -d\n', speed: 34 },
+        { t: 'ok',   text: ' ✔ openagent-mailserver  Healthy\n ✔ openagent-api         Healthy\n\n', speed: 8 },
+        { t: 'cmd',  text: '$ curl -X POST $API/v1/identities -d \'{"name":"signup-bot"}\'\n', speed: 26 },
+        { t: 'json', text: ' {"address":"fox-k7d2@openagent.email","token":"oa_8f3k…"}\n\n', speed: 10 },
+        { t: 'cmd',  text: '$ agent: mail_wait_for(subjectContains: "verify")\n', speed: 26 },
+        { t: 'wait', text: ' ⏳ waiting for mail', speed: 30 },
+        { t: 'wait', text: ' …', speed: 400 },
+        { t: 'ok',   text: '\n 📩 new mail from noreply@github.com\n', speed: 12 },
+        { t: 'json', text: ' {"otp":{"codes":["59162834"],"links":["https://github.com/…/confirm_verification/…"]}}\n\n', speed: 8 },
+        { t: 'dim',  text: ' # code extracted. agent proceeds with signup. ✔\n', speed: 16 },
+      ];
+      const CLS = { cmd: 't-cmd', ok: 't-ok', json: 't-json', dim: 't-dim', wait: 't-wait' };
+
+      function runTerminal() {
+        const out = document.getElementById('term-out');
+        if (!out) return;
+        const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        if (reduce) {
+          out.innerHTML = SCRIPT.map((l) => `<span class="${CLS[l.t]}">${esc(l.text)}</span>`).join('');
+          return;
+        }
+        let line = 0;
+        function typeLine() {
+          if (line >= SCRIPT.length) {
+            setTimeout(() => { out.innerHTML = ''; line = 0; typeLine(); }, 6000);
+            return;
+          }
+          const { t, text, speed } = SCRIPT[line];
+          const span = document.createElement('span');
+          span.className = CLS[t];
+          out.appendChild(span);
+          let i = 0;
+          (function tick() {
+            span.textContent = text.slice(0, ++i);
+            if (i < text.length) setTimeout(tick, speed);
+            else { line++; setTimeout(typeLine, t === 'cmd' ? 350 : 120); }
+          })();
+        }
+        typeLine();
+      }
+      function esc(s) {
+        return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      }
+
+      // ── scroll reveal ─────────────────────────────────────────────────
+      const io = new IntersectionObserver(
+        (entries) => entries.forEach((e) => e.isIntersecting && e.target.classList.add('in')),
+        { threshold: 0.12 },
+      );
+      document.querySelectorAll('.reveal').forEach((el) => io.observe(el));
+      // Fallback: anything already in view at load is shown immediately —
+      // covers IO-less environments and avoids a first-paint flash.
+      document.querySelectorAll('.reveal').forEach((el) => {
+        if (el.getBoundingClientRect().top < window.innerHeight) el.classList.add('in');
+      });
+
+      // ── how-it-works: light the step rail as you scroll ───────────────
+      const stepIO = new IntersectionObserver(
+        (entries) => entries.forEach((e) => e.target.classList.toggle('lit', e.isIntersecting)),
+        { rootMargin: '-35% 0px -35% 0px' },
+      );
+      document.querySelectorAll('#steps .step').forEach((el) => stepIO.observe(el));
+
+      // ── spotlight cards ───────────────────────────────────────────────
+      document.querySelectorAll('.card').forEach((card) => {
+        card.addEventListener('mousemove', (ev) => {
+          const r = card.getBoundingClientRect();
+          card.style.setProperty('--mx', `${ev.clientX - r.left}px`);
+          card.style.setProperty('--my', `${ev.clientY - r.top}px`);
+        });
+      });
+
+      // ── stat counters ─────────────────────────────────────────────────
+      const countIO = new IntersectionObserver((entries) => {
+        entries.forEach((e) => {
+          if (!e.isIntersecting) return;
+          countIO.unobserve(e.target);
+          const target = Number(e.target.dataset.count);
+          if (window.matchMedia('(prefers-reduced-motion: reduce)').matches || target === 0) {
+            e.target.textContent = String(target);
+            return;
+          }
+          const t0 = performance.now();
+          (function step(now) {
+            const p = Math.min(1, (now - t0) / 1200);
+            e.target.textContent = String(Math.round(target * (1 - Math.pow(1 - p, 3))));
+            if (p < 1) requestAnimationFrame(step);
+          })(t0);
+        });
+      }, { threshold: 0.6 });
+      document.querySelectorAll('[data-count]').forEach((el) => countIO.observe(el));
+
+      // ── copy buttons ──────────────────────────────────────────────────
+      document.querySelectorAll('.copy-btn').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+          try {
+            await navigator.clipboard.writeText(btn.dataset.copy);
+            btn.textContent = 'copied ✓';
+            btn.classList.add('copied');
+            setTimeout(() => { btn.textContent = 'copy'; btn.classList.remove('copied'); }, 1800);
+          } catch { /* clipboard blocked — user selects manually */ }
+        });
+      });
+
+      // ── hero envelopes: spring-follow the cursor ─────────────────────
+      // Nearest envelope within FOLLOW_R gets attracted and trails the
+      // mouse with a laggy spring + velocity tilt; the rest idle-bob at
+      // home. Mouse leaves the hero → follower glides back home.
+      function initEnvelopes() {
+        const hero = document.querySelector('.hero');
+        const els = [...document.querySelectorAll('.env')];
+        if (!hero || els.length === 0) return;
+        const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const finePointer = window.matchMedia('(pointer: fine)').matches;
+        const FOLLOW_R = 460;
+
+        let rect = hero.getBoundingClientRect();
+        const remeasure = () => { rect = hero.getBoundingClientRect(); };
+        addEventListener('resize', remeasure);
+        addEventListener('scroll', remeasure, { passive: true });
+
+        const specs = els.map((el, i) => ({
+          el,
+          // NOTE: SVG elements have no offsetWidth — measure via BCR once,
+          // before any transform is applied.
+          w: el.getBoundingClientRect().width,
+          h: el.getBoundingClientRect().height,
+          px: parseFloat(el.dataset.x) / 100, // home, as a fraction of hero size
+          py: parseFloat(el.dataset.y) / 100,
+          rot: parseFloat(el.dataset.rot || '0'),
+          phase: i * 2.1,
+          x: 0, y: 0,
+        }));
+        const homeX = (s) => s.px * rect.width - s.w / 2;
+        const homeY = (s) => s.py * rect.height - s.h / 2;
+
+        if (reduce) {
+          for (const s of specs) {
+            s.el.style.transform = `translate(${homeX(s)}px, ${homeY(s)}px) rotate(${s.rot}deg)`;
+          }
+          return; // CSS forces opacity:1 under reduced-motion
+        }
+
+        // entrance: start up-right of home, the spring pulls them in
+        for (const s of specs) {
+          s.x = homeX(s) + 180;
+          s.y = homeY(s) - 110;
+          // apply synchronously so the resting spot is never (0,0)
+          s.el.style.transform = `translate(${s.x}px, ${s.y}px) rotate(${s.rot}deg)`;
+        }
+        els.forEach((el, i) => setTimeout(() => { el.style.opacity = '1'; }, 250 + i * 200));
+
+        // watchdog: environments where rAF never fires (some headless
+        // renderers) would leave the envelopes frozen — settle them home.
+        let framesRan = 0;
+        setTimeout(() => {
+          if (framesRan > 0) return;
+          for (const s of specs) {
+            s.el.style.transform = `translate(${homeX(s)}px, ${homeY(s)}px) rotate(${s.rot}deg)`;
+          }
+        }, 1500);
+
+        let mouse = null;
+        hero.addEventListener('mousemove', (e) => {
+          mouse = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+        });
+        hero.addEventListener('mouseleave', () => { mouse = null; });
+
+        function frame(t) {
+          framesRan++;
+          const time = t / 1000;
+          // pick the attracted envelope: nearest home within radius
+          let follower = null;
+          if (mouse && finePointer) {
+            let best = FOLLOW_R;
+            for (const s of specs) {
+              const d = Math.hypot(mouse.x - homeX(s), mouse.y - homeY(s));
+              if (d < best) { best = d; follower = s; }
+            }
+          }
+          for (const s of specs) {
+            const bob = Math.sin(time * 1.5 + s.phase) * 6;
+            let tx, ty;
+            if (s === follower) {
+              // trail behind-left of the cursor so text stays readable
+              tx = mouse.x - 160;
+              ty = mouse.y - 70 + bob * 0.4;
+            } else {
+              tx = homeX(s);
+              ty = homeY(s) + bob;
+            }
+            const k = s === follower ? 0.085 : 0.05; // spring stiffness
+            const px = s.x;
+            s.x += (tx - s.x) * k;
+            s.y += (ty - s.y) * k;
+            const vx = s.x - px;
+            const tilt = s === follower ? Math.max(-16, Math.min(16, vx * 1.1)) : 0;
+            s.el.style.transform = `translate(${s.x}px, ${s.y}px) rotate(${s.rot + tilt}deg)`;
+          }
+          requestAnimationFrame(frame);
+        }
+        requestAnimationFrame(frame);
+      }
+      initEnvelopes();
+
+      runTerminal();
+    </script>
+  </body>
+</html>
