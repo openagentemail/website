@@ -1,0 +1,46 @@
+/* Starlight theme overrides — match openagent.email brand:
+   Satoshi typeface, #0c0d12 dark canvas, #fbbf24 amber accent. */
+
+@font-face {
+  font-family: 'Satoshi';
+  src: url('/fonts/Satoshi-Regular.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Satoshi';
+  src: url('/fonts/Satoshi-Medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Satoshi';
+  src: url('/fonts/Satoshi-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --sl-font: 'Satoshi', ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Amber accent — darker variant for light theme so links stay readable */
+:root[data-theme='light'] {
+  --sl-color-accent-low: #fef3c7;
+  --sl-color-accent: #b45309;
+  --sl-color-accent-high: #451a03;
+}
+
+:root[data-theme='dark'] {
+  --sl-color-accent-low: #453a12;
+  --sl-color-accent: #fbbf24;
+  --sl-color-accent-high: #fde9c8;
+  --sl-color-bg: #0c0d12;
+  --sl-color-bg-nav: #0c0d12;
+  --sl-color-bg-sidebar: #0c0d12;
+  --sl-color-gray-6: #17181f;
+  --sl-color-gray-5: #23242e;
+}

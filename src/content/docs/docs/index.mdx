@@ -1,0 +1,46 @@
+---
+title: openagent.email docs
+description: Self-hosted email for AI agents — unlimited mailboxes on your own domain, over REST and MCP.
+---
+
+import { Card, CardGrid } from '@astrojs/starlight/components';
+
+**openagent.email is self-hosted email for AI agents.** One `docker compose up` on
+your own VPS gives every agent you run unlimited real mailboxes on your own
+domain — over REST and MCP — with OTP codes and verification links extracted
+for you. No per-inbox pricing, and no third party ever sees your mail.
+
+Why that last point matters: the mail your agent reads is mostly **login codes
+and magic links** — credentials, in other words. Keeping them on hardware you
+own is the whole idea.
+
+<CardGrid>
+  <Card title="Quickstart" icon="rocket">
+    Zero to a working agent mailbox in about 10 minutes.
+    [Start here](/docs/quickstart/).
+  </Card>
+  <Card title="Guides" icon="open-book">
+    The three things that make or break a mail server:
+    [DNS setup](/docs/guides/dns-setup/) ·
+    [Deliverability](/docs/guides/deliverability/) ·
+    [Security](/docs/guides/security/)
+  </Card>
+  <Card title="Reference" icon="document">
+    [REST API](/docs/reference/api/) ·
+    [MCP client setup](/docs/reference/mcp-clients/)
+  </Card>
+  <Card title="Source" icon="github">
+    Apache-2.0 on
+    [GitHub](https://github.com/openagentemail/openagentemail).
+    Issues and PRs welcome.
+  </Card>
+</CardGrid>
+
+## How it works
+
+1. **One catch-all mailbox** on your domain receives everything —
+   `anything@yourdomain` lands in it, no per-address setup.
+2. **The API sits in front** — create named identities (`fox-k7d2@yourdomain`),
+   each with its own scoped token that can only read and send as that address.
+3. **Your agent calls REST or MCP** — list/read/wait-for mail, with OTP codes
+   and verification links already parsed out of the message body.
