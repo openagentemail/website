@@ -28,7 +28,6 @@ const jsonOut = `{
 ---
 
 <!doctype html>
-<!-- autodeploy-test-20260727 -->
 <html lang="en">
   <head>
     <meta charset="utf-8" />
@@ -99,9 +98,20 @@ const jsonOut = `{
           <a class="btn btn-gold" href="https://github.com/openagentemail/openagentemail">Get started on GitHub</a>
           <a class="btn btn-ghost" href="#demo">See it work ↓</a>
         </div>
-        <div class="cmdline stagger stagger-5">
-          <span class="cmd">git clone …/openagentemail && cd openagentemail && docker compose up -d</span>
-          <button class="copy-btn" data-copy="git clone https://github.com/openagentemail/openagentemail.git && cd openagentemail && cp .env.example .env && docker compose up -d">copy</button>
+        <div class="install-row stagger stagger-5">
+          <div class="cmdline">
+            <span class="cmd">git clone …/openagentemail && cd openagentemail && docker compose up -d</span>
+            <button class="copy-btn" data-copy="git clone https://github.com/openagentemail/openagentemail.git && cd openagentemail && cp .env.example .env && docker compose up -d">copy</button>
+          </div>
+          <a
+            class="npm-badge"
+            href="https://www.npmjs.com/package/@openagentemail/mcp"
+            target="_blank"
+            rel="noopener"
+            title="MCP server on npm — npx -y @openagentemail/mcp"
+          >
+            <img src="https://img.shields.io/npm/v/@openagentemail/mcp?logo=npm" alt="@openagentemail/mcp on npm" />
+          </a>
         </div>
       </div>
     </header>

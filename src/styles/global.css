@@ -146,6 +146,11 @@ nav a.navlink:hover { color: var(--gold); }
 .copy-btn:hover { border-color: var(--gold); color: var(--gold); }
 .copy-btn.copied { border-color: var(--green); color: var(--green); transform: scale(1.06); }
 
+/* ── hero install row: cmdline + npm badge side by side ──────────────── */
+.install-row { display: flex; align-items: center; gap: 0.9rem; flex-wrap: wrap; }
+.npm-badge { display: inline-flex; margin-top: 1.6rem; }
+.npm-badge img { display: block; height: 26px; border-radius: 5px; }
+
 /* envelopes: JS-driven spring-follow (see script); CSS handles fade-in only */
 .envs { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
 .env {
