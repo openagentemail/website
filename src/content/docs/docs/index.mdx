@@ -43,4 +43,7 @@ own is the whole idea.
 2. **The API sits in front** — create named identities (`fox-k7d2@yourdomain`),
    each with its own scoped token that can only read and send as that address.
 3. **Your agent calls REST or MCP** — list/read/wait-for mail, with OTP codes
-   and verification links already parsed out of the message body.
+   and verification links already parsed out of the message body, and mark
+   messages handled when it's done with them.
+4. **You watch from the dashboard** — open `/ui` in a browser, paste a token,
+   and see every identity, unread counts, and each message as it arrives.

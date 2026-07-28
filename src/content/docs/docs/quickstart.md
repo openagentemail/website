@@ -91,3 +91,16 @@ client at it:
 Client-specific setup (Claude Code, Cursor, Kimi Code…):
 [MCP client setup](/docs/reference/mcp-clients/). Every REST endpoint:
 [API reference](/docs/reference/api/).
+
+## 8. Watch from your browser
+
+The agent works the mailbox on its own from here. To see what it's doing,
+open `http://localhost:3100/ui` and paste the admin key (or any identity
+token). The dashboard shows every identity, its unread count, and each
+message with codes and links already extracted — and you can mark messages
+read or unread. Tick **Trust this device** at sign-in to stay logged in on
+that browser for 30 days.
+
+Want to reach the dashboard from other machines? Give it a real hostname
+with HTTPS, proxying only the `/ui` path — details in
+[Security](/docs/guides/security/).
