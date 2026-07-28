@@ -54,6 +54,16 @@ is the only extra DNS you need.
 (VPN/Tailscale) or a firewall that whitelists your agent hosts. Never raw on
 the public internet.
 
+**The web inbox (`/ui`) follows the same rule — and enforces it.** The API
+serves a browser inbox at `/ui` so you (the human) can watch what every
+address receives. Its session cookie is set `Secure` on anything that isn't
+plain-http localhost, by design: over naked HTTP on a public IP the login
+simply won't stick. Either open it through the SSH tunnel
+(`http://localhost:3100/ui`), or give it a real hostname with HTTPS — e.g.
+`inbox.yourdomain`, proxying only the `/ui` path to `127.0.0.1:3100`. A
+proper domain plus certificate is the recommended setup as soon as more than
+one person or device needs the inbox.
+
 ## 3. Send rate limit
 
 Every identity is capped at `SEND_RATE_LIMIT` messages per rolling hour
