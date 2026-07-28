@@ -27,6 +27,7 @@ From a local checkout the server starts with
 | `mail_list_identities()` | List all identities |
 | `mail_list_messages(address, limit?)` | List an inbox |
 | `mail_read_message(address, id)` | Full message with `otp.codes` / `otp.links` extracted |
+| `mail_mark_seen(address, id, seen?)` | Mark read (default) or unread — reading never changes the flag by itself |
 | `mail_wait_for(address, fromContains?, subjectContains?, timeoutSec?)` | Block until a matching message arrives (default 120s, max 600s) |
 | `mail_send(from, to, subject, text, html?)` | Send from an existing identity |
 

@@ -119,6 +119,20 @@ curl "$API/v1/messages/42?address=fox-k7d2@example.com" \
 `otp.links` holds URLs that look like verification/confirmation links. Both are
 best-effort extraction — the raw `text`/`html` are always there as fallback.
 
+## `POST /v1/messages/:id/seen`
+
+Mark a message read (`"seen":true`) or unread (`"seen":false`). Reading a
+message never changes the flag by itself — agents call this after processing a
+message, so the unseen count means "not yet handled". Returns 404 when the
+message is not addressed to `address`.
+
+```bash
+curl -X POST $API/v1/messages/42/seen \
+  -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" \
+  -d '{"address":"fox-k7d2@example.com","seen":true}'
+# → 200 {"id":"42","seen":true}
+```
+
 ## `POST /v1/messages/wait`
 
 Long-poll until a matching message arrives. This is the workhorse for automated
