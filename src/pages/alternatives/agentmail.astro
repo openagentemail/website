@@ -1,0 +1,114 @@
+---
+import Legal from '../../layouts/Legal.astro';
+---
+
+<Legal
+  title="OpenAgent.email vs AgentMail"
+  description="AgentMail is a hosted email API for AI agents. openagent.email is the open-source, self-hosted alternative: unlimited inboxes on your own domain, free forever."
+>
+  <h1>OpenAgent.email <span style="color: var(--ink-faint)">vs</span> AgentMail</h1>
+  <p class="updated">Last checked July 28, 2026 · Something outdated? <a href="https://github.com/openagentemail/openagentemail/issues">Open an issue</a></p>
+
+  <p class="lede">
+    AgentMail is a hosted email API for AI agents. openagent.email is the same idea as
+    open-source software you run yourself: unlimited inboxes on your own domain, and your mail
+    never leaves a machine you own.
+  </p>
+
+  <h2>Side by side</h2>
+  <table class="compare">
+    <thead>
+      <tr><th></th><th>openagent.email</th><th>AgentMail</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>What it is</td>
+        <td>Open-source software (Apache-2.0) you self-host</td>
+        <td>Hosted SaaS</td>
+      </tr>
+      <tr>
+        <td>Where your mail lives</td>
+        <td>On your own server</td>
+        <td>On their infrastructure</td>
+      </tr>
+      <tr>
+        <td>Cost model</td>
+        <td>Free software + your own VPS (~$5/mo covers everything)</td>
+        <td>Subscription that scales with usage; limited free tier</td>
+      </tr>
+      <tr>
+        <td>Inboxes</td>
+        <td>Unlimited, on your own domain</td>
+        <td>Limited by plan</td>
+      </tr>
+      <tr>
+        <td>Interfaces</td>
+        <td>REST API, MCP server, built-in human dashboard</td>
+        <td>REST API, websockets, webhooks</td>
+      </tr>
+      <tr>
+        <td>OTP &amp; verification-link extraction</td>
+        <td>Built in — codes and links parsed out of incoming mail automatically</td>
+        <td>—</td>
+      </tr>
+      <tr>
+        <td>Lock-in</td>
+        <td>None. Standard SMTP/IMAP underneath; all data is yours</td>
+        <td>Your mail data lives in their platform</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>Choose AgentMail if</h2>
+  <ul>
+    <li>You never want to run or maintain a server, period.</li>
+    <li>You'd rather pay usage fees than own infrastructure.</li>
+    <li>You want a vendor to own uptime and deliverability for you.</li>
+  </ul>
+
+  <h2>Choose openagent.email if</h2>
+  <ul>
+    <li>You want unlimited agent inboxes at a fixed, near-zero cost.</li>
+    <li>Your agents' mail should never leave your own machine — privacy, compliance, or just principle.</li>
+    <li>You want every agent on your own domain, with a dashboard for humans included.</li>
+    <li>You like your tools open, auditable, and forkable.</li>
+  </ul>
+
+  <div class="cta-row">
+    <a class="btn btn-gold" href="https://github.com/openagentemail/openagentemail">Star on GitHub</a>
+    <a class="btn btn-ghost" href="/docs/quickstart/">10-minute quickstart</a>
+  </div>
+</Legal>
+
+<style>
+  .compare {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0 0.5rem;
+    font-size: 0.92rem;
+  }
+  .compare th,
+  .compare td {
+    text-align: left;
+    padding: 0.65rem 0.8rem;
+    border: 1px solid var(--line);
+    vertical-align: top;
+    color: var(--ink-dim);
+    line-height: 1.55;
+  }
+  .compare th {
+    color: var(--ink);
+    font-size: 0.85rem;
+  }
+  .compare td:first-child {
+    color: var(--ink);
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  .cta-row {
+    display: flex;
+    gap: 0.8rem;
+    margin-top: 2.5rem;
+    flex-wrap: wrap;
+  }
+</style>

@@ -25,6 +25,61 @@ const jsonOut = `{
     ]
   }
 }`;
+
+// FAQ — visible section below AND FAQPage JSON-LD (Google requires the marked-up
+// content to be on the page, so both render from this single source).
+const faq = [
+  {
+    q: 'Is it really free?',
+    a: 'Yes. openagent.email is open source under the Apache-2.0 license — no paid tier, no usage limits, no per-inbox pricing. The only thing you pay for is the server you run it on, and a $5/mo VPS is enough.',
+  },
+  {
+    q: 'How is it different from AgentMail?',
+    a: 'AgentMail is a hosted service with usage-based pricing. openagent.email is software you run yourself: unlimited inboxes on your own domain, and your mail never leaves a machine you own. See the full comparison at /alternatives/agentmail.',
+  },
+  {
+    q: 'Do I need my own domain?',
+    a: 'Yes — any domain you own, about $10/year. One domain gives every agent you run its own address (agent1@yourdomain, agent2@yourdomain, …). The docs walk through the DNS records step by step.',
+  },
+  {
+    q: 'What agents and clients does it work with?',
+    a: 'Anything that speaks MCP — Claude Code, Claude Desktop, Cursor, and friends — via the @openagentemail/mcp server, plus a plain HTTPS REST API for everything else.',
+  },
+  {
+    q: 'Will my mail land in spam?',
+    a: 'Deliverability depends on your own IP and domain reputation, which the deliverability guide covers: SPF, DKIM and DMARC are set up for you, and you can relay outbound through Amazon SES if your VPS provider blocks port 25.',
+  },
+  {
+    q: 'Is there a UI for humans?',
+    a: 'Yes. Every install ships a built-in dashboard at /ui where you can see all your agent identities, read their inboxes, and mark messages read or unread.',
+  },
+];
+
+const softwareJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'SoftwareApplication',
+  name: 'openagent.email',
+  applicationCategory: 'DeveloperApplication',
+  operatingSystem: 'Any (Docker)',
+  description:
+    'Open-source, self-hosted email for AI agents. Unlimited inboxes on your own domain, with OTP and verification-link extraction built in. REST API and MCP server.',
+  url: 'https://openagent.email',
+  license: 'https://www.apache.org/licenses/LICENSE-2.0',
+  isAccessibleForFree: true,
+  offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+  codeRepository: 'https://github.com/openagentemail/openagentemail',
+  downloadUrl: 'https://www.npmjs.com/package/@openagentemail/mcp',
+};
+
+const faqJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: faq.map((item) => ({
+    '@type': 'Question',
+    name: item.q,
+    acceptedAnswer: { '@type': 'Answer', text: item.a },
+  })),
+};
 ---
 
 <!doctype html>
@@ -50,6 +105,8 @@ const jsonOut = `{
     <meta property="og:image" content="https://openagent.email/og.png" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:image" content="https://openagent.email/og.png" />
+    <script type="application/ld+json" set:html={JSON.stringify(softwareJsonLd)} />
+    <script type="application/ld+json" set:html={JSON.stringify(faqJsonLd)} />
     <script defer src="https://stats.openagent.email/script.js" data-website-id="86e6eaf7-473c-4c8d-a9bf-ea48c13742c5"></script>
   </head>
   <body>
@@ -406,6 +463,24 @@ const jsonOut = `{
       </div>
     </section>
 
+    <!-- 8.7 ── FAQ ────────────────────────────────────────────────────── -->
+    <section>
+      <div class="wrap">
+        <p class="kicker reveal">FAQ</p>
+        <h2 class="reveal">Questions people actually ask.</h2>
+        <div class="faq reveal">
+          {
+            faq.map((item) => (
+              <details>
+                <summary>{item.q}</summary>
+                <p>{item.a}</p>
+              </details>
+            ))
+          }
+        </div>
+      </div>
+    </section>
+
     <!-- 9 ── OPEN SOURCE + FINAL CTA ───────────────────────────────────── -->
     <section class="oss">
       <div class="wrap">
@@ -448,6 +523,8 @@ const jsonOut = `{
               <li><a href="https://github.com/openagentemail/openagentemail">GitHub</a></li>
               <li><a href="https://github.com/openagentemail/openagentemail#quickstart">Quickstart</a></li>
               <li><a href="https://github.com/openagentemail/openagentemail/releases">Changelog</a></li>
+              <li><a href="/alternatives/agentmail">vs AgentMail</a></li>
+              <li><a href="/alternatives/mailslurp">vs MailSlurp</a></li>
             </ul>
           </div>
           <div>
@@ -689,5 +766,52 @@ const jsonOut = `{
 
       runTerminal();
     </script>
+
+    <style>
+      .faq {
+        margin-top: 2.5rem;
+        max-width: 46rem;
+        display: grid;
+        gap: 0.8rem;
+      }
+      .faq details {
+        background: var(--bg-card);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        padding: 1.05rem 1.3rem;
+        transition: border-color 0.2s ease;
+      }
+      .faq details[open] {
+        border-color: var(--line-strong);
+      }
+      .faq summary {
+        cursor: pointer;
+        font-weight: 700;
+        list-style: none;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+      }
+      .faq summary::-webkit-details-marker {
+        display: none;
+      }
+      .faq summary::after {
+        content: '+';
+        color: var(--gold);
+        font-size: 1.25rem;
+        font-weight: 400;
+        flex-shrink: 0;
+        transition: transform 0.2s ease;
+      }
+      .faq details[open] summary::after {
+        transform: rotate(45deg);
+      }
+      .faq details p {
+        margin: 0.7rem 0 0.2rem;
+        color: var(--ink-dim);
+        line-height: 1.7;
+      }
+    </style>
   </body>
 </html>
