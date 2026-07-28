@@ -1,0 +1,94 @@
+---
+import '../styles/global.css';
+
+interface Props {
+  title: string;
+  description: string;
+}
+
+const { title, description } = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title} — openagent.email</title>
+    <meta name="description" content={description} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preload" href="/fonts/Satoshi-Regular.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/Satoshi-Bold.woff2" as="font" type="font/woff2" crossorigin />
+    <script defer src="https://stats.openagent.email/script.js" data-website-id="86e6eaf7-473c-4c8d-a9bf-ea48c13742c5"></script>
+  </head>
+  <body>
+    <nav>
+      <div class="wrap">
+        <a class="brand" href="/">
+          <img src="/favicon.svg" alt="" />
+          <span>openagent<span class="gold">.email</span></span>
+        </a>
+        <span class="spacer"></span>
+        <a class="navlink" href="/docs/">Docs</a>
+        <a class="navlink" href="https://github.com/openagentemail/openagentemail">GitHub</a>
+      </div>
+    </nav>
+
+    <main class="legal wrap">
+      <slot />
+    </main>
+
+    <footer>
+      <div class="wrap">
+        <div class="bottom" style="border-top: none; padding-top: 0">
+          <span>© 2026 openagent.email</span>
+          <span class="spacer" style="flex: 1"></span>
+          <a href="/privacy">Privacy</a>
+          <a href="/terms">Terms</a>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>
+
+<style>
+  .legal {
+    max-width: 44rem;
+    padding: 3.5rem 1.5rem 5rem;
+  }
+  .legal h1 {
+    font-size: clamp(2rem, 5vw, 2.8rem);
+    margin-bottom: 0.4rem;
+  }
+  .legal .updated {
+    color: var(--ink-faint);
+    font-size: 0.85rem;
+    margin: 0 0 2.5rem;
+  }
+  .legal h2 {
+    font-size: 1.25rem;
+    margin: 2.2rem 0 0.6rem;
+  }
+  .legal p,
+  .legal li {
+    color: var(--ink-dim);
+    line-height: 1.7;
+  }
+  .legal ul {
+    padding-left: 1.2rem;
+    display: grid;
+    gap: 0.35rem;
+    margin: 0.6rem 0;
+  }
+  .legal a {
+    color: var(--gold);
+    text-decoration: none;
+  }
+  .legal a:hover {
+    text-decoration: underline;
+  }
+  .legal .lede {
+    font-size: 1.08rem;
+    color: var(--ink);
+  }
+</style>

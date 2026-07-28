@@ -17,6 +17,16 @@ export default defineConfig({
         { icon: 'github', label: 'GitHub', href: 'https://github.com/openagentemail/openagentemail' },
       ],
       customCss: ['./src/styles/starlight-custom.css'],
+      head: [
+        {
+          tag: 'script',
+          attrs: {
+            defer: true,
+            src: 'https://stats.openagent.email/script.js',
+            'data-website-id': '86e6eaf7-473c-4c8d-a9bf-ea48c13742c5',
+          },
+        },
+      ],
       sidebar: [
         {
           label: 'Start here',
