@@ -496,6 +496,10 @@ const faqJsonLd = {
 
     <section class="final">
       <div class="wrap">
+        <!-- Lottie: golden "email sent" — the closing send-off. Source: LottieFiles
+             "contact-email" by Deedy Intern Team (Lottie Simple License), recolored
+             to brand gold. Player: lottie-web v5.13.0 (MIT), vendored, loaded only here. -->
+        <div id="lottie-final" class="lottie-final reveal" aria-hidden="true"></div>
         <h2 class="reveal">Ready to give your agents<br /><span class="gold">their own inbox?</span></h2>
         <div class="cta-row reveal">
           <a class="btn btn-gold" href="https://github.com/openagentemail/openagentemail">Star on GitHub</a>
@@ -826,6 +830,42 @@ const faqJsonLd = {
         requestAnimationFrame(frame);
       }
       initEnvelopes();
+
+      // ── final CTA lottie (lazy load, reduced-motion aware) ─────────────
+      (function initFinalLottie() {
+        const host = document.getElementById('lottie-final');
+        if (!host) return;
+        const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        let anim = null;
+        const start = () => {
+          if (anim || !window.lottie) return;
+          anim = window.lottie.loadAnimation({
+            container: host,
+            renderer: 'svg',
+            loop: true,
+            autoplay: !reduce,
+            path: '/animations/email-sent.json',
+          });
+          if (reduce) {
+            // static golden envelope, no motion — content still complete
+            anim.addEventListener('DOMLoaded', () => anim.goToAndStop(60, true));
+          } else {
+            new IntersectionObserver((entries) => {
+              entries.forEach((en) => (en.isIntersecting ? anim.play() : anim.pause()));
+            }, { threshold: 0.15 }).observe(host);
+          }
+        };
+        const load = () => {
+          if (window.lottie) return start();
+          const s = document.createElement('script');
+          s.src = '/vendor/lottie_svg.min.js';
+          s.onload = start;
+          document.head.appendChild(s);
+        };
+        new IntersectionObserver((entries, io) => {
+          if (entries.some((en) => en.isIntersecting)) { io.disconnect(); load(); }
+        }, { rootMargin: '400px' }).observe(host);
+      })();
 
       runTerminal();
     </script>
