@@ -145,7 +145,7 @@ const faqJsonLd = {
         <p class="kicker stagger stagger-1">Open source · Self-hosted · Apache-2.0</p>
         <h1 class="stagger stagger-2">
           Email for your agents.<br />
-          <span class="outline-gold">Owned by you.</span>
+          <span class="foil-wrap"><span class="foil-stroke" aria-hidden="true">Owned by you.</span><span class="foil foil-fill">Owned by you.</span></span>
         </h1>
         <p class="sub stagger stagger-3">
           The open-source alternative to AgentMail. One <code>docker compose up</code> on your own
@@ -159,7 +159,7 @@ const faqJsonLd = {
         <div class="install-row stagger stagger-5">
           <div class="cmdline">
             <span class="cmd">git clone …/openagentemail && cd openagentemail && docker compose up -d</span>
-            <button class="copy-btn" data-copy="git clone https://github.com/openagentemail/openagentemail.git && cd openagentemail && cp .env.example .env && docker compose up -d">copy</button>
+            <button class="copy-btn" data-copy="git clone https://github.com/openagentemail/openagentemail.git && cd openagentemail && cp .env.example .env && docker compose up -d"><span class="copy-label">copy</span></button>
           </div>
           <a
             class="npm-badge"
@@ -557,6 +557,8 @@ const faqJsonLd = {
     </footer>
 
     <script>
+      import { pressPostmark } from '../scripts/postmark.js';
+
       // ── terminal typing loop ──────────────────────────────────────────
       const SCRIPT = [
         { t: 'cmd',  text: '$ docker compose up -d\n', speed: 34 },
@@ -622,13 +624,65 @@ const faqJsonLd = {
       );
       document.querySelectorAll('#steps .step').forEach((el) => stepIO.observe(el));
 
-      // ── spotlight cards ───────────────────────────────────────────────
+      // ── spotlight + fine-pointer card tilt ────────────────────────────
+      const cardFinePointer = window.matchMedia('(pointer: fine)').matches;
+      const reduceCardMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
       document.querySelectorAll('.card').forEach((card) => {
-        card.addEventListener('mousemove', (ev) => {
-          const r = card.getBoundingClientRect();
-          card.style.setProperty('--mx', `${ev.clientX - r.left}px`);
-          card.style.setProperty('--my', `${ev.clientY - r.top}px`);
-        });
+        let frame = 0;
+        let pointerX = 0;
+        let pointerY = 0;
+        let pointerIsTouch = false;
+        let resetTimer = 0;
+        const tiltEnabled = cardFinePointer && !reduceCardMotion;
+
+        card.addEventListener(
+          'pointermove',
+          (ev) => {
+            pointerX = ev.clientX;
+            pointerY = ev.clientY;
+            pointerIsTouch = ev.pointerType === 'touch';
+            if (frame) return;
+            frame = requestAnimationFrame(() => {
+              frame = 0;
+              const r = card.getBoundingClientRect();
+              if (!r.width || !r.height) return;
+              const x = Math.max(0, Math.min(r.width, pointerX - r.left));
+              const y = Math.max(0, Math.min(r.height, pointerY - r.top));
+              card.style.setProperty('--mx', `${x}px`);
+              card.style.setProperty('--my', `${y}px`);
+              if (pointerIsTouch || !tiltEnabled) return;
+
+              clearTimeout(resetTimer);
+              const rx = (7 - (y / r.height) * 14).toFixed(2);
+              const ry = (-7 + (x / r.width) * 14).toFixed(2);
+              card.classList.remove('tilt-resetting');
+              card.classList.add('tilt-active');
+              card.style.transform =
+                `perspective(800px) rotateX(${rx}deg) rotateY(${ry}deg) `
+                + 'translateY(var(--card-lift))';
+            });
+          },
+          { passive: true },
+        );
+
+        const resetTilt = () => {
+          if (!tiltEnabled) return;
+          if (frame) {
+            cancelAnimationFrame(frame);
+            frame = 0;
+          }
+          clearTimeout(resetTimer);
+          card.classList.remove('tilt-active');
+          card.classList.add('tilt-resetting');
+          card.style.transform =
+            'perspective(800px) rotateX(0deg) rotateY(0deg) translateY(0px)';
+          resetTimer = window.setTimeout(() => {
+            card.classList.remove('tilt-resetting');
+            card.style.removeProperty('transform');
+          }, 300);
+        };
+        card.addEventListener('pointerleave', resetTilt);
+        card.addEventListener('pointercancel', resetTilt);
       });
 
       // ── stat counters ─────────────────────────────────────────────────
@@ -651,15 +705,24 @@ const faqJsonLd = {
       }, { threshold: 0.6 });
       document.querySelectorAll('[data-count]').forEach((el) => countIO.observe(el));
 
-      // ── copy buttons ──────────────────────────────────────────────────
+      // ── copy buttons：复制成功 = 盖一枚邮戳，然后按钮进 copied 态 ──────
+      // 邮戳实现在 src/scripts/postmark.js，文档站的 copy 按钮共用同一份。
       document.querySelectorAll('.copy-btn').forEach((btn) => {
+        // 文案只改 .copy-label 这层，绝不用 btn.textContent（那会连按钮里的东西一起冲掉）
+        const label = btn.querySelector('.copy-label') || btn;
         btn.addEventListener('click', async () => {
           try {
             await navigator.clipboard.writeText(btn.dataset.copy);
-            btn.textContent = 'copied ✓';
-            btn.classList.add('copied');
-            setTimeout(() => { btn.textContent = 'copy'; btn.classList.remove('copied'); }, 1800);
-          } catch { /* clipboard blocked — user selects manually */ }
+          } catch {
+            return; // clipboard blocked — user selects manually
+          }
+          // 盖章 + copied 态的全部时序（落定 350ms 变绿、1.2s 起淡出、1800ms 还原、
+          // 连点收尾、reduced-motion 降级）都在 postmark.js 里，这里只给它文案回调
+          pressPostmark(btn, {
+            stateClass: 'copied',
+            onCopied: () => { label.textContent = 'copied ✓'; },
+            onReset: () => { label.textContent = 'copy'; },
+          });
         });
       });
 
@@ -770,7 +833,6 @@ const faqJsonLd = {
     <style>
       .faq {
         margin-top: 2.5rem;
-        max-width: 46rem;
         display: grid;
         gap: 0.8rem;
       }

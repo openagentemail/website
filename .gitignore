@@ -12,3 +12,6 @@ dist/
 # misc
 .DS_Store
 npm-debug.log*
+
+# agent battle worktrees (local only, never committed)
+.arena/

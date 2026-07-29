@@ -1,0 +1,18 @@
+---
+// Starlight 的 Head 覆盖 —— 唯一目的：把「邮戳」脚本挂进 /docs/* 每一页。
+// 默认 Head 原样渲染（Starlight 以后改了什么自动继承），后面只追加一段脚本；
+// 脚本本体是 src/scripts/postmark.js，与首页共用同一份实现，不抄第二遍。
+//
+// 为什么不用 Starlight 的 head 配置注入：head 只能塞 URL 或 inline 文本，
+// 而邮戳是首页也 import 的 ES 模块 —— 走 head 就得在 public/ 再放一份拷贝
+// （两份实现要同步，任务书明令禁止），而且 public/ 的文件不打包、无内容哈希、
+// 不进类型检查。这里由 Astro 把它编译成 <script type="module">：
+// 天生 defer（不阻塞 /docs/* 首屏）、带哈希文件名、能被压缩。
+import Default from '@astrojs/starlight/components/Head.astro';
+---
+
+<Default />
+<script>
+  import { initDocsCopyStamps } from '../scripts/postmark.js';
+  initDocsCopyStamps();
+</script>

@@ -1,0 +1,136 @@
+/* postmark — S1「盖」：copy 成功后盖下一枚圆形邮戳（对抗合成终版）
+   ------------------------------------------------------------------
+   两套渲染共用这一份样式，谁都不许自己抄一遍：
+     · 官网    → src/styles/global.css 里 @import
+     · 文档站  → src/styles/starlight-custom.css 里 @import
+   邮戳本体（inline SVG）由 src/scripts/postmark.js 生成。
+
+   定位：fixed overlay 挂在 document.body 上，left/top 由 JS 写成按钮中心的视口坐标。
+   这样它不会被任何祖先的 overflow: hidden 裁掉（.hero、expressive-code 的代码框都裁），
+   也不会被按钮改写文案时冲掉。视口边缘保护在 JS 里按「静止尺寸 × 2.2 峰值」动态算。
+
+   动画只碰 transform / opacity；节点动画结束即从 DOM 移除，
+   所以 will-change 是"用完即弃"的（节点没了，提升的图层也就没了）。 */
+
+.postmark {
+  /* --pm-rot：每次盖章的随机微旋转（JS 写入，|θ| ≤ 9.5°）
+     --pm-ink：油墨色，深色底用品牌金
+     --pm-size：静止时的直径。N1 验收返工：58px → 96px，"做大做实"，
+     一眼就得看出是一枚盖下来的章，而不是按钮边上的小装饰。 */
+  --pm-size: 96px;
+  --pm-ink: var(--gold, #fbbf24);
+  /* --pm-paper：油墨底下那层"纸"。放大后戳心会压住按钮自己的 copied 文案，
+     垫一层淡淡的底色把它压下去，大字才读得清（详见 postmark.js 里 .pm-paper 那段注释）。 */
+  --pm-paper: rgba(12, 13, 18, 0.82);
+
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: var(--pm-size);
+  height: var(--pm-size);
+  margin-left: calc(var(--pm-size) / -2); /* left/top 给的是按钮中心，靠负 margin 居中 */
+  margin-top: calc(var(--pm-size) / -2);
+  z-index: 200; /* 站内最高的是 sticky nav 的 50；文档站移动端菜单也在 100 以内 */
+  pointer-events: none; /* 绝不挡住按钮本身的点击 */
+  color: var(--pm-ink); /* SVG 用 currentColor 取墨，presentation 属性里不用 var() */
+  opacity: 0; /* 动画被禁用的环境下不留下一枚静止的印子 */
+  transform: rotate(var(--pm-rot, 0deg)) scale(1);
+  will-change: transform, opacity;
+  animation: postmark-press 1520ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.postmark svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+/* 纸面那层圆底。用 CSS 上色而不是 SVG 的 fill 属性，因为要吃 var()（主题各一版） */
+.postmark .pm-paper {
+  fill: var(--pm-paper);
+}
+
+/* 弧排文字与中央字样：等宽字，官网有 --mono，文档站没有就吃回退链 */
+.postmark text {
+  font-family: var(--mono, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace);
+  font-weight: 700;
+  fill: currentColor;
+  stroke: none;
+}
+
+/* 盖章：scale 2.2 → 1 砸下（0-350ms，350ms 那一刻按钮进 copied 态）
+   → 纸面微回弹 → 停住 → 1.2s 起淡出 */
+@keyframes postmark-press {
+  0% {
+    opacity: 0;
+    transform: rotate(var(--pm-rot, 0deg)) scale(2.2);
+  }
+  6% {
+    opacity: 1;
+  }
+  23% {
+    transform: rotate(var(--pm-rot, 0deg)) scale(1);
+  }
+  27% {
+    transform: rotate(var(--pm-rot, 0deg)) scale(0.965);
+  }
+  34% {
+    transform: rotate(var(--pm-rot, 0deg)) scale(1);
+  }
+  79% {
+    /* ≈1.2s：印子停满一拍，然后油墨被纸吸走 */
+    opacity: 1;
+    transform: rotate(var(--pm-rot, 0deg)) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: rotate(var(--pm-rot, 0deg)) scale(1.03);
+  }
+}
+
+/* ── 文档站（/docs/*）的那一枚 ────────────────────────────────────────
+   expressive-code 的 copy 按钮只有 32-40px，邮戳跟着小一号（44px → 64px）。
+   邮戳挂在 body 上、不再是 .copy 的后代，所以变体靠 JS 加的 class 认。 */
+.postmark-docs {
+  --pm-size: 64px;
+}
+
+/* 窄屏：等比缩一号（96→76、64→52，与放大前 58→46、44→36 同一比例）。
+   fixed 元素不进文档滚动溢出区（不会撑出横向滚动条），缩小是为了 scale 2.2 的峰值
+   那一帧别被视口边缘切掉太多 —— 真正的边缘保护在 JS 的 clamp 里（按新尺寸自动跟上）。 */
+@media (max-width: 640px) {
+  .postmark {
+    --pm-size: 76px;
+  }
+  .postmark-docs {
+    --pm-size: 52px;
+  }
+}
+
+/* 亮色主题下金色在白底上太浅 —— 沿用文档站既有的 #b45309 变体；纸面也翻成浅色 */
+:root[data-theme='light'] .postmark {
+  --pm-ink: #b45309;
+  --pm-paper: rgba(255, 255, 255, 0.86);
+}
+
+/* ── 文档站按钮的 copied 态 ───────────────────────────────────────────
+   expressive-code 的按钮没有文字，只有一个 ::after 遮罩图标（background-color 上色）。
+   邮戳落定后给它同一套"变绿"语义，跟 hero 的 .copy-btn.copied 对齐。 */
+.expressive-code .copy button.pm-copied {
+  border-color: var(--green, #34d399);
+  color: var(--green, #34d399);
+}
+
+.expressive-code .copy button.pm-copied::after {
+  background-color: var(--green, #34d399);
+}
+
+/* ── reduced-motion：不要动画，也不要静止的印子 ─────────────────────
+   JS 侧还有 matchMedia 双轨保险（压根不创建节点）；
+   按钮的静态 copied 态照旧，所以"已复制"这个信息不依赖动效存在。 */
+@media (prefers-reduced-motion: reduce) {
+  .postmark {
+    display: none !important;
+  }
+}

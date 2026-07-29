@@ -2,6 +2,10 @@
    Dark, near-black background; amber/gold accent (envelope, postage).
    Motion is decorative only: everything degrades under prefers-reduced-motion. */
 
+/* 邮戳（copy 反馈）样式，与文档站 starlight-custom.css 共用同一份文件。
+   @import 必须在所有规则之前，所以放在文件最顶上。 */
+@import './postmark.css';
+
 /* Satoshi (Fontshare, free license) — our Gellix-equivalent geometric sans.
    Self-hosted woff2, latin subset; CJK falls through to PingFang/Noto. */
 @font-face {
@@ -141,10 +145,14 @@ nav a.navlink:hover { color: var(--gold); }
 .copy-btn {
   border: 1px solid var(--line-strong); background: transparent; color: var(--ink-dim);
   border-radius: 7px; padding: 0.25rem 0.6rem; font-size: 0.78rem; cursor: pointer;
-  font-family: var(--mono); transition: all 0.15s ease;
+  font-family: var(--mono); transition: border-color 0.15s ease, color 0.15s ease;
 }
+/* 文案从 copy 变 copied ✓ 时按钮不许变宽，否则整条命令行会跟着抖 */
+.copy-btn .copy-label { display: inline-block; min-width: 8.5ch; text-align: center; }
 .copy-btn:hover { border-color: var(--gold); color: var(--gold); }
-.copy-btn.copied { border-color: var(--green); color: var(--green); transform: scale(1.06); }
+/* copied 态：动的部分交给邮戳，按钮自己只安静变绿
+   （原来的 scale(1.06) 会跟盖下来的邮戳抢戏，去掉） */
+.copy-btn.copied { border-color: var(--green); color: var(--green); }
 
 /* ── hero install row: cmdline + npm badge side by side ──────────────── */
 .install-row { display: flex; align-items: center; gap: 0.9rem; flex-wrap: wrap; }
@@ -211,11 +219,23 @@ nav a.navlink:hover { color: var(--gold); }
 @media (max-width: 900px) { .grid-3, .grid-2 { grid-template-columns: 1fr; } }
 
 .card {
+  --card-lift: -3px;
   position: relative; padding: 1.6rem; border-radius: var(--radius);
   background: var(--bg-card); border: 1px solid var(--line);
   overflow: hidden; transition: border-color 0.2s ease, transform 0.2s ease;
 }
-.card:hover { transform: translateY(-3px); }
+.card:hover { transform: translateY(var(--card-lift)); }
+.card.tilt-active {
+  transition: border-color 0.2s ease, opacity .7s ease;
+  will-change: transform;
+}
+.card.tilt-resetting {
+  transition:
+    border-color 0.2s ease,
+    opacity .7s ease,
+    transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform;
+}
 .card::before {
   content: ""; position: absolute; inset: 0; pointer-events: none;
   background: radial-gradient(16rem 16rem at var(--mx, 50%) var(--my, 50%), var(--gold-dim), transparent 70%);
@@ -311,13 +331,18 @@ footer a:hover { color: var(--gold); }
 .reveal { opacity: 0; transform: translateY(26px); transition: opacity 0.7s ease, transform 0.7s cubic-bezier(0.2, 0.7, 0.2, 1); }
 .reveal.in { opacity: 1; transform: none; }
 
+/* ── keyboard focus: 3px gold outline (DESIGN §9) ────────────────────── */
+:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+
 /* ── reduced motion: everything settles to static ────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   *, *::before, *::after { animation: none !important; transition: none !important; }
   .reveal { opacity: 1; transform: none; }
+  .stagger { opacity: 1 !important; }
   .env { opacity: 1; }
   .cursor { animation: none; }
+  .card.tilt-active, .card.tilt-resetting { transform: none !important; will-change: auto; }
 }
 
 /* ── v2: two-tone headline ───────────────────────────────────────────── */
@@ -325,6 +350,141 @@ footer a:hover { color: var(--gold); }
   color: transparent;
   -webkit-text-stroke: 1.5px var(--gold);
   paint-order: stroke;
+}
+
+/* ── S3: 金箔标题（烫金扫光，对抗合成终版） ───────────────────────────
+   两版都留在代码里，改 class 就能切换：
+     .foil.foil-fill     A 版「纯金箔」   —— 放弃描边，金色渐变填充，光泽从字面上扫过（默认）
+     .foil.foil-outline  B 版「金箔+描边」—— 保留现有描边镂空观感，光泽从字腔里洗过
+   共用一套机制：把渐变做成 5 倍元素宽，用 background-clip: text 只让它在字上显形，
+   再花 6s 匀速把背景从右挪到左 —— 纯 CSS，零 JS。
+   渐变**两端刻意都是"没有光泽"的状态**，所以一圈只有一道带、接缝看不出来（不需要 alternate）。
+   不碰 font-family：字体栈（含 CJK 回退链）原样继承 body 的 --sans。
+
+   降级链（三层，从最保险到最花哨）：
+     1. 不支持 background-clip: text（或压根不认识 @supports，如 IE）→ 静态不透明纯金字
+     2. prefers-reduced-motion → 不动的纯金字（A）／不动的镂空描边字（B）
+     3. forced-colors → 系统前景色纯色字
+   任何一层都不会出现"透明文字 + 背景没裁进字形"的整句消失。 */
+.foil {
+  /* 高光与暗部色收拢在这里，以后调色一处改。
+     B 版要给同一批颜色配透明度，所以另留一份 R G B 分量。 */
+  --foil-hi: #fff6dc; /* 白热高光的峰值 */
+  --foil-lo: #d99c14; /* 金属暗部 */
+  --foil-hi-rgb: 255 246 220;
+  --foil-mid-rgb: 253 230 138; /* = --gold-soft */
+  --foil-gold-rgb: 251 191 36; /* = --gold */
+
+  /* 渐变几何基于一个确定的盒子。inline 片段一旦折行会"每行各扫一道"，
+     inline-block 只有一道；它并不阻止盒子内部换行（文案变长照样折行、不会溢出），
+     只是这个盒子本身不再被拆成多段。 */
+  display: inline-block;
+
+  /* 基座刻意是「安全态」：不透明纯金的静态字。
+     透明填充与渐变都关在下面的 @supports 里，所以不支持 background-clip: text 的
+     浏览器（包括连 @supports 都不认识的老浏览器，那种连 @supports not 门禁也吃不到）
+     停在这一步 —— 一句读得清的金字，而不是一片空白。 */
+  color: var(--gold);
+  -webkit-text-fill-color: var(--gold);
+}
+
+/* B 版的描边层与扫光层是兄弟节点（N1 实测：background-clip:text 和
+   -webkit-text-stroke 同元素时，Chrome 的光栅化路径会把 Satoshi "y" 下勾
+   的急弯描边夹出缺口；描边放在无任何 clip 的独立元素上则渲染光滑）。
+   .foil-stroke 是纯静态描边（与 .outline-gold 同配方），.foil 绝对定位叠在它上面，
+   只负责扫光填充。aria-hidden 防读屏念两遍。 */
+.foil-wrap { position: relative; display: inline-block; }
+.foil-stroke { color: transparent; -webkit-text-stroke: 1.5px var(--gold); }
+/* 扫光层永远绝对定位叠在描边层上（含无 @supports 的兜底路径，否则两层会并排显示） */
+.foil-wrap .foil { position: absolute; inset: 0; }
+/* 用回 A 版（.foil-fill）时隐藏描边层，class-only 切换仍然成立（:has 不支持的老浏览器
+   只会让 A 版多一圈同色描边，属可接受降级）。必须用 visibility —— display:none 会让
+   .foil-wrap 失去在流内容、尺寸塌成 0×0，A 版整句消失（N1 实测踩过）。 */
+.foil-wrap:has(.foil-fill) .foil-stroke { visibility: hidden; }
+
+@supports ((background-clip: text) or (-webkit-background-clip: text)) {
+  .foil {
+    background-size: 500% 100%;
+    /* 静止时停在"没有高光"这一端 */
+    background-position: 100% 50%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    animation: foil-sweep 4.5s linear infinite;
+  }
+
+  /* A 版：金箔填充。暗金 → 白热高光 → 暗金，一道斜着扫过去的金属光。
+     最暗一档 --foil-lo (#d99c14) 在 #0c0d12 上算得 ≈8:1（金色本色 #fbbf24 是 ≈11.5:1），
+     远高于 §9 大标题 3:1 的底线 —— 金箔最暗处也读得清。 */
+  .foil-fill {
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+    background-image: linear-gradient(
+      100deg,
+      var(--gold) 0%,
+      var(--gold) 43%,
+      var(--foil-lo) 46.5%,
+      var(--foil-hi) 50%,
+      var(--gold-soft) 53.5%,
+      var(--foil-lo) 57%,
+      var(--gold) 61%,
+      var(--gold) 100%
+    );
+  }
+
+  /* B 版：描边照旧（1.5px 金色 + paint-order: stroke，和 .outline-gold 一模一样），
+     填充**默认是透明的**。光泽带 = 和描边同色的实心金（N1 业主定：弱白洗光不够明显，
+     扫过的字直接变成实心金字）。带缘过渡收得很窄（约 5% 字宽），扫界干脆利落 ——
+     渐变停点太开会在每个字上晕出一圈虚边（N1 实测教训）。 */
+  .foil-outline {
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+    /* 描边不在这里 —— 在兄弟节点 .foil-stroke 上（原因见 .foil-wrap 处的注释）。
+       这一层只负责扫光填充；绝对定位来自 .foil-wrap .foil 规则。 */
+    background-image: linear-gradient(
+      100deg,
+      transparent 0%,
+      transparent 46%,
+      var(--gold-soft) 47%,
+      var(--gold) 48.5%,
+      var(--gold) 51.5%,
+      var(--gold-soft) 53%,
+      transparent 54%,
+      transparent 100%
+    );
+  }
+}
+
+@keyframes foil-sweep {
+  from { background-position: 100% 50%; }
+  to   { background-position: 0% 50%; }
+}
+
+/* reduced-motion：不靠"渐变末端恰好是全金"这个巧合，两版各自把静态形态钉死。
+   注意绝不能用 background 简写 —— 简写会把 background-clip 一起重置成 border-box，
+   而 -webkit-text-fill-color: transparent 不在简写范围内，结果就是一块金块吞掉整句话。
+   （全局那条 `animation: none !important` 也能停住动画，这里再写一遍是把意图钉在本节。） */
+@media (prefers-reduced-motion: reduce) {
+  .foil { animation: none; }
+  /* A 版：均匀不透明纯金字 */
+  .foil-fill {
+    background-image: none;
+    color: var(--gold);
+    -webkit-text-fill-color: var(--gold);
+  }
+  /* B 版：只剩 1.5px 金描边 + 空字腔，即站内原有的镂空观感，没有任何残留高光 */
+  .foil-outline { background-image: none; }
+}
+
+/* Windows 高对比度模式：强制配色会接管 color，但接管不了 -webkit-text-fill-color，
+   透明填充在那儿会把整个词变没 —— 直接退回系统前景色的纯色字。 */
+@media (forced-colors: active) {
+  .foil {
+    animation: none;
+    background-image: none;
+    color: CanvasText;
+    -webkit-text-fill-color: CanvasText;
+    -webkit-text-stroke: 0;
+  }
 }
 
 /* ── v2: staggered hero entrance ─────────────────────────────────────── */

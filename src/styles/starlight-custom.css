@@ -1,6 +1,9 @@
 /* Starlight theme overrides — match openagent.email brand:
    Satoshi typeface, #0c0d12 dark canvas, #fbbf24 amber accent. */
 
+/* 邮戳（copy 反馈）样式，与官网 global.css 共用同一份文件 */
+@import './postmark.css';
+
 @font-face {
   font-family: 'Satoshi';
   src: url('/fonts/Satoshi-Regular.woff2') format('woff2');

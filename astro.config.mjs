@@ -17,6 +17,11 @@ export default defineConfig({
         { icon: 'github', label: 'GitHub', href: 'https://github.com/openagentemail/openagentemail' },
       ],
       customCss: ['./src/styles/starlight-custom.css'],
+      // Head 覆盖只为给文档站挂「邮戳」脚本（expressive-code 的 copy 按钮不是自家组件，
+      // 需要一段脚本去接它的复制成功信号）；其余部分原样交给 Starlight 默认实现。
+      components: {
+        Head: './src/components/DocsHead.astro',
+      },
       head: [
         {
           tag: 'script',
