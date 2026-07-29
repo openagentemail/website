@@ -76,6 +76,7 @@ motion:
   ease-ui: "ease"                           # hover 微交互
   fast: 150ms    # hover
   enter: 550-700ms  # 入场/reveal
+  shimmer: 4.5s    # 金箔扫光循环（S3，N1 定稿）
   ambient: 9-28s    # 环境光循环
 ```
 
@@ -100,14 +101,14 @@ motion:
 
 ## 5. 组件清单 + 状态矩阵
 
-> class 名与 `global.css` 一一对应。Focus 统一：**3px `gold` outline**（/ui 已实现此规则，官网全局规则待补——新页面必须自带）。
+> class 名与 `global.css` 一一对应。Focus 统一：**3px `gold` outline**（官网全局 `:focus-visible` 与 /ui 均已实现）。
 
 | 组件 | default | hover | focus/disabled |
 |---|---|---|---|
 | `.btn-gold` | 金底黑字 #111 | 变 gold-soft、上浮 1px | focus 金框；disabled 50% 透明 |
 | `.btn-ghost` | 透明 + line-strong 描边 | 描边/字变金、上浮 1px | 同上 |
-| `.copy-btn` | mono 小按钮 | 描边/字变金 | copied：绿 + scale(1.06)（未来换"邮戳"动效，见 §8-B） |
-| `.card` | bg-card + line | 描边变金(35%)、上浮 3px、聚光灯点亮 | — |
+| `.copy-btn` | mono 小按钮 | 描边/字变金 | copied：绿 + scale(1.06)，同时盖邮戳（S1，见 §7 已实现） |
+| `.card` | bg-card + line | 描边变金(35%)、上浮 3px、聚光灯点亮、光标跟随 3D 倾斜（S2） | — |
 | `.terminal` | 底 `#0a0b10` + 大投影 + 三色圆点 `#ff5f57/#febc2e/#28c840` | — | 着色 class：`.t-cmd .t-ok .t-json .t-key .t-dim .t-wait` |
 | `.cmdline` | bg-raise + line | — | `.cmd` 部分可全选 |
 | `.step` | line 左边框 + 圆点数字 | — | `.lit`：金底黑字 + 金光晕 |
@@ -137,12 +138,16 @@ motion:
 
 1. 只动 `transform` 和 `opacity`；需要 `will-change` 时按需加、用完即弃。
 2. `prefers-reduced-motion: reduce` 时**全部静止**且内容完整可读（global.css 已内置，新动效必须兼容）。
-3. 缓动惯用 `cubic-bezier(0.16,1,0.3,1)`；时长 150ms（hover）/ 550-700ms（入场）/ 9-28s（环境光）。
+3. 缓动惯用 `cubic-bezier(0.16,1,0.3,1)`；时长 150ms（hover）/ 550-700ms（入场）/ 4.5s（装饰扫光循环）/ 9-28s（环境光）。
 4. 移动端（≤900px）重型场景直接不渲染（沿用 `.envs` 模式）。
 
 ### 已实现（现状）
 
 - **飞（2D）**：hero 信封 JS 弹簧跟随，CSS 只负责淡入（`.envs/.env`）。
+- **盖（邮戳，S1）**：copy 成功盖下一枚圆形邮戳（`src/scripts/postmark.js` + `src/styles/postmark.css`；docs 经 `src/components/DocsHead.astro` 挂载）。静止直径首页 **96px** / docs **64px**，窄屏（≤640px）76/52px；峰值 scale 2.2、press 1520ms；做旧为九成墨（N1 定稿"做大做实"）；视口边缘由 JS 按比例保底收缩（最多八成），不再缩小戳本体。
+- **卡片 3D 倾斜（S2）**：`.card` 朝向光标倾斜 `perspective(800px) rotateX/Y ±7°`（`src/pages/index.astro` spotlight 脚本；pointer:fine 限定、触摸/笔不触发、rAF 合帧、离开 0.3s 回正）。±7° 为 N1 业主拍板（原规格 ≤3° 无感）。
+- **金箔标题（S3）**：hero 标题金字扫光（`global.css` `.foil-wrap/.foil`，纯 CSS）。定稿 **A 版 `.foil-fill`**（实心金箔填充，`foil-sweep 4.5s linear infinite`；暗部 `#d99c14` 在画布上 ≈8:1 对比度合格）。B 版 `.foil-outline` 保留可切换——描边必须走独立兄弟层 `.foil-stroke`：background-clip:text 与 text-stroke 同元素会夹坏 Satoshi "y" 下勾。
+- **页尾 Lottie 信封**：Final CTA 区 `#lottie-final`（`src/pages/index.astro`）。动画 `public/animations/email-sent.json`（LottieFiles "contact-email"，Simple License，已改色品牌金）；播放器 lottie-web v5.13.0 vendored `public/vendor/lottie_svg.min.js`。IO 懒加载、离屏暂停、reduced-motion 静态帧。**这是"不引外部库"的唯一先例**（2026-07-30 业主点名），条件：本地 vendored 不走 CDN、懒加载不进首屏、reduce 下有完整静态形态。后来者不算惯例，仍需单独提案。
 - **发光**：`.hero-glow` 呼吸、`.aurora-1/2/3` 光斑摇曳、卡片聚光灯、`.cursor` 终端光标闪烁。
 - **入场**：`.reveal` 滚动显现、`.stagger-1..5` hero 阶梯入场、终端打字。
 - **跑马灯**：`.marquee` logo 墙。
@@ -151,19 +156,18 @@ motion:
 
 > 动效 backlog，按优先级排。实现后把条目挪到"已实现"并注明源文件。
 
-- **S1 盖（邮戳）**：copy 成功 = 一枚圆形邮戳盖下（scale 2.2→1 + 微旋转 + SVG 做旧纹理）。全站 copy 动作通用。
-- **S2 卡片 3D 倾斜**：`.card` 朝向光标微倾（perspective 800px，≤3°），配合现有聚光灯。
-- **S3 金箔标题**：hero 标题金字扫过一道金属光泽（background-clip:text + 移动渐变），纯 CSS。
-- **A1 3D 信封航线**：信封沿曲线飞行 + 过弯侧倾（banking），场景随鼠标 ±4° 微转。
-- **A2 CSS 3D 信封**：六面体 preserve-3d 缓慢自转的立体信封（零依赖；**禁引 Three.js 等 600KB 级库**）。
-- **B1 OTP 分拣机**：otp-demo 区滚动驱动——邮件卡过金色扫描门，验证码吸出落进 JSON 面板。
-- **B2 终端 scrub**：终端打字进度绑定滚动位置（reduced-motion 直接全播）。
+- **B1 OTP 分拣机**：otp-demo 区滚动驱动——邮件卡过金色扫描门，验证码吸出落进 JSON 面板。（批 3，暂停中）
+- **B2 终端 scrub**：终端打字进度绑定滚动位置（reduced-motion 直接全播）。（批 3，暂停中）
 - **C1 页脚航线**：SVG 虚线自绘 + 尽头小信封。C2 hero 金色尘埃微粒（canvas ≤40 粒）。
+
+### 已决策不做（留档，别再提）
+
+- **A1 3D 信封航线 / A2 CSS 3D 信封**：2026-07-30 业主拍板原 hero 不动，自绘 CSS 3D 路线废弃，由页尾 Lottie 方案替代（参考代码留 website/.arena/wtA1-codex、wtA2-codex，不合并）。
 
 ## 8. 3D 规则（立法）
 
 1. **白名单**：3D 只允许出现在官网营销页（`src/pages/`）。**禁区**：文档站、法律页、/ui Dashboard 一律 2D。
-2. 参数上限：`perspective` 800–1200px；静态倾斜 ≤4°；飞过弯侧倾 ≤15°。
+2. 参数上限：`perspective` 800–1200px；**光标跟随互动倾斜 ≤7°**（S2 卡片，N1 业主拍板）；**装饰性静止摆放旋转 ≤7°**（otp-demo `.fan-card` 扇形静止位）；其他静态倾斜 ≤4°；飞过弯侧倾 ≤15°。
 3. 一律 CSS 3D 或轻量 canvas；任何 3D 库（Three.js/Spline 等）需要单独提案讨论。
 4. 性能预算：同屏动画元素 ≤50；帧预算内不允许 layout 读写抖动。
 5. 降级链完整：无 JS / reduced-motion / 移动端三种情况下，内容以静态形态完整成立。
@@ -171,7 +175,7 @@ motion:
 ## 9. 无障碍
 
 - 正文对比度 ≥4.5:1；大标题/控件 ≥3:1（/ui 的 `--line-control` 即为此设）。
-- **焦点永远可见**：`:focus-visible` = 3px `gold` outline（/ui 已如此；官网全局规则待补，新页面自己带）。
+- **焦点永远可见**：`:focus-visible` = 3px `gold` outline（官网 global.css 全局规则与 /ui 均已实现）。
 - 动效不携带信息：动效停止时，内容含义不变。
 - 金底上只放 `#111` 黑字；深底上金色文字仅限 kicker/数字/链接。
 
