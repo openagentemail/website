@@ -598,10 +598,11 @@ footer .cols h4 { margin: 0 0 0.7rem; font-size: 0.85rem; color: var(--ink); }
 footer .cols ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 0.45rem; }
 footer .tagline { color: var(--ink-faint); font-size: 0.85rem; max-width: 20rem; margin: 0.5rem 0 0; }
 footer .bottom { border-top: 1px solid var(--line); padding-top: 1.2rem; display: flex; gap: 1rem; flex-wrap: wrap; align-items: center; }
-/* 目录站验证徽章（AAD / AgentHunter 免费收录的回链要求，DESIGN.md §12 特批例外）。
-   HTML 保持对方原始代码，只在外层收敛视觉：缩小、半透明、hover 还原。 */
-footer .dir-badges { display: inline-flex; align-items: center; gap: 0.75rem; }
-footer .dir-badges > a { opacity: 0.65; transition: opacity 0.15s ease; }
-footer .dir-badges > a:hover { opacity: 1; }
-footer .dir-badges > a > img { height: 34px; width: auto; }
-footer .dir-badges > a:not([href*="agenthunter"]) > img { display: block; }
+/* 目录站验证徽章（AAD / AgentHunter / Fazier 免费收录的回链要求，DESIGN.md §12 特批例外）。
+   HTML 保持对方原始代码，只在外层收敛视觉：缩小、半透明、hover 还原。
+   独立一行（业主要求，给以后的徽章留位置）。 */
+footer .badges-row { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; padding-top: 1rem; }
+footer .badges-row > a { opacity: 0.65; transition: opacity 0.15s ease; }
+footer .badges-row > a:hover { opacity: 1; }
+footer .badges-row > a > img { height: 34px; width: auto; }
+footer .badges-row > a:not([href*="agenthunter"]) > img { display: block; }
