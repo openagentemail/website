@@ -23,7 +23,7 @@ From a local checkout the server starts with
 
 | Tool | What it does |
 |---|---|
-| `mail_new_identity(name?)` | Create a new address (random localpart like `fox-k7d2` if no name given) |
+| `mail_new_identity(name?, localpart?)` | Create a new address. Pass `localpart` for a custom address (e.g. `qa-bot`), or omit for a random one like `fox-k7d2` |
 | `mail_list_identities()` | List all identities |
 | `mail_list_messages(address, limit?)` | List an inbox |
 | `mail_read_message(address, id)` | Full message with `otp.codes` / `otp.links` extracted |
