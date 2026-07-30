@@ -606,3 +606,7 @@ footer .badges-row > a { opacity: 0.65; transition: opacity 0.15s ease; }
 footer .badges-row > a:hover { opacity: 1; }
 footer .badges-row > a > img { height: 34px; width: auto; }
 footer .badges-row > a:not([href*="agenthunter"]) > img { display: block; }
+/* LaunchVault 徽章原始代码是 195px 宽（自然高约 52px），业主要求压到不超过 AgentHunter 图标高度 */
+footer .badges-row > a[href*="launchvault"] > img { height: 40px !important; width: auto !important; }
+/* AgentHunter 徽章卡整体缩到与 LaunchVault 同高（~40px），zoom 等比缩图标+文字+内边距 */
+footer .badges-row > a[href*="agenthunter"] { zoom: 0.7; }
