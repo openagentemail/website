@@ -46,6 +46,7 @@ export default defineConfig({
           items: [
             'docs/guides/dns-setup',
             'docs/guides/deliverability',
+            'docs/guides/agent-signup',
             'docs/guides/security',
           ],
         },
