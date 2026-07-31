@@ -148,9 +148,9 @@ const faqJsonLd = {
           <span class="foil-wrap"><span class="foil-stroke" aria-hidden="true">Owned by you.</span><span class="foil foil-fill">Owned by you.</span></span>
         </h1>
         <p class="sub stagger stagger-3">
-          The open-source alternative to AgentMail. One <code>docker compose up</code> on your own
-          VPS gives every agent you run unlimited real mailboxes on your own domain — over REST and
-          MCP — with OTP and verification-link extraction built in.
+          The open-source alternative to AgentMail. Unlimited real mailboxes for every agent you
+          run, on your own domain — over REST and MCP — with OTP and verification-link extraction
+          built in. One guided command gets you started.
         </p>
         <div class="cta-row stagger stagger-4">
           <a class="btn btn-gold" href="https://github.com/openagentemail/openagentemail">Get started on GitHub</a>
@@ -158,18 +158,19 @@ const faqJsonLd = {
         </div>
         <div class="install-row stagger stagger-5">
           <div class="cmdline">
-            <span class="cmd">git clone …/openagentemail && cd openagentemail && docker compose up -d</span>
-            <button class="copy-btn" data-copy="git clone https://github.com/openagentemail/openagentemail.git && cd openagentemail && cp .env.example .env && docker compose up -d"><span class="copy-label">copy</span></button>
+            <span class="cmd">npx -y @openagentemail/setup</span>
+            <button class="copy-btn" data-copy="npx -y @openagentemail/setup"><span class="copy-label">copy</span></button>
           </div>
           <a
             class="npm-badge"
-            href="https://www.npmjs.com/package/@openagentemail/mcp"
+            href="https://www.npmjs.com/package/@openagentemail/setup"
             target="_blank"
             rel="noopener"
-            title="MCP server on npm — npx -y @openagentemail/mcp"
+            title="Setup wizard on npm — VPS/domain picks, local demo, and MCP client config"
           >
-            <img src="https://img.shields.io/npm/v/@openagentemail/mcp?logo=npm" alt="@openagentemail/mcp on npm" />
+            <img src="https://img.shields.io/npm/v/@openagentemail/setup?logo=npm" alt="@openagentemail/setup on npm" />
           </a>
+          <a class="manual-link" href="/docs/quickstart/">Prefer Docker? Manual install →</a>
         </div>
       </div>
     </header>

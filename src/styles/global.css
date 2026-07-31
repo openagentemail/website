@@ -158,6 +158,8 @@ nav a.navlink:hover { color: var(--gold); }
 .install-row { display: flex; align-items: center; gap: 0.9rem; flex-wrap: wrap; }
 .npm-badge { display: inline-flex; margin-top: 1.6rem; }
 .npm-badge img { display: block; height: 26px; border-radius: 5px; }
+.manual-link { font-size: 0.82rem; color: var(--ink-dim); text-decoration: none; border-bottom: 1px solid transparent; }
+.manual-link:hover { color: var(--gold); border-bottom-color: var(--gold); }
 
 /* envelopes: JS-driven spring-follow (see script); CSS handles fade-in only */
 .envs { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
