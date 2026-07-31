@@ -7,6 +7,11 @@ description: From zero to a working agent mailbox in about 10 minutes.
 [Get a VPS](/docs/get-a-vps/) — tested picks from $11/year), a domain you
 control, and Docker installed.
 
+Rather not do it by hand? `npx -y @openagentemail/setup` is a guided wizard:
+it checks what you already have, helps you pick a VPS and domain if you're
+missing either, and connects your agent clients once the server is up. The
+steps below are the same install done manually.
+
 ## 1. Get the stack
 
 ```bash
