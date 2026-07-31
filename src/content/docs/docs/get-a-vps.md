@@ -19,11 +19,11 @@ or route outbound through a relay like Amazon SES — the
 
 | Provider | From | Why this one | Port 25 |
 |---|---|---|---|
-| **RackNerd** | ~$11/**year** | The rock-bottom option and our top pick: open both ways, clean IP pool, rDNS via ticket. Takes Alipay, PayPal, cards, crypto. Watch their flash deals | Open both ways |
+| **[RackNerd](https://my.racknerd.com/aff.php?aff=20801)** (ad) | ~$11/**year** | The rock-bottom option and our top pick: open both ways, clean IP pool, rDNS via ticket. Takes Alipay, PayPal, cards, crypto. Watch their flash deals | Open both ways |
 | **Contabo** | $4.50/mo | Most horsepower per dollar (4 vCPU / 8 GB). Official CLI + API. Card/PayPal only | Open both ways (new accounts throttled ~25 msgs/min) |
-| **Evoxt** | $2.99/mo | Cheapest monthly plan. Takes Alipay, PayPal, cards, BTC/USDT | Inbound open; outbound via support ticket |
+| **[Evoxt](https://console.evoxt.com/aff.php?aff=4846)** (ad) | $2.99/mo | Cheapest monthly plan. Takes Alipay, PayPal, cards, BTC/USDT | Inbound open; outbound via support ticket |
 | **UpCloud** | $3.50/mo | Excellent automation: REST API, `upctl` CLI, Terraform. Card/PayPal only | Inbound open; outbound via support ticket |
-| **Vultr** | $3.50/mo | Best automation (official CLI, API, and an official MCP server) and easy sign-up — but since 2026 they **rarely approve outbound port 25** for self-hosted mail. Pick Vultr only if you plan to send via a relay (SES) anyway | Inbound open; outbound effectively closed |
+| **[Vultr](https://www.vultr.com/?ref=991555)** (ad) | $3.50/mo | Best automation (official CLI, API, and an official MCP server) and easy sign-up — but since 2026 they **rarely approve outbound port 25** for self-hosted mail. Pick Vultr only if you plan to send via a relay (SES) anyway | Inbound open; outbound effectively closed |
 
 **Which one should I pick?**
 
@@ -57,7 +57,7 @@ prints exactly what to paste. These are the picks we recommend:
 |---|---|---|---|
 | **Spaceship** | ~$9 (promos from ~$3) | ~$10 | Clean REST API with zero gating — register, contacts, DNS all API. Takes **Alipay**, PayPal, BTC |
 | **Porkbun** | ~$11 | ~$11 | **Official MCP server** + full API, per-key spend caps (agent-safe), fair renewal pricing |
-| **NameSilo** | ~$11 | ~$11 | Free API with no spending threshold, cheap TLD promos |
+| **[NameSilo](https://www.namesilo.com/?rid=cb60f73mz)** (ad) | ~$11 | ~$11 | Free API with no spending threshold, cheap TLD promos |
 | **Cloudflare** | $10.46 (at-cost) | at-cost | No markup ever, and the best DNS API anywhere — but your domain must use Cloudflare nameservers |
 | **Namecheap** | ~$10 | ~$14 | The biggest name, but the API requires $50 of spend history — not automation-friendly for new accounts |
 
@@ -83,6 +83,6 @@ that's a human-in-the-loop step an agent can't pass.
 
 ---
 
-*Some links on this page may be affiliate links, always marked. They never
-change the ranking: picks are ordered by how well they run a mail server for
-agents, nothing else.*
+*Links marked (ad) are affiliate links — same price for you, they support the
+project. They never change the ranking: picks are ordered by how well they run
+a mail server for agents, nothing else.*
