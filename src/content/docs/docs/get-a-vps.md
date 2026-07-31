@@ -21,6 +21,7 @@ or route outbound through a relay like Amazon SES — the
 |---|---|---|---|
 | **[RackNerd](https://my.racknerd.com/aff.php?aff=20801)** (ad) | ~$11/**year** | The rock-bottom option and our top pick: open both ways, clean IP pool, rDNS via ticket. Takes Alipay, PayPal, cards, crypto. Watch their flash deals | Open both ways |
 | **Contabo** | $4.50/mo | Most horsepower per dollar (4 vCPU / 8 GB). Official CLI + API. Card/PayPal only | Open both ways (new accounts throttled ~25 msgs/min) |
+| **[GreenCloud](https://greencloudvps.com/billing/aff.php?aff=9969)** (ad) | ~$15/**year** | Proven by us: our own mail server runs on it. Budget KVM flash deals from $15/year — they sell out fast, grab one when in stock. Takes Alipay, WeChat, cards | Open both ways |
 | **[Evoxt](https://console.evoxt.com/aff.php?aff=4846)** (ad) | $2.99/mo | Cheapest monthly plan. Takes Alipay, PayPal, cards, BTC/USDT | Inbound open; outbound via support ticket |
 | **UpCloud** | $3.50/mo | Excellent automation: REST API, `upctl` CLI, Terraform. Card/PayPal only | Inbound open; outbound via support ticket |
 | **[Vultr](https://www.vultr.com/?ref=991555)** (ad) | $3.50/mo | Best automation (official CLI, API, and an official MCP server) and easy sign-up — but since 2026 they **rarely approve outbound port 25** for self-hosted mail. Pick Vultr only if you plan to send via a relay (SES) anyway | Inbound open; outbound effectively closed |
@@ -28,7 +29,7 @@ or route outbound through a relay like Amazon SES — the
 **Which one should I pick?**
 
 - **Tightest budget** → RackNerd (~$11 for a whole *year*) or Evoxt ($2.99 monthly, no yearly commitment).
-- **Paying with Alipay or WeChat** → RackNerd or Evoxt. (Contabo, UpCloud and Vultr take cards/PayPal; Vultr also takes Alipay.)
+- **Paying with Alipay or WeChat** → RackNerd, GreenCloud, or Evoxt. (Contabo, UpCloud and Vultr take cards/PayPal; Vultr also takes Alipay.)
 - **Most machine per dollar** → Contabo's 4 vCPU / 8 GB is overkill in the good way.
 - **Agent-driven setup** → UpCloud and Vultr have the cleanest APIs if you want your agent to provision the box itself.
 
