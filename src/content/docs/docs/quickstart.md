@@ -20,12 +20,13 @@ cd openagentemail
 cp .env.example .env
 ```
 
-## 2. Set three values in `.env`
+## 2. Set four values in `.env`
 
 ```bash
 DOMAIN=example.com                                # the domain your agent addresses live on
 API_KEYS=$(openssl rand -hex 32)                  # admin key — keep it offline
 MAIL_PASSWORD=$(openssl rand -hex 24)             # catch-all mailbox password
+NTFY_ADMIN_PASSWORD=$(openssl rand -hex 24)       # server-only ntfy administrator password
 ```
 
 ## 3. Bring it up
@@ -53,8 +54,9 @@ DMARC, PTR). What each one does and why:
 ./deploy/doctor.sh
 ```
 
-The doctor checks DNS, TLS, IMAP/SMTP login, and does a round-trip send. Fix
-whatever it flags before your agents depend on this box.
+The doctor checks DNS, TLS, IMAP/SMTP login, a round-trip send, the ntfy
+notification loop, and that `.env` is owner-readable only. Fix whatever it
+flags before your agents depend on this box.
 
 ## 6. Create your agent's identity
 

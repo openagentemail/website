@@ -58,6 +58,7 @@ curl -X POST $API/v1/identities \
 |---|---|---|
 | `name` | string? | Free-form label for the identity |
 | `localpart` | string? | Force a specific address, e.g. `billing` → `billing@example.com` |
+| `canNotifyUser` | boolean? | Admin-granted permission for this identity to call `notify_user` and `notify_verify` |
 
 ## `GET /v1/identities` — admin only
 
@@ -192,6 +193,46 @@ Each identity is limited to `SEND_RATE_LIMIT` messages per rolling hour
 `queued:true` means the mailserver accepted it — not that the recipient's provider
 did. Deliverability is your infrastructure's job; see
 [deliverability.md](/docs/guides/deliverability/).
+
+## `POST /v1/notify`
+
+Publish a server-side ntfy notification. Agents never provide an ntfy topic or
+credential. `target` is `user` or `agent:<identity-localpart>`.
+
+```bash
+curl -X POST $API/v1/notify \
+  -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" \
+  -d '{"target":"user","title":"Approval needed","message":"Please review the draft","level":"urgent"}'
+# → 200 {"target":"user","title":"Approval needed","level":"urgent"}
+```
+
+`level` is `urgent`, `normal` (default), or `low`; optional `tags` has at most
+five strings. Admin keys may alert the user. An identity token needs its
+admin-created `canNotifyUser` grant and is subject to `NOTIFY_RATE_LIMIT`.
+
+## `GET /v1/notify/messages?topic=&since=`
+
+Read cached notification history. `topic` is a logical route: `self`,
+`user-alerts`, `user-low`, or `agent:<identity-localpart>`. Identity tokens may
+only pass `self` (or their exact own agent route); they cannot read user or
+other-agent history.
+
+```bash
+curl "$API/v1/notify/messages?topic=self&since=1h" \
+  -H "Authorization: Bearer $IDENTITY_TOKEN"
+# → 200 {"messages":[{"id":"…","time":…,"title":"…","message":"…","priority":3,"tags":[]}]}
+```
+
+## `POST /v1/notify/verify`
+
+Publish a harmless notification check and poll the ntfy cache for it. This is
+the same self-check used by `./deploy/doctor.sh`. It has the same permission
+rule and independent rate limit as `target:"user"` notifications.
+
+```bash
+curl -X POST $API/v1/notify/verify -H "Authorization: Bearer $KEY"
+# → 200 {"ok":true}
+```
 
 ## Status codes
 
