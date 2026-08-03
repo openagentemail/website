@@ -194,6 +194,94 @@ Each identity is limited to `SEND_RATE_LIMIT` messages per rolling hour
 did. Deliverability is your infrastructure's job; see
 [deliverability.md](/docs/guides/deliverability/).
 
+## `POST /v1/tasks`
+
+Create a task between two managed identities. The API sends an email with a
+private `X-OA-Task` UUID and `X-OA-Task-State: submitted`, then wakes the
+recipient's server-side agent route. Task mail is exempt from the ordinary
+`SEND_RATE_LIMIT`.
+
+With an identity token, omit `from` and the server uses that identity. Admin
+keys must include `from` explicitly.
+
+```bash
+curl -X POST $API/v1/tasks \
+  -H "Authorization: Bearer $IDENTITY_TOKEN" -H "Content-Type: application/json" \
+  -d '{"to":"worker@example.com","subject":"Check staging","body":"Run the smoke test.","wait":true}'
+```
+
+| Field | Type | Notes |
+|---|---|---|
+| `from` | string? | Required only with an admin key; must be a known identity |
+| `to` | string | A different known identity on this server |
+| `subject` | string | Required task subject |
+| `body` | string | Required plain-text instructions |
+| `wait` | boolean? | Wait up to 600 seconds for `completed` or `failed` before returning |
+
+Returns `201` with a task object. A wait may return a non-terminal task after
+600 seconds; use `GET /v1/tasks/:id?wait=true` again, or poll without `wait`.
+
+## `GET /v1/tasks?state=`
+
+List task threads. Identity tokens see only threads where they are one of the
+two participants. Admin keys see all task threads. Optional `state` is one of
+`submitted`, `working`, `input-required`, `completed`, or `failed`.
+
+```bash
+curl "$API/v1/tasks?state=working" -H "Authorization: Bearer $IDENTITY_TOKEN"
+```
+
+## `GET /v1/tasks/:id?wait=true`
+
+Read one task thread, including the email-backed state history and latest JSON
+`result` when present. Only a participant or an admin key may read it. Add
+`wait=true` to hold the request for up to 600 seconds until a terminal state
+appears; a long-lived client can repeat this call with the same task ID.
+
+```bash
+curl "$API/v1/tasks/0fdc3207-056e-47c1-a65c-b29d39f66b83?wait=true" \
+  -H "Authorization: Bearer $IDENTITY_TOKEN"
+```
+
+## `POST /v1/tasks/:id/state`
+
+Advance a task. The API, not the caller, writes the task state headers onto a
+new reply in the email thread. `completed` and `failed` are terminal; later
+updates return `409 {"error":"task_already_terminal"}`. Concurrent
+non-terminal updates use last-writer-wins mailbox order.
+
+```bash
+curl -X POST $API/v1/tasks/0fdc3207-056e-47c1-a65c-b29d39f66b83/state \
+  -H "Authorization: Bearer $WORKER_TOKEN" -H "Content-Type: application/json" \
+  -d '{"state":"completed","body":"Smoke test passed.","result":{"version":"0.4.0","checks":["login","send"]}}'
+```
+
+| Field | Type | Notes |
+|---|---|---|
+| `from` | string? | Required only with an admin key; identity tokens derive it from themselves |
+| `state` | string | Required: `submitted`, `working`, `input-required`, `completed`, or `failed` |
+| `body` | string? | Optional human-readable update |
+| `result` | JSON? | Optional structured result, written as a JSON block in the reply body |
+
+The caller must be one of the task participants. A token for another managed
+identity receives `403` even if it knows the UUID.
+
+Ordinary mail-client replies do not reliably retain `X-OA-Task-*` headers, so
+they do not advance state and may not appear in this thread view. v0.4 does not
+fall back to `References`/`In-Reply-To` and does not expose Message-ID values.
+Attachments are not task output in v0.4; use the `result` block instead.
+
+## `GET /.well-known/agent-card.json`
+
+Public discovery card using A2A v1.0 vocabulary: a fixed `capabilities` object,
+free-form task support in `skills`, and the email entrance in `services`. It is
+a discovery shape only, not a claim of A2A wire-protocol compatibility. Add an
+already-known managed address as `?address=worker@example.com` to put its
+`mailto:` endpoint into the card without enumerating identities.
+
+`GET /.well-known/agent-registration.json` provides the matching HTTP
+well-known domain-control proof.
+
 ## `POST /v1/notify`
 
 Publish a server-side ntfy notification. Agents never provide an ntfy topic or

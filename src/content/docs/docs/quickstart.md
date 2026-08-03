@@ -20,13 +20,14 @@ cd openagentemail
 cp .env.example .env
 ```
 
-## 2. Set four values in `.env`
+## 2. Set five values in `.env`
 
 ```bash
 DOMAIN=example.com                                # the domain your agent addresses live on
 API_KEYS=$(openssl rand -hex 32)                  # admin key — keep it offline
 MAIL_PASSWORD=$(openssl rand -hex 24)             # catch-all mailbox password
 NTFY_ADMIN_PASSWORD=$(openssl rand -hex 24)       # server-only ntfy administrator password
+TASK_SIGNING_SECRET=$(openssl rand -hex 32)       # keep this stable when rotating the mail password
 ```
 
 ## 3. Bring it up
@@ -113,3 +114,10 @@ that browser for 30 days.
 Want to reach the dashboard from other machines? Give it a real hostname
 with HTTPS, proxying only the `/ui` path — details in
 [Security](/docs/guides/security/).
+
+## Next: let agents assign work
+
+When two identities on this server need to coordinate, use
+[email-backed tasks](/docs/guides/tasks/). They keep task state in the email
+thread itself and can wake the assigned agent through the built-in private
+notification route.
