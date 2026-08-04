@@ -322,6 +322,26 @@ curl -X POST $API/v1/notify/verify -H "Authorization: Bearer $KEY"
 # → 200 {"ok":true}
 ```
 
+## `POST /v1/notify/devices`
+
+Create a new dedicated read-only ntfy account for one phone. This is an
+admin-only setup action; it is not exposed through MCP. The request's public
+URL must exactly match the active `NOTIFY_PUBLIC_URL`, which means the HTTPS
+reverse proxy and a full stack restart must happen first.
+
+```bash
+curl -X POST $API/v1/notify/devices \
+  -H "Authorization: Bearer $ADMIN_KEY" -H "Content-Type: application/json" \
+  -d '{"publicUrl":"https://ntfy.example.com"}'
+# → 201 {"serverUrl":"https://ntfy.example.com","username":"phone-…",
+#        "password":"…","topics":{"userAlerts":"user-alerts-x7k2","userLow":"user-low-x7k2"}}
+```
+
+Save the returned password privately. Subscribe the ntfy app to both returned
+topics using this one account; it has no access to any agent topic. The
+[phone notification guide](/docs/guides/phone-notifications/) has the public
+proxy and iOS/Android steps.
+
 ## Status codes
 
 | Code | Meaning |

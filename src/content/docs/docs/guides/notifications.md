@@ -8,10 +8,10 @@ openagent.email v0.3 includes a private
 **interrupt channel**, not another mailbox: agents still read mail through the
 normal protected API, while a notification only says that action may be needed.
 
-This first release is a server-only loop. It supports `notify_verify`, manual
-agent/user notifications, and mail-arrival alerts. It does **not** set up a
-public URL, a phone, QR codes, or webhooks. Phone delivery is a separate v0.3.1
-setup so opening an HTTPS endpoint is always a deliberate choice.
+The default is a server-only loop. It supports `notify_verify`, manual
+agent/user notifications, and mail-arrival alerts without opening ntfy to the
+internet. [Phone delivery](/docs/guides/phone-notifications/) is optional and
+uses a separate public HTTPS hostname. Webhooks are not part of this feature.
 
 ## Bring it up safely
 
@@ -57,14 +57,15 @@ The server creates random-suffixed physical topics, for example:
 The suffix and all ntfy tokens are stored only in the server's private JSON
 state. MCP clients use `notify_user` and `notify_agent` and never receive a
 topic name or ntfy credential. ntfy is deny-by-default: the server publisher is
-write-only, while reserved reader accounts are read-only. Device reader tokens
-remain server-side until the phone setup in v0.3.1. Creating an identity in a
-running stack creates its reader account and route before the API returns the
-new identity, and also records it for the next ntfy restart.
+write-only, while reserved reader accounts are read-only. The optional phone
+setup creates one separate read-only account for the two human topics; it has
+no access to an agent route. Creating an identity in a running stack creates
+its reader account and route before the API returns the new identity, and also
+records it for the next ntfy restart.
 
-When v0.3.1 adds QR onboarding, treat a QR code as a credential: it contains a
-topic and token and can remain in terminal scrollback. Do not paste one into a
-ticket, chat transcript, or shell history.
+Phone setup prints a password and the two random-suffixed human topic names.
+Treat them as credentials: do not paste them into a ticket, chat transcript,
+image, or shell history. v0.3.1 deliberately does not generate a QR code.
 
 ## Who may interrupt whom
 
