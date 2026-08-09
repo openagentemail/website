@@ -17,8 +17,11 @@ Two token kinds (details in [security.md](/docs/guides/security/)):
 
 - **Admin key** (from the `API_KEYS` env) — full access, every endpoint below.
 - **Identity token** (`oa_…`, returned by `POST /v1/identities`) — scoped to
-  one address: only the `messages`/`wait`/`send` endpoints, and only for its
-  own address. Anything else returns `403`.
+  one address: `messages` / `wait` / `send` / participant `tasks` / own
+  `notify` routes (human alerts need `canNotifyUser`), and
+  `GET /v1/identities/:address/push-tier` for that same address. Creating or
+  listing identities, rotating tokens, deleting identities, and
+  `PUT …/push-tier` stay admin-only. Anything outside scope returns `403`.
 
 Failures return `401 {"error":"unauthorized"}` for bad tokens. Examples below
 assume:
@@ -51,7 +54,7 @@ hand this one to your agent, not the admin key.
 curl -X POST $API/v1/identities \
   -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" \
   -d '{"name":"signup-bot"}'
-# → 201 {"address":"fox-k7d2@example.com","name":"signup-bot","token":"oa_…"}
+# → 201 {"address":"fox-k7d2@example.com","name":"signup-bot","pushContentTier":1,"token":"oa_…"}
 ```
 
 | Field | Type | Notes |
@@ -60,11 +63,15 @@ curl -X POST $API/v1/identities \
 | `localpart` | string? | Force a specific address, e.g. `billing` → `billing@example.com` |
 | `canNotifyUser` | boolean? | Admin-granted permission for this identity to call `notify_user` and `notify_verify` |
 
+Response always includes resolved `pushContentTier` (default `1`). Tier `3`
+adds `pushContentTierWarning` on list/public identity shapes.
+
 ## `GET /v1/identities` — admin only
 
 ```bash
 curl $API/v1/identities -H "Authorization: Bearer $KEY"
-# → 200 {"identities":[{"address":"fox-k7d2@example.com","name":"signup-bot","createdAt":"2026-07-26T00:00:00.000Z"}]}
+# → 200 {"identities":[{"address":"fox-k7d2@example.com","name":"signup-bot",
+#      "createdAt":"2026-07-26T00:00:00.000Z","pushContentTier":1}]}
 ```
 
 Token hashes are never included in responses.
@@ -90,9 +97,63 @@ curl -X DELETE $API/v1/identities/fox-k7d2@example.com -H "Authorization: Bearer
 # → 200 {"deleted":true}
 ```
 
+## `GET /v1/identities/:address/push-tier`
+
+Read the mail-arrival **push content tier** for one identity. Admin keys may
+read any address. An identity token may read **only its own** address
+(otherwise `403`).
+
+```bash
+curl $API/v1/identities/fox-k7d2@example.com/push-tier \
+  -H "Authorization: Bearer $KEY"
+# → 200 {"address":"fox-k7d2@example.com","pushContentTier":1}
+```
+
+| Field | Type | Notes |
+|---|---|---|
+| `address` | string | Lowercased identity address |
+| `pushContentTier` | `1` \| `2` \| `3` | How much content mail-arrival user pushes include (default `1`) |
+| `warning` | string? | Present only when tier is `3` — body/OTP leave this server via ntfy |
+
+Tier semantics (mail-arrival pushes to the human topics only):
+
+| Tier | Content in the push |
+|---|---|
+| `1` (default) | Interrupt only — address + whether the mail looks OTP/link-bearing. No sender, subject, preview, or codes. |
+| `2` | Tier 1 plus **masked** `From` / `Subject` |
+| `3` | Interrupt line plus **unmasked** `From` / `Subject`, body preview, and extracted OTP codes/links (sensitive) |
+
+## `PUT /v1/identities/:address/push-tier` — admin only
+
+Set the push content tier. **Admin key required** — identity tokens get
+`403 {"error":"forbidden: admin key required"}`.
+
+```bash
+curl -X PUT $API/v1/identities/fox-k7d2@example.com/push-tier \
+  -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" \
+  -d '{"pushContentTier":2}'
+# → 200 {"address":"fox-k7d2@example.com","pushContentTier":2}
+```
+
+| Field | Type | Notes |
+|---|---|---|
+| `pushContentTier` | `1` \| `2` \| `3` | Required |
+| `confirm_risk` | boolean? | **Required as `true` when setting tier `3`** |
+
+Tier `3` ships body previews and OTP codes/links off-box through the ntfy
+channel. Without `"confirm_risk": true` the API refuses with:
+
+```json
+400 {"error":"confirm_risk_required","message":"Tier 3 includes message body previews and OTP codes/links in push notifications. That content leaves this server for the ntfy channel."}
+```
+
+A successful tier-`3` response also includes the same text in `warning`.
+Create and list responses always include resolved `pushContentTier`; list /
+public identity shapes also add `pushContentTierWarning` when the tier is `3`.
+
 ## `GET /v1/messages?address=x@y&limit=50`
 
-List an identity's inbox, newest first. `limit` defaults to 50.
+List an identity's inbox, newest first. `limit` defaults to 50 (max 200).
 Identity tokens may only list their own address.
 
 ```bash
@@ -100,12 +161,19 @@ curl "$API/v1/messages?address=fox-k7d2@example.com&limit=10" \
   -H "Authorization: Bearer $KEY"
 # → 200 {"messages":[{"id":"42","from":"noreply@github.com","to":"fox-k7d2@example.com",
 #      "subject":"Verify your email","date":"2026-07-26T00:01:00.000Z","seen":false,
-#      "snippet":"Confirm your address by clicking…"}]}
+#      "snippet":"Confirm your address by clicking…","hasOtp":true,"source":"external"}]}
 ```
+
+Each summary includes:
+
+| Field | Type | Notes |
+|---|---|---|
+| `hasOtp` | boolean | `true` when OTP extraction found any code or verification-looking link |
+| `source` | `"internal"` \| `"external"` | HMAC mail-stamp classification — fail-closed (see below) |
 
 ## `GET /v1/messages/:id?address=x@y`
 
-Full message, including extracted OTP codes and links.
+Full message, including extracted OTP codes and links, plus `source`.
 
 ```bash
 curl "$API/v1/messages/42?address=fox-k7d2@example.com" \
@@ -113,12 +181,18 @@ curl "$API/v1/messages/42?address=fox-k7d2@example.com" \
 # → 200 {"id":"42","from":"noreply@github.com","to":"fox-k7d2@example.com",
 #      "subject":"Verify your email","date":"2026-07-26T00:01:00.000Z",
 #      "text":"Your code is 482913 …","html":"<p>Your code is …</p>",
-#      "otp":{"codes":["482913"],"links":["https://github.com/verify?token=…"]}}
+#      "otp":{"codes":["482913"],"links":["https://github.com/verify?token=…"]},
+#      "links":["https://github.com/verify?token=…"],"source":"external"}
 ```
 
 `otp.codes` holds short numeric/alphanumeric verification codes found in the body;
 `otp.links` holds URLs that look like verification/confirmation links. Both are
 best-effort extraction — the raw `text`/`html` are always there as fallback.
+`source` uses the same fail-closed stamp check as the list endpoint. Server-stamped
+task mail may also include `taskId` / `taskState`.
+
+`source` also appears on `POST /v1/messages/wait` (same detail shape). The
+`POST /v1/messages/:id/seen` response is only `{id, seen}` — no `source`.
 
 ## `POST /v1/messages/:id/seen`
 
@@ -152,7 +226,8 @@ curl -X POST $API/v1/messages/wait \
 | `subjectContains` | string? | Case-insensitive substring match on the subject |
 | `timeoutSec` | number? | Default 120, max 600 |
 
-Success returns the same shape as `GET /v1/messages/:id` (including `otp`).
+Success returns the same shape as `GET /v1/messages/:id` (including `otp` and
+`source`).
 On expiry:
 
 ```
@@ -271,6 +346,34 @@ they do not advance state and may not appear in this thread view. v0.4 does not
 fall back to `References`/`In-Reply-To` and does not expose Message-ID values.
 Attachments are not task output in v0.4; use the `result` block instead.
 
+## `X-OA-Mail-Stamp` and message `source`
+
+Outbound mail the API sends may carry an HMAC header `X-OA-Mail-Stamp`. On read,
+the API recomputes the stamp over the same field contract (from, to, subject,
+date, body hash) and sets message `source`:
+
+| `source` | Meaning |
+|---|---|
+| `"internal"` | Stamp present and verifies |
+| `"external"` | Missing header, bad/mismatched HMAC, missing fields, unparseable mail, or any other uncertainty |
+
+This is **fail-closed**: anything not proven internal is `external`. The stamp
+binds envelope fields plus a body digest, so copying a legitimate stamp onto
+altered text fails verification.
+
+**Why stamps are not written for every send:** the signing key may fall back to
+the SMTP password (`MAIL_PASSWORD` in Compose). An external recipient who
+receives a stamped header gets a known-input + HMAC tag pair; when that key is
+the SMTP password, the pair enables an offline dictionary attack on the
+password. The API therefore writes `X-OA-Mail-Stamp` **only when every `To`
+address is on this server's domain**. Mixed or external recipients get no
+stamp; when that mail is read back locally it classifies as `external`, which
+is intentional.
+
+Treat `source` as a hygiene signal for agents (see
+[Reading untrusted mail](/docs/guides/security/#7-reading-untrusted-mail)), not
+as a cryptographic security boundary against a hostile MTA.
+
 ## `GET /.well-known/agent-card.json`
 
 Public discovery card using A2A v1.0 vocabulary: a fixed `capabilities` object,
@@ -279,8 +382,21 @@ a discovery shape only, not a claim of A2A wire-protocol compatibility. Add an
 already-known managed address as `?address=worker@example.com` to put its
 `mailto:` endpoint into the card without enumerating identities.
 
-`GET /.well-known/agent-registration.json` provides the matching HTTP
-well-known domain-control proof.
+## `GET /.well-known/agent-registration.json`
+
+Matching HTTP well-known domain-control proof. No auth. Shape:
+
+```json
+{
+  "version": "1.0",
+  "domain": "example.com",
+  "agentCard": "https://api.example.com/.well-known/agent-card.json",
+  "proof": {
+    "type": "http-well-known-domain-control",
+    "domain": "example.com"
+  }
+}
+```
 
 ## `POST /v1/notify`
 
