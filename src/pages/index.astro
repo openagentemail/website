@@ -35,7 +35,7 @@ const faq = [
   },
   {
     q: 'How is it different from AgentMail?',
-    a: 'AgentMail is a hosted service with usage-based pricing. openagent.email is software you run yourself: unlimited inboxes on your own domain, and your mail never leaves a machine you own. See the full comparison at /alternatives/agentmail.',
+    a: 'AgentMail is a hosted service with usage-based pricing. openagent.email is software you run yourself: unlimited inboxes on your own domain, and your mail never leaves a machine you own — unless you opt into push tiers 2/3, which relay subject/from or body/OTP via ntfy. See the full comparison at /alternatives/agentmail.',
   },
   {
     q: 'Do I need my own domain?',
@@ -100,7 +100,7 @@ const faqJsonLd = {
     <title>openagent.email — Self-hosted email for AI agents</title>
     <meta
       name="description"
-      content="The open-source, self-hosted alternative to AgentMail. One docker compose up gives every agent you run unlimited real mailboxes on your own domain — with OTP and verification-link extraction built in."
+      content="The open-source, self-hosted alternative to AgentMail. Unlimited agent mailboxes on your own domain — OTP extraction, agent-to-agent tasks, and phone push, over REST and MCP."
     />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="preload" href="/fonts/Satoshi-Regular.woff2" as="font" type="font/woff2" crossorigin />
@@ -367,8 +367,10 @@ const faqJsonLd = {
           <div class="stat reveal"><div class="n" data-count="22">0</div><div class="l">REST endpoints</div></div>
           <div class="stat reveal"><div class="n" data-count="15">0</div><div class="l">MCP tools</div></div>
           <div class="stat reveal"><div class="n" data-count="584">0</div><div class="l">automated tests</div></div>
-          <div class="stat reveal"><div class="n" data-count="0">0</div><div class="l">bytes of mail leaving your infra</div></div>
+          {/* 诚实限定：tier 2/3 会经 ntfy 送出元数据/正文/OTP；* 脚注用既有 .honest，不加 CSS */}
+          <div class="stat reveal"><div class="n" data-count="0">0</div><div class="l">bytes of mail leaving your infra*</div></div>
         </div>
+        <p class="honest reveal">*unless you opt into push tiers 2/3, which relay via ntfy</p>
         <div class="caplist reveal">
           <h3>REST API</h3>
           <ul>
@@ -562,7 +564,10 @@ const faqJsonLd = {
             </a>
             <p class="tagline">
               Self-hosted email for AI agents. Unlimited inboxes on your own domain — your mail
-              never leaves a machine you own.
+              never leaves a machine you own
+              <small title="Push tiers 2/3 relay subject/from or body/OTP via ntfy">
+                — unless you opt into push tiers 2/3
+              </small>.
             </p>
           </div>
           <div>
