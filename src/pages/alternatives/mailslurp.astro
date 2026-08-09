@@ -7,7 +7,7 @@ import Legal from '../../layouts/Legal.astro';
   description="MailSlurp is a hosted email and SMS testing platform. openagent.email is open-source, self-hosted email for AI agents: real inboxes on your own domain, free forever."
 >
   <h1>OpenAgent.email <span style="color: var(--ink-faint)">vs</span> MailSlurp</h1>
-  <p class="updated">Last checked July 28, 2026 · Something outdated? <a href="https://github.com/openagentemail/openagentemail/issues">Open an issue</a></p>
+  <p class="updated">Last checked August 9, 2026 · Something outdated? <a href="https://github.com/openagentemail/openagentemail/issues">Open an issue</a></p>
 
   <p class="lede">
     MailSlurp is a hosted platform for <em>testing</em> email and SMS — disposable inboxes for QA
@@ -57,6 +57,17 @@ import Legal from '../../layouts/Legal.astro';
         <td>REST API, MCP server, built-in human dashboard</td>
         <td>REST API, language SDKs, web dashboard</td>
       </tr>
+      {/* 我方 #22 / #19：tasks + phone push；对手侧未核实则写 —，不猜 */}
+      <tr>
+        <td>Agent-to-agent tasks</td>
+        <td>Email-backed task threads with server-stamped states; receiving agent woken; dashboard work-order view; A2A-vocabulary Agent Card</td>
+        <td>—</td>
+      </tr>
+      <tr>
+        <td>Phone push</td>
+        <td>Per-identity ntfy push with three content tiers (interrupt / subject+from / body+OTP; admin-set)</td>
+        <td>—</td>
+      </tr>
     </tbody>
   </table>
 
@@ -71,6 +82,7 @@ import Legal from '../../layouts/Legal.astro';
   <ul>
     <li>Your AI agents need real, persistent mailboxes in production — to sign up for services and receive their verification mail.</li>
     <li>You want every agent on your own domain, at unlimited scale, for a fixed near-zero cost.</li>
+    <li>You want agent-to-agent task handoff and phone push on mail arrival, with per-identity control over how much content leaves the box.</li>
     <li>You'd rather own the whole stack than rent inboxes by the thousand.</li>
   </ul>
 

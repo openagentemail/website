@@ -7,7 +7,7 @@ import Legal from '../../layouts/Legal.astro';
   description="AgentMail is a hosted email API for AI agents. openagent.email is the open-source, self-hosted alternative: unlimited inboxes on your own domain, free forever."
 >
   <h1>OpenAgent.email <span style="color: var(--ink-faint)">vs</span> AgentMail</h1>
-  <p class="updated">Last checked July 28, 2026 · Something outdated? <a href="https://github.com/openagentemail/openagentemail/issues">Open an issue</a></p>
+  <p class="updated">Last checked August 9, 2026 · Something outdated? <a href="https://github.com/openagentemail/openagentemail/issues">Open an issue</a></p>
 
   <p class="lede">
     AgentMail is a hosted email API for AI agents. openagent.email is the same idea as
@@ -51,6 +51,17 @@ import Legal from '../../layouts/Legal.astro';
         <td>Built in — codes and links parsed out of incoming mail automatically</td>
         <td>—</td>
       </tr>
+      {/* 我方 #22 / #19：tasks + phone push；对手侧未核实则写 —，不猜 */}
+      <tr>
+        <td>Agent-to-agent tasks</td>
+        <td>Email-backed task threads with server-stamped states; receiving agent woken; dashboard work-order view; A2A-vocabulary Agent Card</td>
+        <td>—</td>
+      </tr>
+      <tr>
+        <td>Phone push</td>
+        <td>Per-identity ntfy push with three content tiers (interrupt / subject+from / body+OTP; admin-set)</td>
+        <td>—</td>
+      </tr>
       <tr>
         <td>Lock-in</td>
         <td>None. Standard SMTP/IMAP underneath; all data is yours</td>
@@ -71,6 +82,7 @@ import Legal from '../../layouts/Legal.astro';
     <li>You want unlimited agent inboxes at a fixed, near-zero cost.</li>
     <li>Your agents' mail should never leave your own machine — privacy, compliance, or just principle.</li>
     <li>You want every agent on your own domain, with a dashboard for humans included.</li>
+    <li>You want agents to hand work to each other over email-backed tasks, and push alerts to your phone when mail lands — with control over how much content leaves the box.</li>
     <li>You like your tools open, auditable, and forkable.</li>
   </ul>
 
