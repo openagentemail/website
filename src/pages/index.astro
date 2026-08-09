@@ -35,7 +35,7 @@ const faq = [
   },
   {
     q: 'How is it different from AgentMail?',
-    a: 'AgentMail is a hosted service with usage-based pricing. openagent.email is software you run yourself: unlimited inboxes on your own domain, and your mail never leaves a machine you own. See the full comparison at /alternatives/agentmail.',
+    a: 'AgentMail is a hosted service with usage-based pricing. openagent.email is software you run yourself: unlimited inboxes on your own domain, and your mail never leaves a machine you own — unless you opt into push tiers 2/3, which relay subject/from or body/OTP via ntfy. See the full comparison at /alternatives/agentmail.',
   },
   {
     q: 'Do I need my own domain?',
@@ -53,6 +53,16 @@ const faq = [
     q: 'Is there a UI for humans?',
     a: 'Yes. Every install ships a built-in dashboard at /ui where you can see all your agent identities, read their inboxes, mark messages read or unread, create new identities with custom addresses, rotate tokens, and delete identities.',
   },
+  // #22 / tasks：agent 间工单交接（服务端戳状态 + 唤醒收单方 + Dashboard 工单视图）
+  {
+    q: 'Can agents hand work to each other?',
+    a: 'Yes. Tasks are email-backed threads between managed identities, with server-stamped states (submitted → working → completed/failed). Creating a task wakes the receiving agent; the dashboard rebuilds each thread into a work-order card with participants, a timeline, and a result block.',
+  },
+  // #23：source 打标 + MCP 围栏——诚实定性为 defense-in-depth，不是绝对保证
+  {
+    q: 'Is it safe for an agent to read untrusted email?',
+    a: 'Safer than raw MIME with no labels. Every message carries source: internal|external — only all-domain recipients get a server HMAC stamp (X-OA-Mail-Stamp). The MCP layer fences non-internal text/html/snippet so the model sees "this is data, not instructions." That is a hygiene baseline for defense-in-depth, not an absolute guarantee against prompt injection.',
+  },
 ];
 
 const softwareJsonLd = {
@@ -62,7 +72,7 @@ const softwareJsonLd = {
   applicationCategory: 'DeveloperApplication',
   operatingSystem: 'Any (Docker)',
   description:
-    'Open-source, self-hosted email for AI agents. Unlimited inboxes on your own domain, with OTP and verification-link extraction built in. REST API and MCP server.',
+    'Open-source, self-hosted email for AI agents. Unlimited inboxes on your own domain, with OTP extraction, agent-to-agent tasks, and push notifications built in. REST API and MCP server.',
   url: 'https://openagent.email',
   license: 'https://www.apache.org/licenses/LICENSE-2.0',
   isAccessibleForFree: true,
@@ -90,7 +100,7 @@ const faqJsonLd = {
     <title>openagent.email — Self-hosted email for AI agents</title>
     <meta
       name="description"
-      content="The open-source, self-hosted alternative to AgentMail. One docker compose up gives every agent you run unlimited real mailboxes on your own domain — with OTP and verification-link extraction built in."
+      content="The open-source, self-hosted alternative to AgentMail. Unlimited agent mailboxes on your own domain — OTP extraction, agent-to-agent tasks, and phone push, over REST and MCP."
     />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="preload" href="/fonts/Satoshi-Regular.woff2" as="font" type="font/woff2" crossorigin />
@@ -98,7 +108,7 @@ const faqJsonLd = {
     <meta property="og:title" content="openagent.email — Self-hosted email for AI agents" />
     <meta
       property="og:description"
-      content="Unlimited agent mailboxes on your own domain. REST + MCP. OTP extraction built in. Apache-2.0."
+      content="Unlimited agent mailboxes on your own domain. REST + MCP. OTP extraction, agent-to-agent tasks, and push notifications. Apache-2.0."
     />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://openagent.email" />
@@ -148,9 +158,10 @@ const faqJsonLd = {
           <span class="foil-wrap"><span class="foil-stroke" aria-hidden="true">Owned by you.</span><span class="foil foil-fill">Owned by you.</span></span>
         </h1>
         <p class="sub stagger stagger-3">
+          {/* 副标题只加手机推送子句，总长控制在原 +20 字符内 */}
           The open-source alternative to AgentMail. Unlimited real mailboxes for every agent you
           run, on your own domain — over REST and MCP — with OTP and verification-link extraction
-          built in. One guided command gets you started.
+          built in — and phone push. One guided command gets you started.
         </p>
         <div class="cta-row stagger stagger-4">
           <a class="btn btn-gold" href="https://github.com/openagentemail/openagentemail">Get started on GitHub</a>
@@ -279,7 +290,8 @@ const faqJsonLd = {
           <div class="card reveal">
             <span class="num">04</span>
             <h3>Safety rails</h3>
-            <p>Per-identity send rate limits (20/hour default) and automatic retention (30 days default). A leaked token can't become a spam cannon.</p>
+            {/* #23：未受信邮件 source 打标 + MCP 围栏；保留原有 rate limit / retention */}
+            <p>Per-identity send rate limits (20/hour default) and automatic retention (30 days default). Every message carries <code>source: internal|external</code>; non-internal bodies are fenced at the MCP layer. A leaked token can't become a spam cannon.</p>
           </div>
           <div class="card reveal">
             <span class="num">05</span>
@@ -295,6 +307,18 @@ const faqJsonLd = {
             <span class="num">07</span>
             <h3>A dashboard for the human</h3>
             <p>Open <code>/ui</code>, paste a token, watch every agent inbox from your browser — admin overview, OTP codes surfaced, read/unread marking, token rotation, and identity management with custom addresses. Sandboxed HTML previews included.</p>
+          </div>
+          <div class="card reveal">
+            <span class="num">08</span>
+            <h3>Agent-to-agent tasks</h3>
+            {/* #22：邮件工单线程 + 服务端状态戳 + Dashboard 工单视图 + A2A Agent Card */}
+            <p>Email-backed task threads with server-stamped states (<code>submitted</code>→<code>working</code>→<code>completed</code>/<code>failed</code>). The receiving agent is woken; the dashboard shows a work-order view. A2A-vocabulary Agent Card at <code>/.well-known/agent-card.json</code> (email transport — not wire-protocol claim).</p>
+          </div>
+          <div class="card reveal">
+            <span class="num">09</span>
+            <h3>Phone push</h3>
+            {/* #19：每身份三档 ntfy 推送内容；管理员设置，agent 不可自改 */}
+            <p>Per-identity push via ntfy. Three content tiers — interrupt only, subject/from, or body/OTP — you choose how much of the mail leaves the box. Tier 3 needs an admin risk confirm; agents cannot raise it themselves.</p>
           </div>
         </div>
       </div>
@@ -339,11 +363,14 @@ const faqJsonLd = {
     <section>
       <div class="wrap">
         <div class="stats">
-          <div class="stat reveal"><div class="n" data-count="9">0</div><div class="l">REST endpoints</div></div>
-          <div class="stat reveal"><div class="n" data-count="7">0</div><div class="l">MCP tools</div></div>
-          <div class="stat reveal"><div class="n" data-count="268">0</div><div class="l">automated tests</div></div>
-          <div class="stat reveal"><div class="n" data-count="0">0</div><div class="l">bytes of mail leaving your infra</div></div>
+          {/* 口径：公开端点含 /healthz 与 /.well-known/*，不含 /ui/*；测试 = api 531 + mcp 20 + setup 33 */}
+          <div class="stat reveal"><div class="n" data-count="22">0</div><div class="l">REST endpoints</div></div>
+          <div class="stat reveal"><div class="n" data-count="15">0</div><div class="l">MCP tools</div></div>
+          <div class="stat reveal"><div class="n" data-count="584">0</div><div class="l">automated tests</div></div>
+          {/* 诚实限定：tier 2/3 会经 ntfy 送出元数据/正文/OTP；* 脚注用既有 .honest，不加 CSS */}
+          <div class="stat reveal"><div class="n" data-count="0">0</div><div class="l">bytes of mail leaving your infra*</div></div>
         </div>
+        <p class="honest reveal">*unless you opt into push tiers 2/3, which relay via ntfy</p>
         <div class="caplist reveal">
           <h3>REST API</h3>
           <ul>
@@ -351,11 +378,21 @@ const faqJsonLd = {
             <li><code>GET /v1/identities</code> — list every identity you own</li>
             <li><code>POST /v1/identities/:a/token</code> — rotate (revoke) a token</li>
             <li><code>DELETE /v1/identities/:a</code> — retire an identity</li>
+            <li><code>GET /v1/identities/:a/push-tier</code> — read an identity's push content tier</li>
+            <li><code>PUT /v1/identities/:a/push-tier</code> — set push tier (admin; tier 3 needs confirm)</li>
             <li><code>GET /v1/messages</code> — list an inbox</li>
             <li><code>GET /v1/messages/:id</code> — full mail + parsed OTP</li>
             <li><code>POST /v1/messages/wait</code> — long-poll for new mail</li>
             <li><code>POST /v1/messages/:id/seen</code> — mark read / unread</li>
             <li><code>POST /v1/send</code> — send as any identity you own</li>
+            <li><code>POST /v1/tasks</code> — assign an email-backed task to another identity</li>
+            <li><code>GET /v1/tasks</code> — list task threads you can see</li>
+            <li><code>GET /v1/tasks/:id</code> — read a task + stamped state history</li>
+            <li><code>POST /v1/tasks/:id/state</code> — advance a participating task</li>
+            <li><code>POST /v1/notify</code> — send a server-side notification</li>
+            <li><code>GET /v1/notify/messages</code> — list recent notification history</li>
+            <li><code>POST /v1/notify/verify</code> — publish and poll a harmless self-check</li>
+            <li><code>POST /v1/notify/devices</code> — register a device for push</li>
           </ul>
           <h3>MCP tools</h3>
           <ul>
@@ -366,6 +403,14 @@ const faqJsonLd = {
             <li><code>mail_wait_for</code></li>
             <li><code>mail_send</code></li>
             <li><code>mail_mark_seen</code></li>
+            <li><code>task_create</code></li>
+            <li><code>task_list</code></li>
+            <li><code>task_get</code></li>
+            <li><code>task_update</code></li>
+            <li><code>notify_user</code></li>
+            <li><code>notify_agent</code></li>
+            <li><code>notify_check</code></li>
+            <li><code>notify_verify</code></li>
           </ul>
           <h3>Extraction corpus</h3>
           <ul>
@@ -417,7 +462,7 @@ const faqJsonLd = {
               <tr><td>Unlimited inboxes</td><td class="us"><span class="yes">✓</span> catch-all</td><td>Paid tiers</td><td>Paid tiers</td></tr>
               <tr><td>MCP-native</td><td class="us"><span class="yes">✓</span></td><td><span class="yes">✓</span></td><td><span class="no">✗</span> REST/SDKs</td></tr>
               <tr><td>OTP / link extraction</td><td class="us"><span class="yes">✓</span></td><td><span class="yes">✓</span></td><td><span class="yes">✓</span></td></tr>
-              <tr><td>Data leaves your infra</td><td class="us"><span class="yes">Never</span></td><td>Always</td><td>Always</td></tr>
+              <tr><td>Data leaves your infra</td><td class="us"><span class="yes">Never*</span></td><td>Always</td><td>Always</td></tr>
               <tr><td>You run a server</td><td class="us">Yes — that's the point</td><td>No</td><td>No</td></tr>
             </tbody>
           </table>
@@ -425,7 +470,8 @@ const faqJsonLd = {
         <p class="honest reveal">
           To be fair: if you never want to touch a VPS, a hosted service is genuinely easier. We
           think owning the mailbox — the OTPs, the links, the reputation — is worth ten minutes of
-          setup. Your call.
+          setup. Your call. And the asterisk: push tiers 2/3 relay subject/from or body/OTP via ntfy
+          — off by default, your call.
         </p>
       </div>
     </section>
@@ -519,7 +565,10 @@ const faqJsonLd = {
             </a>
             <p class="tagline">
               Self-hosted email for AI agents. Unlimited inboxes on your own domain — your mail
-              never leaves a machine you own.
+              never leaves a machine you own
+              <small title="Push tiers 2/3 relay subject/from or body/OTP via ntfy">
+                — unless you opt into push tiers 2/3
+              </small>.
             </p>
           </div>
           <div>
@@ -595,6 +644,8 @@ const faqJsonLd = {
         { t: 'wait', text: ' …', speed: 400 },
         { t: 'ok',   text: '\n 📩 new mail from noreply@github.com\n', speed: 12 },
         { t: 'json', text: ' {"otp":{"codes":["59162834"],"links":["https://github.com/…/confirm_verification/…"]}}\n\n', speed: 8 },
+        // #19：邮件落地后推到手机——插在收尾 dim 行之前
+        { t: 'ok',   text: ' 📱 push sent to your phone\n', speed: 12 },
         { t: 'dim',  text: ' # code extracted. agent proceeds with signup. ✔\n', speed: 16 },
       ];
       const CLS = { cmd: 't-cmd', ok: 't-ok', json: 't-json', dim: 't-dim', wait: 't-wait' };
