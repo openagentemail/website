@@ -64,6 +64,38 @@ simply won't stick. Either open it through the SSH tunnel
 proper domain plus certificate is the recommended setup as soon as more than
 one person or device needs the inbox.
 
+nginx/OpenResty version of that `/ui`-only vhost (the exact shape we run in
+production — everything outside `/ui` gets a 404, so the agent API is never
+reachable through this hostname):
+
+```nginx
+server {
+    listen 443 ssl;
+    server_name inbox.yourdomain;
+
+    # certbot/Let's Encrypt paths go here; HSTS tells browsers to never
+    # fall back to plain HTTP for this host.
+    add_header Strict-Transport-Security "max-age=31536000" always;
+
+    location = /ui { return 308 /ui/; }
+
+    location /ui/ {
+        proxy_pass http://127.0.0.1:3100;
+        proxy_http_version 1.1;
+        # The Origin check behind /ui compares against the Host header —
+        # passing $host is what lets HTTPS logins through the gate.
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location / { return 404; }
+}
+```
+
+One gotcha the hard way: the login POST must arrive with
+`Sec-Fetch-Site: same-origin` (every real browser sends it) or the Origin
+gate answers 403 — that's the anti-CSRF layer doing its job, not a bug.
+
 ## 3. Send rate limit
 
 Every identity is capped at `SEND_RATE_LIMIT` messages per rolling hour
