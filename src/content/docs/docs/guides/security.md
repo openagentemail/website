@@ -12,7 +12,7 @@ of things to get right.
 | Token | Created by | Can do |
 |---|---|---|
 | **Admin key** (`API_KEYS` env) | you, at deploy time | everything: create/rotate/delete identities, set push tiers, read and send as **any** address |
-| **Identity token** (`oa_…`) | `POST /v1/identities` (returned once) | read/send/tasks/notify as **its own address**; may `GET` its own push tier; cannot mint identities or `PUT` push tier |
+| **Identity token** (`oa_…`) | `POST /v1/identities` (returned once) | read/send/tasks/notify as **its own address** (human alerts via `notify_user` / `notify_verify` need `canNotifyUser`); may `GET` its own push tier; cannot mint identities or `PUT` push tier |
 
 Rules of thumb:
 

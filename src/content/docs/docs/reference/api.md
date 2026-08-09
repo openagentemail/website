@@ -143,7 +143,7 @@ curl -X PUT $API/v1/identities/fox-k7d2@example.com/push-tier \
 Tier `3` ships body previews and OTP codes/links off-box through the ntfy
 channel. Without `"confirm_risk": true` the API refuses with:
 
-```
+```json
 400 {"error":"confirm_risk_required","message":"Tier 3 includes message body previews and OTP codes/links in push notifications. That content leaves this server for the ntfy channel."}
 ```
 
@@ -362,11 +362,13 @@ binds envelope fields plus a body digest, so copying a legitimate stamp onto
 altered text fails verification.
 
 **Why stamps are not written for every send:** the signing key may fall back to
-the SMTP password. If a stamped header went to an external recipient, the
-ciphertext-plus-known-plaintext pair would be an HMAC oracle. The API therefore
-writes `X-OA-Mail-Stamp` **only when every `To` address is on this server's
-domain**. Mixed or external recipients get no stamp; when that mail is read
-back locally it classifies as `external`, which is intentional.
+the SMTP password (`MAIL_PASSWORD` in Compose). An external recipient who
+receives a stamped header gets a known-input + HMAC tag pair; when that key is
+the SMTP password, the pair enables an offline dictionary attack on the
+password. The API therefore writes `X-OA-Mail-Stamp` **only when every `To`
+address is on this server's domain**. Mixed or external recipients get no
+stamp; when that mail is read back locally it classifies as `external`, which
+is intentional.
 
 Treat `source` as a hygiene signal for agents (see
 [Reading untrusted mail](/docs/guides/security/#7-reading-untrusted-mail)), not
