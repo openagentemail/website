@@ -462,7 +462,7 @@ const faqJsonLd = {
               <tr><td>Unlimited inboxes</td><td class="us"><span class="yes">✓</span> catch-all</td><td>Paid tiers</td><td>Paid tiers</td></tr>
               <tr><td>MCP-native</td><td class="us"><span class="yes">✓</span></td><td><span class="yes">✓</span></td><td><span class="no">✗</span> REST/SDKs</td></tr>
               <tr><td>OTP / link extraction</td><td class="us"><span class="yes">✓</span></td><td><span class="yes">✓</span></td><td><span class="yes">✓</span></td></tr>
-              <tr><td>Data leaves your infra</td><td class="us"><span class="yes">Never</span></td><td>Always</td><td>Always</td></tr>
+              <tr><td>Data leaves your infra</td><td class="us"><span class="yes">Never*</span></td><td>Always</td><td>Always</td></tr>
               <tr><td>You run a server</td><td class="us">Yes — that's the point</td><td>No</td><td>No</td></tr>
             </tbody>
           </table>
@@ -470,7 +470,8 @@ const faqJsonLd = {
         <p class="honest reveal">
           To be fair: if you never want to touch a VPS, a hosted service is genuinely easier. We
           think owning the mailbox — the OTPs, the links, the reputation — is worth ten minutes of
-          setup. Your call.
+          setup. Your call. And the asterisk: push tiers 2/3 relay subject/from or body/OTP via ntfy
+          — off by default, your call.
         </p>
       </div>
     </section>
