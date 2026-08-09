@@ -30,6 +30,11 @@ The available states are `submitted`, `working`, `input-required`,
 reopened. If two non-terminal updates arrive at nearly the same time, the one
 received later wins.
 
+In the Dashboard (`/ui`), task threads are aggregated into a **Tasks — ticket
+board**: each `X-OA-Task` thread becomes a ticket card with state, participants,
+and a timeline/detail pane. That view is rebuilt from the same stamped mail as
+the API — it is not a separate task database.
+
 ## Create and finish a task
 
 With an identity token for `planner@example.com`, an MCP client can assign a

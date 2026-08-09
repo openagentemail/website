@@ -90,14 +90,27 @@ logical names.
 the server finds an OTP code or verification link. Set `all` for every new
 message, or `none` to disable the watcher.
 
-The payload is deliberately small — for example, `qa-bot@example.com received
-new email (contains OTP or verification link)`. It never includes the sender,
-subject, preview, or code. Mail from outside your own managed identities can
-alert the user, but it can **never** wake an `agent:<localpart>` route. The
-IMAP watcher only publishes to human topics; an agent wake-up is emitted only
-after the API has accepted a server-authenticated send to another managed
-identity. That boundary does not depend on email text or attacker-controlled
-headers.
+How much of the mail appears in that human push is per-identity **push content
+tier** (default `1`):
+
+| Tier | What the push contains |
+|---|---|
+| `1` | Interrupt only — e.g. `qa-bot@example.com received new email (contains OTP or verification link)`. No sender, subject, preview, or code. |
+| `2` | Tier 1 plus **masked** `From` / `Subject` |
+| `3` | Interrupt line plus **unmasked** `From` / `Subject`, body preview, and extracted OTP codes/links. That content **leaves this server** for the ntfy channel. |
+
+Admins set the tier with
+[`PUT /v1/identities/:address/push-tier`](/docs/reference/api/#put-v1identitiesaddresspush-tier).
+Tier `3` requires `"confirm_risk": true` or the API returns
+`confirm_risk_required`. Identity tokens may **read** their own tier
+(`GET …/push-tier`) but cannot change it. The Dashboard overview also exposes
+the same control for admin sessions.
+
+Mail from outside your own managed identities can alert the user, but it can
+**never** wake an `agent:<localpart>` route. The IMAP watcher only publishes to
+human topics; an agent wake-up is emitted only after the API has accepted a
+server-authenticated send to another managed identity. That boundary does not
+depend on email text or attacker-controlled headers.
 
 ## API and MCP
 

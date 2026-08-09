@@ -127,10 +127,22 @@ separate server-side setup path.
 
 ## What reaches the phone
 
-The phone sees only a small alert such as “`agent@example.com received new
-email (contains OTP or verification link)`”. It never includes the email
-subject, sender, preview, or OTP itself. Agent wake-up topics stay separate:
-the phone account cannot read or publish them.
+What the phone shows for mail-arrival alerts depends on that identity's **push
+content tier** (default `1` — interrupt only):
+
+| Tier | On the phone |
+|---|---|
+| `1` (default) | Small alert such as `agent@example.com received new email (contains OTP or verification link)` — no subject, sender, preview, or OTP |
+| `2` | Adds **masked** `From` / `Subject` |
+| `3` | **Unmasked** `From` / `Subject`, plus body preview and OTP codes/links — that content leaves your server via ntfy |
+
+Admins change the tier with
+[`PUT /v1/identities/:address/push-tier`](/docs/reference/api/#put-v1identitiesaddresspush-tier)
+(`confirm_risk: true` required for tier `3`). See
+[Server-side notifications](/docs/guides/notifications/#mail-arrival-policy).
+
+Agent wake-up topics stay separate: the phone account cannot read or publish
+them.
 
 For a lower-level API integration, an admin may call
 [`POST /v1/notify/devices`](/docs/reference/api/#post-v1notifydevices). It
