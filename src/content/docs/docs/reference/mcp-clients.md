@@ -3,21 +3,82 @@ title: MCP client setup
 description: Wire the MCP server into Claude Code, Claude Desktop, Cursor, or Kimi Code.
 ---
 
-The MCP server wraps the REST API one-to-one, so your agent gets email as native
-tool calls. It runs over **stdio** and needs Node.js 18+ on the machine running
-the MCP client (a local checkout runs with [Bun](https://bun.sh) instead), plus
-two environment variables:
+The MCP surface wraps the REST API one-to-one, so your agent gets email as native
+tool calls. Connect either over **HTTP** (`type: http` against the API’s
+`POST /mcp`) or over **stdio** (local `@openagentemail/mcp`). Both register the
+same tool set.
+
+### Stdio package env
+
+The stdio package needs Node.js 18+ on the machine running the MCP client (a
+local checkout runs with [Bun](https://bun.sh) instead), plus two environment
+variables:
 
 | Variable | Purpose | Default |
 |---|---|---|
 | `OPENAGENTEMAIL_API_URL` | Base URL of the API | `http://localhost:3100` |
 | `OPENAGENTEMAIL_API_KEY` | The identity token (`oa_…`) from `POST /v1/identities` — or an admin key for full access | — (required) |
 
-In the examples below, `/path/to/openagentemail` is wherever you cloned the repo.
-From a local checkout the server starts with
+In the stdio examples below, `/path/to/openagentemail` is wherever you cloned the
+repo. From a local checkout the server starts with
 `bun run /path/to/openagentemail/packages/mcp/src/main.ts`; without a checkout,
 `npx -y @openagentemail/mcp` runs the published npm package. See
 [packages/mcp/README.md](https://github.com/openagentemail/openagentemail/tree/main/packages/mcp#readme) for server internals.
+
+## Remote HTTP connection (`type: http`)
+
+The API process also exposes a **stateless** MCP endpoint at `POST /mcp`
+(MCP 2026-07-28 / SDK v2). Clients that support remote MCP can talk HTTP +
+Bearer directly — no local `@openagentemail/mcp` stdio wrapper.
+
+| Item | Value |
+|---|---|
+| URL | `https://<your-api-host>/mcp` (or tailnet / LAN `http://…:3100/mcp`) |
+| Auth | `Authorization: Bearer <oa_… or admin API_KEYS>` |
+| Session | None — no `Mcp-Session-Id`; each request authenticates on its own |
+| Methods | **POST only** (other methods → `405` with `Allow: POST`) |
+| Discovery | `GET /.well-known/oauth-protected-resource` (RFC 9728 PRM; also path-aware `…/oauth-protected-resource/mcp`). Public, no auth. A full OAuth authorization server is **not** shipped yet — do not expect AS endpoints in the metadata. |
+| Public origin | Optional env `MCP_PUBLIC_URL` overrides the origin advertised in PRM / `WWW-Authenticate` when the request host is not the public one |
+
+### Cursor / generic MCP `type: http` example
+
+```json
+{
+  "mcpServers": {
+    "openagentemail": {
+      "type": "http",
+      "url": "http://127.0.0.1:3100/mcp",
+      "headers": {
+        "Authorization": "Bearer oa_…"
+      }
+    }
+  }
+}
+```
+
+Off loopback, use **https**. `Authorization: Bearer` rides with every request;
+cleartext HTTP exposes the token to anyone on the path.
+
+Compare the existing **stdio** shape (local `npx` wrapper, same API over REST):
+
+```json
+{
+  "mcpServers": {
+    "openagentemail": {
+      "command": "npx",
+      "args": ["-y", "@openagentemail/mcp"],
+      "env": {
+        "OPENAGENTEMAIL_API_URL": "http://127.0.0.1:3100",
+        "OPENAGENTEMAIL_API_KEY": "oa_…"
+      }
+    }
+  }
+}
+```
+
+Missing or invalid Bearer on `POST /mcp` returns `401` with a
+`WWW-Authenticate` challenge that points at the PRM URL (unlike `/v1/*`, which
+returns bare JSON `{"error":"unauthorized"}`).
 
 ## Tools your agent gets
 

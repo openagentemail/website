@@ -7,7 +7,9 @@ Base URL: `http://localhost:3100` (the compose stack binds the API to
 localhost by default — see [security.md](/docs/guides/security/) for reaching it
 remotely).
 
-All endpoints except `GET /healthz` require a bearer token:
+All endpoints except `GET /healthz` and the public discovery routes under
+`/.well-known/` (agent card, domain-control proof, and OAuth Protected Resource
+Metadata) require a bearer token:
 
 ```
 Authorization: Bearer <admin key or identity token>
@@ -373,6 +375,45 @@ is intentional.
 Treat `source` as a hygiene signal for agents (see
 [Reading untrusted mail](/docs/guides/security/#7-reading-untrusted-mail)), not
 as a cryptographic security boundary against a hostile MTA.
+
+## `POST /mcp`
+
+Stateless remote MCP transport (MCP 2026-07-28 / SDK v2). Same 15 tools as the
+stdio package; no `Mcp-Session-Id`. **POST only** — other methods return `405`
+with `Allow: POST`.
+
+Requires `Authorization: Bearer <admin key or oa_… identity token>`. Missing or
+invalid credentials return `401` plus a `WWW-Authenticate` challenge that
+includes a `resource_metadata=` URL pointing at the PRM document below (unlike
+`/v1/*`, which returns bare JSON without that header).
+
+```bash
+curl -X POST $API/mcp \
+  -H "Authorization: Bearer $KEY" \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}'
+```
+
+Off loopback, serve this over **https** — the Bearer token is sent on every
+request. Optional env `MCP_PUBLIC_URL` overrides the public origin advertised in
+PRM / challenge metadata when the request host is not the external one. Client
+`type: http` setup:
+[MCP client setup — Remote HTTP](/docs/reference/mcp-clients/#remote-http-connection-type-http).
+
+## `GET /.well-known/oauth-protected-resource`
+
+RFC 9728 Protected Resource Metadata for the MCP resource. **No auth.** The
+path-aware twin `GET /.well-known/oauth-protected-resource/mcp` returns the same
+document. A full OAuth authorization server is not part of this release — the
+metadata does not advertise AS endpoints such as `authorization_endpoint` or
+`token_endpoint`.
+
+```bash
+curl $API/.well-known/oauth-protected-resource
+# → 200 {"resource":"http://localhost:3100/mcp","authorization_servers":[…],
+#        "scopes_supported":["mcp"],"resource_name":"openagentemail", …}
+```
 
 ## `GET /.well-known/agent-card.json`
 
