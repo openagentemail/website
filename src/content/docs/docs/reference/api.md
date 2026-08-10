@@ -25,8 +25,9 @@ Two token kinds (details in [security.md](/docs/guides/security/)):
   listing identities, rotating tokens, deleting identities, and
   `PUT …/push-tier` stay admin-only. Anything outside scope returns `403`.
 
-Failures return `401 {"error":"unauthorized"}` for bad tokens. Examples below
-assume:
+For `/v1/*`, failures return `401 {"error":"unauthorized"}` for bad tokens.
+`POST /mcp` uses a `WWW-Authenticate` challenge instead (see below). Examples
+below assume:
 
 ```bash
 export API=http://localhost:3100
@@ -396,8 +397,9 @@ curl -X POST $API/mcp \
 ```
 
 Off loopback, serve this over **https** — the Bearer token is sent on every
-request. Optional env `MCP_PUBLIC_URL` overrides the public origin advertised in
-PRM / challenge metadata when the request host is not the external one. Client
+request. Optional env `MCP_PUBLIC_URL` overrides the public origin inside the
+PRM document when the request host is not the external one (the 401
+`resource_metadata=` URL still follows the request origin). Client
 `type: http` setup:
 [MCP client setup — Remote HTTP](/docs/reference/mcp-clients/#remote-http-connection-type-http).
 

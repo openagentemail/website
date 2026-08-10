@@ -8,7 +8,7 @@ tool calls. Connect either over **HTTP** (`type: http` against the API’s
 `POST /mcp`) or over **stdio** (local `@openagentemail/mcp`). Both register the
 same tool set.
 
-### Stdio package env
+## Stdio package env
 
 The stdio package needs Node.js 18+ on the machine running the MCP client (a
 local checkout runs with [Bun](https://bun.sh) instead), plus two environment
@@ -33,12 +33,12 @@ Bearer directly — no local `@openagentemail/mcp` stdio wrapper.
 
 | Item | Value |
 |---|---|
-| URL | `https://<your-api-host>/mcp` (or tailnet / LAN `http://…:3100/mcp`) |
+| URL | `https://<your-api-host>/mcp` (plain `http://…:3100/mcp` only on loopback or an encrypted tunnel such as a WireGuard tailnet — never on the public internet or other untrusted networks) |
 | Auth | `Authorization: Bearer <oa_… or admin API_KEYS>` |
 | Session | None — no `Mcp-Session-Id`; each request authenticates on its own |
 | Methods | **POST only** (other methods → `405` with `Allow: POST`) |
 | Discovery | `GET /.well-known/oauth-protected-resource` (RFC 9728 PRM; also path-aware `…/oauth-protected-resource/mcp`). Public, no auth. A full OAuth authorization server is **not** shipped yet — do not expect AS endpoints in the metadata. |
-| Public origin | Optional env `MCP_PUBLIC_URL` overrides the origin advertised in PRM / `WWW-Authenticate` when the request host is not the public one |
+| Public origin | Optional env `MCP_PUBLIC_URL` overrides the origin used inside the PRM document (`resource` / derived `authorization_servers`) when the request host is not the public one. The 401 `WWW-Authenticate` `resource_metadata=` URL still follows the request origin. |
 
 ### Cursor / generic MCP `type: http` example
 
@@ -227,8 +227,10 @@ Any client that speaks stdio MCP can run the server the same way:
 
 ## Running against a remote server
 
-The MCP server itself always runs locally (stdio), but `OPENAGENTEMAIL_API_URL` can
-point anywhere the API is reachable — e.g. your VPS:
+For the **stdio** wrapper only: the MCP child process still runs on the client
+machine, but `OPENAGENTEMAIL_API_URL` can point anywhere the API is reachable —
+e.g. your VPS. (To skip the local wrapper entirely, use
+[Remote HTTP](#remote-http-connection-type-http) instead.)
 
 ```json
 "env": {
