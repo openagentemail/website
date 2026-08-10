@@ -34,13 +34,25 @@ Bearer directly — no local `@openagentemail/mcp` stdio wrapper.
 | Item | Value |
 |---|---|
 | URL | `https://<your-api-host>/mcp` (plain `http://…:3100/mcp` only on loopback or an encrypted tunnel such as a WireGuard tailnet — never on the public internet or other untrusted networks) |
-| Auth | `Authorization: Bearer <oa_… or admin API_KEYS>` |
+| Auth | `Authorization: Bearer <oa_… / admin API_KEYS / OAuth access token>` |
 | Session | None — no `Mcp-Session-Id`; each request authenticates on its own |
 | Methods | **POST only** (other methods → `405` with `Allow: POST`) |
-| Discovery | `GET /.well-known/oauth-protected-resource` (RFC 9728 PRM; also path-aware `…/oauth-protected-resource/mcp`). Public, no auth. A full OAuth authorization server is **not** shipped yet — do not expect AS endpoints in the metadata. |
+| Discovery | `GET /.well-known/oauth-protected-resource` (RFC 9728 PRM; also path-aware `…/oauth-protected-resource/mcp`) → `authorization_servers` points at the AS issuer → `GET /.well-known/oauth-authorization-server` (RFC 8414). Public, no auth. |
 | Public origin | Optional env `MCP_PUBLIC_URL` overrides the origin used inside the PRM document (`resource` / derived `authorization_servers`) when the request host is not the public one. The 401 `WWW-Authenticate` `resource_metadata=` URL still follows the request origin. |
 
-### Cursor / generic MCP `type: http` example
+**Deployment note:** today the Authorization Server runs on loopback / your
+tailnet (public exposure is a later roadmap item). Web agents must be able to
+reach that private address; do not assume a public `openagent.email` OAuth
+ingress yet.
+
+Two ways to put a Bearer on `POST /mcp`:
+
+### 1. Manual `oa_…` token (agent self-serve)
+
+Create an identity (admin) and paste its scoped token into the client config.
+This is the usual path for Cursor / Claude Desktop / local agents you control.
+
+#### Cursor / generic MCP `type: http` example
 
 ```json
 {
@@ -79,6 +91,63 @@ Compare the existing **stdio** shape (local `npx` wrapper, same API over REST):
 Missing or invalid Bearer on `POST /mcp` returns `401` with a
 `WWW-Authenticate` challenge that points at the PRM URL (unlike `/v1/*`, which
 returns bare JSON `{"error":"unauthorized"}`).
+
+### 2. OAuth web authorization (ChatGPT / Claude and similar)
+
+Web agents that speak standard OAuth use **authorization code + PKCE (S256
+only) + CIMD** — no Dynamic Client Registration. The owner approves in the
+Dashboard consent UI; the resulting access token is **identity**-scoped only
+(never admin) and audience-bound to the MCP resource (`…/mcp`).
+
+#### Discovery chain
+
+1. `GET /.well-known/oauth-protected-resource` (RFC 9728 PRM) — read
+   `authorization_servers` for the issuer.
+2. `GET /.well-known/oauth-authorization-server` (RFC 8414) — expect among
+   others:
+   - `code_challenge_methods_supported: ["S256"]`
+   - `authorization_response_iss_parameter_supported: true`
+   - `client_id_metadata_document_supported: true`
+   - `authorization_endpoint`, `token_endpoint`, `revocation_endpoint`
+
+Endpoint details:
+[REST API — OAuth Authorization Server](/docs/reference/api/#get-well-knownoauth-authorization-server).
+
+#### Client requirements (CIMD)
+
+`client_id` **is** the HTTPS URL of a Client ID Metadata Document the client
+hosts. Required fields: `client_id`, `client_name`, `redirect_uris`. Any
+`client_secret*` key is rejected. `redirect_uri` must match a registered URI
+exactly; for loopback HTTP IP literals (`127.0.0.1` / `[::1]`), port is ignored
+per RFC 8252. PKCE must use **S256**. Every authorize / token request must
+include the RFC 8707 `resource` parameter equal to `{base}/mcp`.
+
+On the authorization callback (including error redirects), the client **must**
+compare the returned `iss` to the discovered issuer and abort on mismatch
+(RFC 9207 mix-up defense). Unless CSRF protection rests entirely on verified
+S256 PKCE, also send a high-entropy `state` and verify it on return (RFC 9700).
+
+#### Consent (owner-only)
+
+`GET /authorize` hands off to `/ui/oauth/authorize` inside a Dashboard admin
+session. Only the owner (admin session) can approve. The consent page shows
+`client_name`, the client_id host, and the redirect host; localhost / loopback
+redirects show an extra warning. On approve, pick an existing identity or create
+one on the spot.
+
+#### Tokens, refresh, revoke
+
+| Token | Lifetime | Notes |
+|---|---|---|
+| Access | 1 hour | Bearer for `POST /mcp` |
+| Refresh | 30 days | Rotating — each refresh issues a new refresh token and **invalidates** the previous one |
+
+- Exchange the code at `POST /oauth/token` (`grant_type=authorization_code` +
+  PKCE verifier + `resource`).
+- Refresh with `grant_type=refresh_token` (same `resource` / `client_id`
+  binding).
+- Revoke via `POST /oauth/revoke` (RFC 7009), or revoke the whole grant from
+  Dashboard **Authorized clients** at `/ui/oauth/grants`.
 
 ## Tools your agent gets
 
