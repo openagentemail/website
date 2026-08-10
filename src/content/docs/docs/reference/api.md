@@ -8,22 +8,31 @@ localhost by default — see [security.md](/docs/guides/security/) for reaching 
 remotely).
 
 All endpoints except `GET /healthz` and the public discovery routes under
-`/.well-known/` (agent card, domain-control proof, and OAuth Protected Resource
-Metadata) require a bearer token:
+`/.well-known/` (agent card, domain-control proof, OAuth Protected Resource
+Metadata, and OAuth Authorization Server Metadata) require a bearer token.
+`GET /authorize` is the browser authorization entry — consent is approved by
+an **admin Dashboard session** at `/ui/oauth/authorize` (owner), not by any
+OAuth protocol credential. `POST /oauth/token` and `POST /oauth/revoke` use
+protocol credentials (`code` + PKCE, or the token value plus bound
+`client_id`) — they do **not** take an admin / identity Bearer.
 
 ```
-Authorization: Bearer <admin key or identity token>
+Authorization: Bearer <admin key, oa_… identity token, or OAuth access token>
 ```
 
-Two token kinds (details in [security.md](/docs/guides/security/)):
+Credential kinds (details in [security.md](/docs/guides/security/)):
 
 - **Admin key** (from the `API_KEYS` env) — full access, every endpoint below.
-- **Identity token** (`oa_…`, returned by `POST /v1/identities`) — scoped to
-  one address: `messages` / `wait` / `send` / participant `tasks` / own
-  `notify` routes (human alerts need `canNotifyUser`), and
+- **Identity token** (`oa_…` from `POST /v1/identities`) — scoped to one
+  address: `messages` / `wait` / `send` / participant `tasks` / own `notify`
+  routes (human alerts need `canNotifyUser`), and
   `GET /v1/identities/:address/push-tier` for that same address. Creating or
   listing identities, rotating tokens, deleting identities, and
   `PUT …/push-tier` stay admin-only. Anything outside scope returns `403`.
+- **OAuth access token** — identity-scoped only (**never** admin); issued by
+  the authorize flow. Revoke the grant via `POST /oauth/revoke` or Dashboard
+  `/ui/oauth/grants` (does not touch `oa_…`); deleting the identity cascades
+  and kills its OAuth grants too.
 
 For `/v1/*`, failures return `401 {"error":"unauthorized"}` for bad tokens.
 `POST /mcp` uses a `WWW-Authenticate` challenge instead (see below). Examples
@@ -383,10 +392,11 @@ Stateless remote MCP transport (MCP 2026-07-28 / SDK v2). Same 15 tools as the
 stdio package; no `Mcp-Session-Id`. **POST only** — other methods return `405`
 with `Allow: POST`.
 
-Requires `Authorization: Bearer <admin key or oa_… identity token>`. Missing or
-invalid credentials return `401` plus a `WWW-Authenticate` challenge that
-includes a `resource_metadata=` URL pointing at the PRM document below (unlike
-`/v1/*`, which returns bare JSON without that header).
+Requires `Authorization: Bearer <admin key, oa_… identity token, or OAuth
+access token>`. Missing or invalid credentials return `401` plus a
+`WWW-Authenticate` challenge that includes a `resource_metadata=` URL pointing
+at the PRM document below (unlike `/v1/*`, which returns bare JSON without that
+header).
 
 ```bash
 curl -X POST $API/mcp \
@@ -407,15 +417,63 @@ PRM document when the request host is not the external one (the 401
 
 RFC 9728 Protected Resource Metadata for the MCP resource. **No auth.** The
 path-aware twin `GET /.well-known/oauth-protected-resource/mcp` returns the same
-document. A full OAuth authorization server is not part of this release — the
-metadata does not advertise AS endpoints such as `authorization_endpoint` or
-`token_endpoint`.
+document. `authorization_servers` lists the AS issuer; clients continue to
+[RFC 8414 metadata](#get-well-knownoauth-authorization-server).
 
 ```bash
 curl $API/.well-known/oauth-protected-resource
 # → 200 {"resource":"http://localhost:3100/mcp","authorization_servers":[…],
 #        "scopes_supported":["mcp"],"resource_name":"openagentemail", …}
 ```
+
+## `GET /.well-known/oauth-authorization-server`
+
+RFC 8414 Authorization Server Metadata. **No auth.** Advertises
+`authorization_endpoint` (`/authorize`), `token_endpoint` (`/oauth/token`),
+`revocation_endpoint` (`/oauth/revoke`), `code_challenge_methods_supported:
+["S256"]`, `authorization_response_iss_parameter_supported: true`, and
+`client_id_metadata_document_supported: true` (CIMD; no DCR).
+
+```bash
+curl $API/.well-known/oauth-authorization-server
+# → 200 {"issuer":"…","authorization_endpoint":"…/authorize",
+#        "token_endpoint":"…/oauth/token","revocation_endpoint":"…/oauth/revoke",
+#        "code_challenge_methods_supported":["S256"], …}
+```
+
+Today the AS is reachable on loopback / your tailnet; public exposure is a
+later roadmap item. Web-agent wiring:
+[MCP client setup — OAuth web authorization](/docs/reference/mcp-clients/#2-oauth-web-authorization-chatgpt--claude-and-similar).
+
+## `GET /authorize`
+
+OAuth 2.1 authorization entry. Redirects (`302`) to `/ui/oauth/authorize`
+(Dashboard cookie path `/ui`). Consent is **admin-session only**: the owner
+approves or denies, choosing an existing identity or creating one. Successful
+and error redirects back to the client include `iss` (RFC 9207). Clients must
+send PKCE S256 and the RFC 8707 `resource` parameter (`{base}/mcp`).
+
+## `POST /oauth/token`
+
+Token endpoint. Supports:
+
+| `grant_type` | Notes |
+|---|---|
+| `authorization_code` | Requires PKCE S256 verifier, `redirect_uri`, `client_id`, and `resource` |
+| `refresh_token` | Rotating refresh — previous refresh token is invalidated; access TTL **1h**, refresh TTL **30d** |
+
+Successful responses include `expires_in=3600` (RFC 6749 §4.2.2). This
+service does **not** offer RFC 7662 introspection — treat `401` from
+`POST /mcp` as the expiry / revocation signal.
+
+## `POST /oauth/revoke`
+
+RFC 7009 token revocation. The caller must present the token value being
+revoked and a `client_id` bound to the issuing grant — mismatch skips the
+delete but still returns `200` (no anonymous revoke-by-guess). This endpoint
+revokes **one token value only**; with rotating refresh, later descendants
+are not traced — for a leak, revoke the whole grant at Dashboard
+`/ui/oauth/grants` (see [security.md](/docs/guides/security/#1-three-kinds-of-credentials--keep-the-admin-key-offline)).
 
 ## `GET /.well-known/agent-card.json`
 

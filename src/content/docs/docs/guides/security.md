@@ -7,12 +7,13 @@ A mail server for agents handles **credentials by design** — OTP codes and
 verification links are as sensitive as passwords. This page is the short list
 of things to get right.
 
-## 1. Two kinds of tokens — keep the admin key offline
+## 1. Three kinds of credentials — keep the admin key offline
 
 | Token | Created by | Can do |
 |---|---|---|
 | **Admin key** (`API_KEYS` env) | you, at deploy time | everything: create/rotate/delete identities, set push tiers, read and send as **any** address |
 | **Identity token** (`oa_…`) | `POST /v1/identities` (returned once) | read/send/tasks/notify as **its own address** (human alerts via `notify_user` / `notify_verify` need `canNotifyUser`); may `GET` its own push tier; cannot mint identities or `PUT` push tier |
+| **OAuth access** (+ refresh) | owner-approved authorize flow (CIMD client) | **identity**-scoped only — never admin; access TTL **1h**, refresh TTL **30d** (rotating). Use as Bearer on `POST /mcp` / scoped `/v1/*` |
 
 Rules of thumb:
 
@@ -23,6 +24,12 @@ Rules of thumb:
   `POST /v1/identities/:address/token` (admin).
 - Rotating a token kills the old one instantly — that's also how you revoke a
   leaked token. Deleting the identity works too (`DELETE /v1/identities/:address`).
+- **OAuth vs `oa_` revoke are one-way coupled:** `DELETE /v1/identities/:address`
+  **cascades** — every OAuth grant (and its access/refresh) for that identity
+  is revoked. The reverse is false: revoking a grant (`POST /oauth/revoke` or
+  Dashboard `/ui/oauth/grants`) kills only the OAuth chain and leaves the
+  identity’s `oa_…` token intact. Leak an `oa_…` → rotate it; leak OAuth
+  access/refresh → revoke the **whole grant**.
 
 ## 2. Don't expose the API port
 
