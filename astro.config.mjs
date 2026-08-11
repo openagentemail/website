@@ -52,6 +52,7 @@ export default defineConfig({
             'docs/guides/tasks',
             'docs/guides/external-mailserver',
             'docs/guides/security',
+            'docs/guides/public-mcp',
           ],
         },
         {

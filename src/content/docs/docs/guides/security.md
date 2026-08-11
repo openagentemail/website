@@ -103,6 +103,13 @@ One gotcha the hard way: the login POST must arrive with
 `Sec-Fetch-Site: same-origin` (every real browser sends it) or the Origin
 gate answers 403 — that's the anti-CSRF layer doing its job, not a bug.
 
+To publish **`/mcp` + OAuth** (not the whole API) for web agents, see the
+three-track guide
+[Exposing MCP publicly](/docs/guides/public-mcp/) — stay on a tailnet
+(default), optional Cloudflare fronting, or a bare reverse proxy. That page
+extends the `/ui`-only vhost pattern above for `/mcp`, `/oauth/*`,
+`/authorize`, and `/.well-known/*`.
+
 ## 3. Send rate limit
 
 Every identity is capped at `SEND_RATE_LIMIT` messages per rolling hour
