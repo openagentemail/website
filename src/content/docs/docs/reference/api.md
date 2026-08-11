@@ -236,7 +236,7 @@ curl -X POST $API/v1/messages/wait \
 | `address` | string | Identity to watch (required) |
 | `fromContains` | string? | Case-insensitive substring match on the sender |
 | `subjectContains` | string? | Case-insensitive substring match on the subject |
-| `timeoutSec` | number? | Default 120, max 600 |
+| `timeoutSec` | number? | Default 60 (clamped by `MCP_MAX_WAIT_SECONDS`, range 1–600) |
 
 Success returns the same shape as `GET /v1/messages/:id` (including `otp` and
 `source`).
@@ -303,10 +303,11 @@ curl -X POST $API/v1/tasks \
 | `to` | string | A different known identity on this server |
 | `subject` | string | Required task subject |
 | `body` | string | Required plain-text instructions |
-| `wait` | boolean? | Wait up to 600 seconds for `completed` or `failed` before returning |
+| `wait` | boolean? | Wait up to 600 seconds for `completed` or `failed` before returning — clamped by `MCP_MAX_WAIT_SECONDS` (default 60) |
 
 Returns `201` with a task object. A wait may return a non-terminal task after
-600 seconds; use `GET /v1/tasks/:id?wait=true` again, or poll without `wait`.
+the clamped timeout; use `GET /v1/tasks/:id?wait=true` again, or poll without
+`wait`.
 
 ## `GET /v1/tasks?state=`
 
@@ -323,7 +324,8 @@ curl "$API/v1/tasks?state=working" -H "Authorization: Bearer $IDENTITY_TOKEN"
 Read one task thread, including the email-backed state history and latest JSON
 `result` when present. Only a participant or an admin key may read it. Add
 `wait=true` to hold the request for up to 600 seconds until a terminal state
-appears; a long-lived client can repeat this call with the same task ID.
+appears — clamped by `MCP_MAX_WAIT_SECONDS` (default 60); a long-lived client
+can repeat this call with the same task ID.
 
 ```bash
 curl "$API/v1/tasks/0fdc3207-056e-47c1-a65c-b29d39f66b83?wait=true" \
@@ -407,10 +409,10 @@ curl -X POST $API/mcp \
 ```
 
 Off loopback, serve this over **https** — the Bearer token is sent on every
-request. Optional env `MCP_PUBLIC_URL` overrides the public origin inside the
-PRM document when the request host is not the external one (the 401
-`resource_metadata=` URL still follows the request origin). Client
-`type: http` setup:
+request. Env `MCP_PUBLIC_URL` sets the canonical public origin for the PRM
+document, OAuth issuer / audience, and the 401 `resource_metadata=` URL
+(required for public ingress; see
+[Exposing MCP publicly](/docs/guides/public-mcp/)). Client `type: http` setup:
 [MCP client setup — Remote HTTP](/docs/reference/mcp-clients/#remote-http-connection-type-http).
 
 ## `GET /.well-known/oauth-protected-resource`
@@ -441,8 +443,9 @@ curl $API/.well-known/oauth-authorization-server
 #        "code_challenge_methods_supported":["S256"], …}
 ```
 
-Today the AS is reachable on loopback / your tailnet; public exposure is a
-later roadmap item. Web-agent wiring:
+Loopback / tailnet remains the default. Public AS + `/mcp` ingress is
+supported when you set `MCP_PUBLIC_URL` and `OAE_PUBLIC_EDGE=true` — see
+[Exposing MCP publicly](/docs/guides/public-mcp/). Web-agent wiring:
 [MCP client setup — OAuth web authorization](/docs/reference/mcp-clients/#2-oauth-web-authorization-chatgpt--claude-and-similar).
 
 ## `GET /authorize`

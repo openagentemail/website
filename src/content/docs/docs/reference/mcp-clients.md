@@ -38,12 +38,13 @@ Bearer directly — no local `@openagentemail/mcp` stdio wrapper.
 | Session | None — no `Mcp-Session-Id`; each request authenticates on its own |
 | Methods | **POST only** (other methods → `405` with `Allow: POST`) |
 | Discovery | `GET /.well-known/oauth-protected-resource` (RFC 9728 PRM; also path-aware `…/oauth-protected-resource/mcp`) → `authorization_servers` points at the AS issuer → `GET /.well-known/oauth-authorization-server` (RFC 8414). Public, no auth. |
-| Public origin | Optional env `MCP_PUBLIC_URL` overrides the origin used inside the PRM document (`resource` / derived `authorization_servers`) when the request host is not the public one. The 401 `WWW-Authenticate` `resource_metadata=` URL still follows the request origin. |
+| Public origin | Env `MCP_PUBLIC_URL` sets the canonical public origin for PRM `resource` / derived `authorization_servers`, OAuth issuer & token audience, **and** the 401 `WWW-Authenticate` `resource_metadata=` URL. Required for any public ingress. |
 
-**Deployment note:** today the Authorization Server runs on loopback / your
-tailnet (public exposure is a later roadmap item). Web agents must be able to
-reach that private address; do not assume a public `openagent.email` OAuth
-ingress yet.
+**Deployment:** loopback / tailnet is still the secure default (Track 0). To
+open `/mcp` + OAuth on the public internet, set `MCP_PUBLIC_URL` and
+`OAE_PUBLIC_EDGE=true`, then follow
+[Exposing MCP publicly](/docs/guides/public-mcp/) (optional Cloudflare fronting
+or a bare reverse proxy — CF is not required).
 
 Two ways to put a Bearer on `POST /mcp`:
 
@@ -158,15 +159,15 @@ one on the spot.
 | `mail_list_messages(address, limit?)` | List an inbox (newest first). Each item includes `id`/`from`/`to`/`subject`/`date`/`seen`/`snippet`/`hasOtp`/`source`. `limit` is 1–200 (server default 50) |
 | `mail_read_message(address, id)` | Full message: `text`, optional `html`, `otp.codes` / `otp.links`, `links`, `source`, and optional `taskId`/`taskState` |
 | `mail_mark_seen(address, id, seen?)` | Mark read (default) or unread — reading never changes the flag by itself |
-| `mail_wait_for(address, fromContains?, subjectContains?, timeoutSec?)` | Block until a matching message arrives (default 120s, max 600s). Same detail fields as `mail_read_message` |
+| `mail_wait_for(address, fromContains?, subjectContains?, timeoutSec?)` | Block until a matching message arrives. Schema allows up to 600s; the API clamps with `MCP_MAX_WAIT_SECONDS` (default **60**). Same detail fields as `mail_read_message` |
 | `mail_send(from, to, subject, text, html?)` | Send from an existing identity |
 | `notify_user(title, message, level?, tags?)` | Human-alert notification. Identity tokens need the server-side `canNotifyUser` grant; no ntfy topic or credential |
 | `notify_agent(name, title, message, level?, tags?)` | Wake a named agent by identity **localpart** (e.g. `qa-bot`). Server owns topics/credentials |
 | `notify_check(since?)` | Read this identity's recent notifications (`since` is an optional ntfy duration/timestamp filter) |
 | `notify_verify()` | Harmless delivery self-check; same human-alert permission as `notify_user` |
-| `task_create(to, subject, body, wait?)` | Assign a task to another managed identity; optional `wait` holds up to 600s for `completed`/`failed` |
+| `task_create(to, subject, body, wait?)` | Assign a task to another managed identity; optional `wait` is clamped by `MCP_MAX_WAIT_SECONDS` (default 60, schema max 600) for `completed`/`failed` |
 | `task_list(state?)` | List this identity's email-backed tasks, optionally filtered by current state |
-| `task_get(id, wait?)` | Read one task thread and stamped state history; optional `wait` up to 600s |
+| `task_get(id, wait?)` | Read one task thread and stamped state history; optional `wait` clamped the same way |
 | `task_update(id, state, body?, result?)` | Advance a task as a participant (`completed`/`failed` are terminal). Optional `result` becomes a JSON block in the reply |
 
 A typical automated-signup flow is: `mail_new_identity` → do the signup with that
@@ -322,7 +323,10 @@ The API key is sent as a bearer token, so use HTTPS when the API is off localhos
   (the server refuses to run without it).
 - **Server fails to start** — check Bun is installed and the absolute path to
   `packages/mcp/src/main.ts`; most clients log the child's stderr.
-- **`mail_wait_for` returns nothing** — the default timeout is 120s (max 600s).
-  Verify inbound mail works with `./deploy/doctor.sh` before blaming the client.
+- **`mail_wait_for` returns nothing** — the server clamps waits with
+  `MCP_MAX_WAIT_SECONDS` (default 60, max 600). Verify inbound mail with
+  `./deploy/doctor.sh` before blaming the client. On a public edge, keep the
+  cap under every proxy read timeout — see
+  [Exposing MCP publicly](/docs/guides/public-mcp/).
 - **Message body looks wrapped in `UNTRUSTED EXTERNAL EMAIL`** — expected for
   non-internal mail. See [External-mail fence](#external-mail-fence-expected-not-a-bug).
