@@ -35,7 +35,8 @@ const faq = [
   },
   {
     q: 'How is it different from AgentMail?',
-    a: 'AgentMail is a hosted service with usage-based pricing. openagent.email is software you run yourself: unlimited inboxes on your own domain, and your mail never leaves a machine you own — unless you opt into push tiers 2/3, which relay subject/from or body/OTP via ntfy. See the full comparison at /alternatives/agentmail.',
+    // BYOC Outposts：邮件内容可留在客户 AWS，但 vendor 控制面仍在 —— 与真自建区分
+    a: 'AgentMail is a hosted SaaS product (usage-based pricing), with an enterprise BYOC option (Outposts) that keeps email content in your AWS account while they still run the control plane. openagent.email is Apache-2.0 software you run yourself on any VPS: unlimited inboxes on your own domain, no vendor control plane, and your mail never leaves a machine you own — unless you opt into push tiers 2/3, which relay subject/from or body/OTP via ntfy. See the full comparison at /alternatives/agentmail.',
   },
   {
     q: 'Do I need my own domain?',
@@ -456,22 +457,26 @@ const faqJsonLd = {
               </tr>
             </thead>
             <tbody>
+              {/* 部署三态：真自建 / SaaS / BYOC(Outposts) —— 不把 BYOC 写成「不能自托管」 */}
               <tr><td>Open source</td><td class="us"><span class="yes">✓</span> Apache-2.0</td><td><span class="no">✗</span></td><td><span class="no">✗</span></td></tr>
-              <tr><td>Self-hosted</td><td class="us"><span class="yes">✓</span></td><td><span class="no">✗</span></td><td><span class="no">✗</span></td></tr>
+              <tr><td>Deployment</td><td class="us"><span class="yes">✓</span> any VPS</td><td>SaaS or BYOC (Outposts on AWS)</td><td>SaaS only</td></tr>
               <tr><td>Price</td><td class="us">Flat VPS cost (~$5/mo)</td><td>Per-inbox subscription</td><td>Usage-based subscription</td></tr>
               <tr><td>Unlimited inboxes</td><td class="us"><span class="yes">✓</span> catch-all</td><td>Paid tiers</td><td>Paid tiers</td></tr>
               <tr><td>MCP-native</td><td class="us"><span class="yes">✓</span></td><td><span class="yes">✓</span></td><td><span class="no">✗</span> REST/SDKs</td></tr>
               <tr><td>OTP / link extraction</td><td class="us"><span class="yes">✓</span></td><td><span class="yes">✓</span></td><td><span class="yes">✓</span></td></tr>
-              <tr><td>Data leaves your infra</td><td class="us"><span class="yes">Never*</span></td><td>Always</td><td>Always</td></tr>
-              <tr><td>You run a server</td><td class="us">Yes — that's the point</td><td>No</td><td>No</td></tr>
+              <tr><td>Mail data residency</td><td class="us"><span class="yes">Your box*</span></td><td>SaaS: theirs; Outposts: your AWS†</td><td>Always theirs</td></tr>
+              <tr><td>Vendor control plane</td><td class="us"><span class="yes">None</span></td><td>Yes (incl. Outposts)</td><td>Yes</td></tr>
+              <tr><td>You run a server</td><td class="us">Yes — that's the point</td><td>No (BYOC still vendor-operated)</td><td>No</td></tr>
             </tbody>
           </table>
         </div>
         <p class="honest reveal">
-          To be fair: if you never want to touch a VPS, a hosted service is genuinely easier. We
-          think owning the mailbox — the OTPs, the links, the reputation — is worth ten minutes of
-          setup. Your call. And the asterisk: push tiers 2/3 relay subject/from or body/OTP via ntfy
-          — off by default, your call.
+          To be fair: if you never want to touch a VPS, a hosted service is genuinely easier —
+          and AgentMail's Outposts BYOC is a real option when email content must stay in your AWS
+          account. We still think owning the mailbox — the OTPs, the links, the reputation — with
+          no vendor control plane is worth ten minutes of setup. Your call. Asterisk: push tiers
+          2/3 relay subject/from or body/OTP via ntfy — off by default. † Outposts keep email
+          content in your AWS; AgentMail still runs dashboard, auth, billing, and upgrades.
         </p>
       </div>
     </section>
