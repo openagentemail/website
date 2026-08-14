@@ -65,7 +65,9 @@ records it for the next ntfy restart.
 
 Phone setup prints a password and the two random-suffixed human topic names.
 Treat them as credentials: do not paste them into a ticket, chat transcript,
-image, or shell history. v0.3.1 deliberately does not generate a QR code.
+image, or shell history. The CLI path still prints those values and does not
+generate a QR code; the dashboard **Add device** flow does — see
+[Phone notifications](/docs/guides/phone-notifications/#pair-from-the-dashboard).
 
 ## Who may interrupt whom
 

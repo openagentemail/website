@@ -120,6 +120,13 @@ const faqJsonLd = {
     <script type="application/ld+json" set:html={JSON.stringify(softwareJsonLd)} />
     <script type="application/ld+json" set:html={JSON.stringify(faqJsonLd)} />
     <script defer src="https://stats.openagent.email/script.js" data-website-id="86e6eaf7-473c-4c8d-a9bf-ea48c13742c5"></script>
+    {/* 无 JS 时 .reveal 默认 opacity:0；DESIGN §8 要求静态形态完整成立 */}
+    <noscript>
+      <style>
+        .reveal { opacity: 1; transform: none; }
+        .stagger { opacity: 1; }
+      </style>
+    </noscript>
   </head>
   <body>
     <nav>

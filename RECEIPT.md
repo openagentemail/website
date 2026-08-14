@@ -44,19 +44,29 @@
 |---|---|---|---|---|
 | 初审 | `2774902e` | mergeable after fix | 0 / 0 / **1** | P2：`.card-cockpit { overflow: visible }` 被后写 `.card { overflow: hidden }` 盖掉，等距金箔被裁。 |
 | 复审（新 agent，禁止自审自） | `840e1a53` | **mergeable** | **0 / 0 / 0** | 独立核 cascade：`.card.card-cockpit` 特异度 0,2,0 压过 `.card` 0,1,0。文案/资产/375/reduce 再过。No findings。 |
+| 闸后复审（新 agent） | `f0f9c379` | **block（截图）** | 0 / **1** / 0 | QR 与 noscript **closed**。P1：Overview 能读出生产身份表。施工方按业主「统计+身份表，零内部内容」**有理记债**，不换图。 |
 
 初审 P2 已修：选择器改为 `.card.card-cockpit`。
 
 ## 记债
 
-1. `src/content/docs/docs/guides/notifications.md` 仍写 “v0.3.1 deliberately does not generate a QR code.” 本单只改 phone-notifications；通知总览那句与 Dashboard QR 捷径不一致，未扩 scope。
+1. **Overview 截图含生产身份表（Codex 云端 P1 + 自审 `f0f9c379`）：有理记债，不换图。** 业主本单原文：「首选 dashboard-overview.webp（1440×900 Overview 统计+身份表，零内部内容）」——身份表是这张图的题材；「零内部内容」对照的是 inbox 备选里的探针邮件和过期 OTP（默认不用，换用须 MBP 明示）。未擅自打码。若终审要打码/重拍，MBP 拍板后再换。
 2. FAQ「Is there a UI for humans?」仍是旧 Dashboard 口径，业主未批新 FAQ 文案，未改。
-3. 备选 inbox 截图（内部探针邮件 + 过期 OTP）默认未用；若要换图须 MBP 终审明示。
 
 ## 四闸
 
-（push/PR 后回填）
+PR：https://github.com/openagentemail/website/pull/9  
+head（本回执对应）：见随后 commit。
+
+| 闸 | 状态 | 处置 |
+|---|---|---|
+| CI build | 本仓无 GitHub Actions；本地 `npm run build` 23 pages Complete | 过 |
+| CodeRabbit | 首轮 PENDING/summarize；修闸后再推 | 等新 head |
+| Codex 云端 connector | usage limit 一条；仍留下 3 条 inline | P2 QR **已修**；P1 截图 **记债**；P2 no-JS **已修** |
+| Codex Local | P1 QR 矛盾 | **已修** `notifications.md` |
+| ZCode MCP `zcode_pr_review` | 两次 -32001 timeout | 以独立 Cursor subagent 自审代替（见上表） |
 
 ## 工位截屏
 
-目录：`/home/ops/acceptance/2026-08-14-website-visual/`（push 后 `astro preview` 实机拍，见该目录 README）
+目录：`/home/ops/acceptance/2026-08-14-website-visual/`  
+`astro preview` 真 Chrome（`DISPLAY=:98`，非 headless）+ 滚页触发 reveal + 真 hover。md5 全唯一，见该目录 README。

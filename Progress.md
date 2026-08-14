@@ -18,3 +18,21 @@
 1. 选择器改为 `.card.card-cockpit`（0,2,0），特异度压过 `.card`。初审 agent `2774902e` P2；复审新 agent `840e1a53` 确认关闭。
 2. `git restore package-lock.json`，不把 npm 版本噪音带进 PR。
 3. Trust-30d 不改文件，回执记「main 已有」。
+
+## 2026-08-14 四闸返工
+
+### 我们实现了哪些功能？
+1. `notifications.md` 不再写「本版不生成 QR」：CLI 仍打印口令、Dashboard Add device 才出 QR，并链到 phone-notifications 捷径节。
+2. `index.astro` 加 `<noscript>` 把 `.reveal`/`.stagger` 复位，无 JS 时邮票墙和全页内容可见。
+
+### 我们遇到了哪些错误？
+1. Codex Local P1 + 云端 P2：通知总览与新 QR 捷径互相打架。
+2. Codex 云端 P1 + 复审 `f0f9c379`：Overview WebP 能读出生产身份名/地址。
+3. Codex 云端 P2：Standards 用了 `.reveal`，无 JS 时整区透明。
+4. ZCode MCP `zcode_pr_review` 两次超时。
+
+### 我们是如何解决这些错误的？
+1. 改 notifications.md 一句，与捷径节对齐。
+2. **有理记债不换图**：业主点名 Overview「统计+身份表」，inbox 才是内部探针+OTP。
+3. head 里加 noscript CSS。
+4. 用独立 Cursor subagent 自审代替（`2774902e` / `840e1a53` / `f0f9c379`）。
