@@ -94,3 +94,4 @@
 2. 采用 PR 上已发布的 Codex Local 闸结果（head `6fbee19`，P0–P3 = 0）。
 3. 4 条 P2 有理记债，不改业主逐字文案。细口径已在 quickstart / phone-notifications / mcp-clients。
 4. 截屏前 `nav { display:none }`，改拍 FAQ `.wrap`，375 第一条标题完整。
+5. 回执提交 `d690bad` 触发 Codex Local 复审，报与云端相同的 4 条 P2。不改锁定文案，回执补记「同一组记债」，停止循环。

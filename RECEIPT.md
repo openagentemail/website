@@ -80,7 +80,8 @@ PR：https://github.com/openagentemail/website/pull/10
 | CI build | 本仓无 GitHub Actions；本地 `npm run build` 23 pages Complete | 过 |
 | CodeRabbit | 「No actionable comments were generated.」Pre-merge 5/5；Merge Risk Minimal | 过，无修 |
 | Codex 云端 connector | 先一条 security-review usage limit；随后 4 条 P2 inline | **有理记债**（见上），不改锁定文案 |
-| Codex Local `6fbee19` | ✅ pass · P0/P1/P2/P3=0 | 过 |
+| Codex Local `6fbee19` | ✅ pass · P0/P1/P2/P3=0 | 过（FAQ 码提交） |
+| Codex Local `d690bad` | ⚠️ 4×P2，与云端 4 条同题 | **同一组有理记债**，不改锁定文案。回执提交触发复审，不另开修。 |
 | ZCode | MCP 两次超时 | 独立自审 `9a54fb64` 代替 |
 
 ## 工位截屏
