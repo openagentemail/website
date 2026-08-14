@@ -1,0 +1,209 @@
+/* v0.4 官网升级：Dashboard 大卡 / 特性微缩图 / Hero 小徽章 / Standards 邮票墙
+   令牌全部吃 global.css 的 :root，不另起色。
+   动效只碰 transform / opacity；prefers-reduced-motion 下全部静止且内容完整。 */
+
+/* ── Hero：副标题下低调小徽章（布局不改 CTA） ───────────────────────── */
+.hero-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.45rem;
+  margin: 0.85rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+.hero-chips li {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
+  color: var(--ink-faint);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0.16rem 0.55rem;
+}
+
+/* ── Dashboard 2 倍宽大卡 ───────────────────────────────────────────── */
+/* 双 class 特异度压过 global.css 后写的 `.card { overflow: hidden }` */
+.card.card-cockpit {
+  grid-column: span 2;
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(14rem, 1fr);
+  gap: 1.1rem 1.5rem;
+  align-items: center;
+  overflow: visible;
+}
+.card.card-cockpit .card-copy { position: relative; z-index: 1; }
+.card.card-cockpit .card-copy .num,
+.card.card-cockpit .card-copy h3,
+.card.card-cockpit .card-copy p { position: relative; }
+
+/* 等距微缩舞台：倾斜在内层，卡片自己的 tilt 脚本对 .card-cockpit 停用 */
+.cockpit-stage {
+  position: relative;
+  perspective: 1100px;
+  padding: 0.9rem 0.4rem 0.4rem;
+  min-height: 11rem;
+}
+.cockpit-shot {
+  display: block;
+  width: 100%;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #0a0b10;
+  border: 1px solid rgba(251, 191, 36, 0.38);
+  /* 金箔边缘：一圈金线 + 一圈软光，hover 再亮一档 */
+  box-shadow:
+    0 0 0 1px rgba(251, 191, 36, 0.22),
+    0 0 22px rgba(251, 191, 36, 0.16),
+    0 16px 36px rgba(0, 0, 0, 0.45);
+  transform: rotateX(7deg) rotateY(-7deg) rotateZ(2deg);
+  transform-origin: 50% 70%;
+  transition:
+    transform 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.4s ease;
+}
+.cockpit-shot img {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1440 / 900;
+  object-fit: cover;
+  object-position: top left;
+}
+.card.card-cockpit:hover .cockpit-shot {
+  transform: rotateX(0deg) rotateY(0deg) rotateZ(0deg);
+  box-shadow:
+    0 0 0 1px rgba(251, 191, 36, 0.55),
+    0 0 34px rgba(251, 191, 36, 0.3),
+    0 18px 40px rgba(0, 0, 0, 0.5);
+}
+
+/* ── 特性卡内嵌微缩图（Phone / Sent / MCP） ─────────────────────────── */
+.card-viz {
+  margin-top: 1.05rem;
+  min-height: 5.6rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.card-viz svg { display: block; width: 100%; height: auto; max-width: 16.5rem; }
+
+/* Phone：三档出境。静止即完整可读；hover 只把第 3 档金 OTP 点微亮 */
+.viz-phone { color: var(--ink-dim); }
+.viz-phone .phone-frame { fill: var(--bg-raise); stroke: rgba(251, 191, 36, 0.45); }
+.viz-phone .tier-label { fill: var(--ink-faint); font-family: var(--mono); font-size: 7px; }
+.viz-phone .tier-sub { fill: var(--ink-dim); font-family: var(--mono); font-size: 6.2px; }
+.viz-phone .otp-dot { fill: var(--gold); }
+.card:hover .viz-phone .otp-dot { filter: drop-shadow(0 0 3px rgba(251, 191, 36, 0.7)); }
+
+/* Sent：虚线航线 + 落点账本行。hover 信封沿轨迹微挪（不循环） */
+.viz-sent { color: var(--ink-dim); }
+.viz-sent .flight {
+  fill: none;
+  stroke: rgba(251, 191, 36, 0.45);
+  stroke-width: 1.2;
+  stroke-dasharray: 3 3;
+}
+.viz-sent .env-fly { transform-origin: 118px 18px; transition: transform 0.45s cubic-bezier(0.16, 1, 0.3, 1); }
+.card:hover .viz-sent .env-fly { transform: translate(6px, -3px) rotate(8deg); }
+.viz-sent .ledger-line { stroke: var(--line-strong); }
+.viz-sent .ledger { fill: var(--ink-dim); font-family: var(--mono); font-size: 6.4px; }
+.viz-sent .ok { fill: var(--green); }
+
+/* MCP：终端 ←→ 云+钥匙，双态并置，不靠循环动画讲故事 */
+.viz-mcp { color: var(--ink-dim); }
+.viz-mcp .pane { fill: var(--bg-raise); stroke: var(--line-strong); }
+.viz-mcp .glyph { fill: none; stroke: var(--gold); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.viz-mcp .label { fill: var(--ink-faint); font-family: var(--mono); font-size: 6.5px; }
+.viz-mcp .swap { fill: var(--gold); font-size: 11px; }
+
+/* ── Standards 邮票墙 ──────────────────────────────────────────────── */
+.standards { padding-top: 1rem; }
+.stamp-wall {
+  list-style: none;
+  margin: 2.6rem 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.4rem 1rem;
+  align-items: start;
+  justify-items: center;
+}
+.stamp-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  max-width: 14rem;
+}
+.stamp-mark {
+  color: var(--gold);
+  width: 168px;
+  height: 168px;
+  transform: rotate(var(--stamp-rot, -7deg));
+  filter: drop-shadow(0 10px 18px rgba(0, 0, 0, 0.35));
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.stamp-item:hover .stamp-mark { transform: rotate(0deg); }
+.stamp-lg .stamp-mark { width: 180px; height: 180px; }
+.stamp-md .stamp-mark { width: 160px; height: 160px; }
+.stamp-sm .stamp-mark { width: 148px; height: 148px; }
+.stamp-xs .stamp-mark { width: 136px; height: 136px; }
+.stamp-mark svg { width: 100%; height: 100%; overflow: visible; }
+.stamp-mark .stamp-paper { fill: rgba(12, 13, 18, 0.82); }
+.stamp-mark text {
+  font-family: var(--mono);
+  font-weight: 700;
+  fill: currentcolor;
+  stroke: none;
+}
+.stamp-caption {
+  margin: 0.85rem 0 0;
+  color: var(--ink-dim);
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+.stamp-note {
+  margin: 0.35rem 0 0;
+  color: var(--ink-faint);
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+/* ── 窄屏：375 档全适配，大卡改单列，邮票改 2×2 ───────────────────── */
+@media (max-width: 900px) {
+  .card.card-cockpit {
+    grid-column: span 1;
+    grid-template-columns: 1fr;
+  }
+  .cockpit-stage { padding: 0.4rem 0 0; }
+  .stamp-wall { grid-template-columns: 1fr 1fr; gap: 1.6rem 0.8rem; }
+}
+@media (max-width: 420px) {
+  .stamp-lg .stamp-mark,
+  .stamp-md .stamp-mark,
+  .stamp-sm .stamp-mark,
+  .stamp-xs .stamp-mark,
+  .stamp-mark { width: 120px; height: 120px; }
+  .hero-chips li { font-size: 0.64rem; padding: 0.14rem 0.45rem; }
+  .card-viz { min-height: 4.8rem; }
+}
+
+/* 无 JS：html 保留 .no-js，子组件（StampWall）里的 .reveal 也要看得见。
+   有 JS 时 head 内联脚本立刻摘掉该类，入场动画照旧。 */
+html.no-js .reveal,
+html.no-js .stagger {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cockpit-shot,
+  .card:hover .cockpit-shot,
+  .stamp-mark,
+  .stamp-item:hover .stamp-mark,
+  .viz-sent .env-fly,
+  .card:hover .viz-sent .env-fly {
+    transform: none;
+    transition: none;
+  }
+}

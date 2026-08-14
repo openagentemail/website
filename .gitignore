@@ -15,3 +15,6 @@ npm-debug.log*
 
 # agent battle worktrees (local only, never committed)
 .arena/
+
+# local mimosa scan output
+.mimosa/

@@ -1,0 +1,148 @@
+---
+/**
+ * Standards 邮票墙：四枚做旧邮戳徽章。
+ * 造型沿用 S1 邮戳语言（齿孔环 + 双圈 + 弧排字 + 缺墨遮罩），做大做实。
+ * 文案逐字锁定，组件内不得改措辞。
+ */
+
+/** 锯齿齿孔环：与 postmark.js serratedRing 同一算法，静态画在 SVG 里 */
+function serratedRing(teeth: number, rOuter: number, rInner: number) {
+  const pts: string[] = [];
+  for (let i = 0; i < teeth * 2; i++) {
+    const a = (Math.PI * i) / teeth;
+    const r = i % 2 === 0 ? rOuter : rInner;
+    pts.push(`${(50 + Math.cos(a) * r).toFixed(2)} ${(50 + Math.sin(a) * r).toFixed(2)}`);
+  }
+  return `M ${pts.join(' L ')} Z`;
+}
+
+const ring = serratedRing(38, 47.2, 44.4);
+
+const stamps = [
+  {
+    id: 'mcp',
+    size: 'lg',
+    rot: -7,
+    arc: 'MCP 2026-07-28',
+    center: 'MCP',
+    caption: 'MCP 2026-07-28 — full dated-spec transport, local and remote',
+    note: '',
+  },
+  {
+    id: 'rfc',
+    size: 'sm',
+    rot: 7,
+    arc: 'RFC 9728',
+    center: '9728',
+    caption: 'RFC 9728 — OAuth protected-resource metadata',
+    note: '',
+  },
+  {
+    id: 'a2a',
+    size: 'md',
+    rot: -7,
+    arc: 'A2A AGENT CARD',
+    center: 'A2A',
+    caption:
+      'A2A-vocabulary Agent Card — aligned with A2A v1.0 discovery format and task-state words, over email transport.',
+    note: "We deliberately don't claim wire-protocol compatibility.",
+  },
+  {
+    id: 'erc',
+    size: 'xs',
+    rot: 7,
+    arc: 'ERC-8004',
+    center: '8004',
+    caption: 'ERC-8004 export — on the roadmap, opt-in, write-only',
+    note: '',
+  },
+] as const;
+---
+
+<section class="standards" id="standards">
+  <div class="wrap">
+    <p class="kicker reveal">On the record</p>
+    <h2 class="reveal">Speaks the standards — and says exactly how</h2>
+    <ul class="stamp-wall reveal">
+      {
+        stamps.map((s) => (
+          <li class={`stamp-item stamp-${s.size}`} style={`--stamp-rot: ${s.rot}deg`}>
+            <div class="stamp-mark" aria-hidden="true">
+              <svg viewBox="0 0 100 100" focusable="false">
+                <defs>
+                  {/* 手盖毛边：位移很轻，只推轮廓，不啃字 */}
+                  <filter
+                    id={`sw-${s.id}-rough`}
+                    x="-12%"
+                    y="-12%"
+                    width="124%"
+                    height="124%"
+                    color-interpolation-filters="sRGB"
+                  >
+                    <feTurbulence type="fractalNoise" baseFrequency="0.22" numOctaves="2" seed={s.id.length * 11} result="n" />
+                    <feDisplacementMap in="SourceGraphic" in2="n" scale="0.6" xChannelSelector="R" yChannelSelector="G" />
+                  </filter>
+                  {/* 缺墨：九成墨以上，成片满墨、边缘略淡，不做空洞 */}
+                  <filter
+                    id={`sw-${s.id}-wearF`}
+                    x="0%"
+                    y="0%"
+                    width="100%"
+                    height="100%"
+                    color-interpolation-filters="sRGB"
+                  >
+                    <feTurbulence type="fractalNoise" baseFrequency="0.09 0.14" numOctaves="2" seed={s.id.length * 17} />
+                    <feColorMatrix type="saturate" values="0" />
+                    <feComponentTransfer>
+                      <feFuncR type="linear" slope="1.35" intercept="0.45" />
+                      <feFuncG type="linear" slope="1.35" intercept="0.45" />
+                      <feFuncB type="linear" slope="1.35" intercept="0.45" />
+                      <feFuncA type="table" tableValues="1 1" />
+                    </feComponentTransfer>
+                  </filter>
+                  <mask id={`sw-${s.id}-wear`} maskUnits="userSpaceOnUse" x="0" y="0" width="100" height="100">
+                    <rect x="0" y="0" width="100" height="100" filter={`url(#sw-${s.id}-wearF)`} />
+                  </mask>
+                  <path id={`sw-${s.id}-top`} d="M 17 50 A 33 33 0 0 1 83 50" fill="none" />
+                  <path id={`sw-${s.id}-bot`} d="M 9 50 A 41 41 0 0 0 91 50" fill="none" />
+                </defs>
+                <g filter={`url(#sw-${s.id}-rough)`}>
+                  <circle class="stamp-paper" cx="50" cy="50" r="44.5" />
+                  <g mask={`url(#sw-${s.id}-wear)`} fill="none" stroke="currentColor" stroke-linejoin="round">
+                    <path d={ring} stroke-width="1.5" />
+                    <circle cx="50" cy="50" r="43" stroke-width="2.8" />
+                    <circle cx="50" cy="50" r="27.5" stroke-width="1.8" />
+                    <path d="M 31 38.5 H 69 M 31 61.5 H 69" stroke-width="2" stroke-linecap="round" />
+                    <text font-size="7.4" letter-spacing="0.8" text-anchor="middle">
+                      <textPath href={`#sw-${s.id}-top`} startOffset="50%">
+                        OPENAGENT.EMAIL
+                      </textPath>
+                    </text>
+                    <text font-size="7.2" letter-spacing="1" text-anchor="middle">
+                      <textPath href={`#sw-${s.id}-bot`} startOffset="50%">
+                        {s.arc}
+                      </textPath>
+                    </text>
+                    {/* 戳心只放主号，夹在两道横杠之间，和 S1 邮戳同一构图 */}
+                    <text
+                      x="50"
+                      y="50"
+                      font-size={s.center.length > 4 ? '11' : '13'}
+                      letter-spacing="0.5"
+                      text-anchor="middle"
+                      dominant-baseline="central"
+                    >
+                      {s.center}
+                    </text>
+                  </g>
+                </g>
+              </svg>
+            </div>
+            <p class="stamp-caption">{s.caption}</p>
+            {s.note ? <p class="stamp-note">{s.note}</p> : null}
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+</section>

@@ -11,6 +11,28 @@ This guide creates one read-only phone account for the two human channels. It
 does not give the phone access to an agent channel, and it does not give agents
 an ntfy password or topic name.
 
+## Pair from the dashboard
+
+Once ntfy has a public HTTPS address (step 1 below), the short path is the
+built-in dashboard — Add device, scan a QR, revoke if the phone is lost. No
+command line.
+
+1. Sign in to `/ui` as the instance admin.
+2. Open **Configure → Push & Devices**.
+3. Click **Add device**. The server mints a dedicated read-only ntfy account
+   and shows a one-time password together with a QR code.
+4. Scan the QR in the ntfy app (preferred — it carries the physical topic
+   names). Or type the server URL, username, and password, then subscribe
+   to both topics the dashboard lists as **User alerts** (ring) and **User
+   low** (silent). The physical names are random-suffixed, same as the CLI
+   path below.
+5. Lost the phone? **Revoke** on that row. The ntfy login for that device is
+   deleted and push to it stops immediately.
+
+The CLI and ntfy-app steps below stay as the underlying reference: same public
+HTTPS requirement, same two human topics, same read-only phone account. The
+dashboard is a shortcut over that path, not a different protocol.
+
 ## 1. Give ntfy a public HTTPS address
 
 Pick a separate hostname such as `ntfy.example.com`. Create a DNS `A` record
@@ -97,8 +119,8 @@ The two printed topics are random-suffixed physical names such as
 `user-alerts-x7k2` and `user-low-x7k2`. They are the actual names to subscribe
 to; `user-alerts` and `user-low` are only the server's logical channel names.
 Do not put the printed password in a ticket, chat, image, or shell history. It
-is intentionally not stored by setup and no QR code is generated in this
-release.
+is intentionally not stored by setup. The dashboard path above is the QR
+shortcut; this CLI path still prints the four values to save.
 
 If you skip the optional branch, nothing changes. The server-side notification
 loop continues to work, and you can run setup again later.
