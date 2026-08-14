@@ -4,7 +4,7 @@
 工位：`<worktree>`  
 基线：`origin/main` **`992e48a`**  
 初轮 FAQ head：`6fbee19`  
-R2 head：就地改，见下「R2」  
+R2 head：`4c50b18`  
 禁动 main / 禁碰 openagentemail 主仓 / 禁止自 merge。合并权属 MBP。业主授权 MBP 终审后直接合并。
 
 ## 交付
