@@ -47,7 +47,7 @@ const faq = [
   {
     q: 'What agents and clients does it work with?',
     // 业主逐字：Kimi Code + dated MCP 2026-07-28 + 远程 OAuth + dashboard 可撤销
-    a: 'Anything that speaks MCP — Claude Code, Cursor, Kimi Code, and friends — via the @openagentemail/mcp server, current to the dated MCP 2026-07-28 spec. Agents that aren\'t on your box connect over stateless HTTPS with OAuth (RFC 9728), and every authorized client shows up in the dashboard where you can revoke it. A plain REST API covers everything else.',
+    a: 'Anything that speaks MCP — Claude Code, Cursor, Kimi Code, and friends — via the @openagentemail/mcp server, current to the dated MCP 2026-07-28 spec. Agents that aren\'t on your box connect over stateless HTTPS with OAuth (RFC 9728), and every connected OAuth client shows up in the dashboard where you can revoke it. A plain REST API covers everything else.',
   },
   {
     q: 'Will my mail land in spam?',
@@ -56,7 +56,7 @@ const faq = [
   {
     q: 'Is there a UI for humans?',
     // 业主逐字：清掉旧 Dashboard 口径，改成 cockpit 全功能清单
-    a: 'Yes — a full cockpit at /ui, not just a viewer. Read every agent inbox in a three-pane mail client with one-click OTP copy, review the 30-day push log with daily summaries and masked sensitive content, nudge or close agent tasks from the work-order board, manage identities, tokens, push tiers, and connected clients, pair your phone by QR code, and audit what agents sent from the Sent folder. Sign in once and stay signed in for 30 days.',
+    a: 'Yes — a full cockpit at /ui, not just a viewer. Read every agent inbox in a three-pane mail client with one-click OTP copy, review the 30-day push log with daily summaries and masked sensitive content, nudge or close agent tasks from the work-order board, manage identities, tokens, push tiers, and connected clients, pair your phone by QR code, and audit what agents sent from the Sent folder. Trust this device once, stay signed in for 30 days.',
   },
   // #22 / tasks：agent 间工单交接（服务端戳状态 + 唤醒收单方 + Dashboard 工单视图）
   {
@@ -66,7 +66,7 @@ const faq = [
   // 业主逐字新增：手机推送 / ntfy 扫码配对 + 三档出境 + 一键撤销
   {
     q: 'Can I get alerts on my phone?',
-    a: 'Yes — pair the ntfy app by scanning a QR code from the dashboard; no command line needed. You pick how much of a message may leave the server per identity: just a ping, sender + subject, or body + OTP (tier 3 asks for your explicit risk confirmation, and agents can never raise their own tier). Lost phone? One click revokes it.',
+    a: 'Yes — pair the ntfy app by scanning a QR code from the dashboard, after a one-time ntfy HTTPS setup covered in the phone guide. You pick how much of a message may leave the server per identity: just a ping, sender + subject, or body + OTP (tier 3 asks for your explicit risk confirmation, and agents can never raise their own tier). Lost phone? One click revokes it.',
   },
   // #23：source 打标 + MCP 围栏——诚实定性为 defense-in-depth，不是绝对保证
   {

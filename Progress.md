@@ -95,3 +95,16 @@
 3. 4 条 P2 有理记债，不改业主逐字文案。细口径已在 quickstart / phone-notifications / mcp-clients。
 4. 截屏前 `nav { display:none }`，改拍 FAQ `.wrap`，375 第一条标题完整。
 5. 回执提交 `d690bad` 触发 Codex Local 复审，报与云端相同的 4 条 P2。不改锁定文案，回执补记「同一组记债」，停止循环。
+
+## 2026-08-14 FAQ R2（业主拍板 P2×3）
+
+### 我们实现了哪些功能？
+1. 同分支就地改三处 FAQ 措辞（来源 task `686d6aa7` msg `208`）：UI 尾句 Trust this device；phone 首句改为 one-time ntfy HTTPS setup；clients 片段 `authorized` → `connected OAuth`。
+2. `faqJsonLd` 同源映射，未另改。`dist/index.html` 可见区与 FAQPage `mainEntity` 三条新文案都在。
+3. 未动 RFC 9728 括注（Codex P2 第 3 条，本批未批）。
+
+### 我们遇到了哪些错误？
+1. 无新构建错误。`npm run build` 23 pages Complete。
+
+### 我们是如何解决这些错误的？
+1. 无。四闸与复拍在 push 后补。

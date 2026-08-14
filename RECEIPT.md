@@ -3,7 +3,8 @@
 日期：2026-08-14  
 工位：`<worktree>`  
 基线：`origin/main` **`992e48a`**  
-head：`6fbee19`  
+初轮 FAQ head：`6fbee19`  
+R2 head：就地改，见下「R2」  
 禁动 main / 禁碰 openagentemail 主仓 / 禁止自 merge。合并权属 MBP。业主授权 MBP 终审后直接合并。
 
 ## 交付
@@ -64,10 +65,10 @@ Codex 云端 4 条 P2 都要求改 FAQ 措辞。**文案业主逐字锁定，不
 
 | # | 来源 | 问题 | 处置 |
 |---|---|---|---|
-| 1 | Codex inline `3785930135` | 「Sign in once and stay signed in for 30 days.」未写 Trust this device 勾选 | **记债。** `quickstart.md:112-113` 已写勾选才延 30 日。业主锁定本句。 |
-| 2 | Codex inline `3785930144` | 扫码配对未写 ntfy 须先公开 HTTPS | **记债。** `phone-notifications.md:6-18` 已写该前提。业主锁定短答。 |
-| 3 | Codex inline `3785930147` | `OAuth (RFC 9728)` 把 RFC 9728 写成 OAuth 本身；文档里 RFC 9728 是 PRM | **记债。** 技术上对，但业主锁定该括注。 |
-| 4 | Codex inline `3785930151` | 远程不只 OAuth，还有 `oa_…` / admin bearer；那些不进可撤销客户端表 | **记债。** `mcp-clients.md:30-38` 已列三种 Bearer。业主锁定本句。 |
+| 1 | Codex inline `3785930135` | 「Sign in once and stay signed in for 30 days.」未写 Trust this device 勾选 | **R2 已修。** 业主拍板新尾句。 |
+| 2 | Codex inline `3785930144` | 扫码配对未写 ntfy 须先公开 HTTPS | **R2 已修。** 业主拍板改首句分句。 |
+| 3 | Codex inline `3785930147` | `OAuth (RFC 9728)` 把 RFC 9728 写成 OAuth 本身；文档里 RFC 9728 是 PRM | **仍记债。** R2 只批 P2×3，本条未入修订。 |
+| 4 | Codex inline `3785930151` | 远程不只 OAuth，还有 `oa_…` / admin bearer；那些不进可撤销客户端表 | **R2 已修。** `authorized` → `connected OAuth`。 |
 
 上轮记债「FAQ 旧 Dashboard 口径」**本单关闭**（业主已批新答）。umami / CSP 仍是存量，不扩 scope。
 
@@ -95,3 +96,37 @@ aaf287129faff066d4460e9d9271db4b  02-faq-375.png
 ```
 
 停等指挥终审。不合并。
+
+---
+
+## R2（2026-08-14 · 同分支就地 · 业主拍板 task `686d6aa7` msg `208`）
+
+Codex P2×3 全修。修订措辞逐字执行。未改 RFC 9728 括注（P2 第 3 条，未入本批）。`faqJsonLd` 仍是 `faq.map`，无需另改。
+
+### 三条逐条对账
+
+| # | 条 | 旧 | 新 | 源码 | `dist` 可见 | FAQPage `mainEntity` |
+|---|---|---|---|---|---|---|
+| ① | Is there a UI for humans? 尾句 | `Sign in once and stay signed in for 30 days.` | `Trust this device once, stay signed in for 30 days.` | **过** | **过** | **过** |
+| ② | Can I get alerts on my phone? 首句分句 | `…dashboard; no command line needed.` | `…dashboard, after a one-time ntfy HTTPS setup covered in the phone guide.` | **过** | **过** | **过** |
+| ③ | What agents and clients does it work with? 片段 | `every authorized client` | `every connected OAuth client` | **过** | **过** | **过** |
+
+旧三句已不在 `index.astro` / `dist/index.html` / JSON-LD。其余 FAQ 字节未动。
+
+### 四闸（R2 新 head，push 后填）
+
+PR：https://github.com/openagentemail/website/pull/10  
+来源：业主拍板 task `686d6aa7` msg `208`。
+
+| 闸 | 状态 | 处置 |
+|---|---|---|
+| CI build | 本地 `npm run build` 23 pages Complete | 过 |
+| CodeRabbit | push 后等 | — |
+| Codex 云端 | push 后等 | — |
+| Codex Local | push 后等 | — |
+| ZCode | MCP 易超时；必要时独立自审 | — |
+
+### 工位截屏（R2 覆盖同名）
+
+目录：`<acceptance>/2026-08-14-website-faq/`  
+复拍 1280+375 两镜，覆盖 `01-faq-1280.png` / `02-faq-375.png`。md5 见该目录 README（拍完回填）。
