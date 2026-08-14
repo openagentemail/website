@@ -56,7 +56,7 @@
 ## 四闸
 
 PR：https://github.com/openagentemail/website/pull/9  
-head（本回执对应）：见随后 commit。
+head：`6a82594`（基线 `9b90939`）
 
 | 闸 | 状态 | 处置 |
 |---|---|---|
