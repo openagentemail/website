@@ -62,8 +62,9 @@ head：`6a82594`（基线 `9b90939`）
 |---|---|---|
 | CI build | 本仓无 GitHub Actions；本地 `npm run build` 23 pages Complete | 过 |
 | CodeRabbit | 首轮 4 条 inline（对 `f0bb17f`） | DESIGN 归属注 **已修**；QR 矛盾 **已在 c68cee2 关闭**（评过时）；主题名口径 **已修**（按 Dashboard 实装：人话 User alerts/User low，QR 带物理名，不照抄 CR 的 `user-alerts-…` 误述）；`currentcolor` **已修** |
-| Codex 云端 connector | usage limit 一条；仍留下 3 条 inline | P2 QR **已修**；P1 截图 **记债**；P2 no-JS **已修** |
-| Codex Local | P1 QR 矛盾 | **已修** `notifications.md` |
+| Codex 云端 connector | usage limit 一条；仍留下 3 条 inline | P2 QR **已修**；P1 截图 **记债**；P2 no-JS **已修**（后又发现 Astro scope，见下） |
+| Codex Local `6a82594` | ✅ pass · P0/P1/P2=0 | 过 |
+| Codex Local `9000dd6` | P1：noscript style 被 Astro scope，StampWall `.reveal` 吃不到 | **已修**：`html.no-js` + `upgrade.css` 全局规则 + `style is:global` |
 | ZCode MCP `zcode_pr_review` | 两次 -32001 timeout | 以独立 Cursor subagent 自审代替（见上表） |
 
 ## 工位截屏

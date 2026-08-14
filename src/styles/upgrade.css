@@ -188,6 +188,14 @@
   .card-viz { min-height: 4.8rem; }
 }
 
+/* 无 JS：html 保留 .no-js，子组件（StampWall）里的 .reveal 也要看得见。
+   有 JS 时 head 内联脚本立刻摘掉该类，入场动画照旧。 */
+html.no-js .reveal,
+html.no-js .stagger {
+  opacity: 1;
+  transform: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .cockpit-shot,
   .card:hover .cockpit-shot,

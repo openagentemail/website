@@ -95,8 +95,9 @@ const faqJsonLd = {
 ---
 
 <!doctype html>
-<html lang="en">
+<html lang="en" class="no-js">
   <head>
+    <script is:inline>document.documentElement.classList.remove('no-js');</script>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>openagent.email — Self-hosted email for AI agents</title>
@@ -120,9 +121,10 @@ const faqJsonLd = {
     <script type="application/ld+json" set:html={JSON.stringify(softwareJsonLd)} />
     <script type="application/ld+json" set:html={JSON.stringify(faqJsonLd)} />
     <script defer src="https://stats.openagent.email/script.js" data-website-id="86e6eaf7-473c-4c8d-a9bf-ea48c13742c5"></script>
-    {/* 无 JS 时 .reveal 默认 opacity:0；DESIGN §8 要求静态形态完整成立 */}
+    {/* 无 JS：html.no-js 留着，upgrade.css 全局规则让子组件里的 .reveal 也可见。
+        is:global 防止 Astro 把选择器编进 index.astro 的 scope（StampWall 吃不到）。 */}
     <noscript>
-      <style>
+      <style is:global>
         .reveal { opacity: 1; transform: none; }
         .stagger { opacity: 1; }
       </style>
