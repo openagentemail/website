@@ -14,4 +14,4 @@ npm run build
 npm run preview
 ```
 
-Do not commit `.env`. Copy on the homepage feature cards is owner-approved — do not rephrase it.
+Do not commit `.env`. Copy on the homepage feature cards **and** the homepage FAQ (`const faq` in `src/pages/index.astro`) is owner-approved — do not rephrase it. FAQPage JSON-LD is generated from that same `faq` array.

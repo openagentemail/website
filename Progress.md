@@ -52,3 +52,25 @@
 ### 我们是如何解决这些错误的？
 1. 用指挥重拍的 demo WebP 同名覆盖，引用不动。
 2. 回执改写为：P1 三处同报 → 现场指挥重拍 demo 版替换 → 关闭。FAQ 文案业主未批，仍记债。
+
+## 2026-08-14 FAQ 口径更新（本单）
+
+### 我们实现了哪些功能？
+1. 首页 `const faq` 从 8 条改为 9 条：改 4 条 + 新增 1 条。文案业主逐字锁定，未改措辞。
+2. 「Is it really free?」仅尾句 `coming soon` → `launching soon`，与 pricing 页 badge 对齐。
+3. 「Is there a UI for humans?」整答换成 cockpit 全功能清单（三栏收件箱 / 30 日推送账 / 工单板 / 身份令牌档位客户端 / 扫码配对 / Sent / 30 日登录）。
+4. 「Can agents hand work to each other?」原文保留，末尾追加 `From the board you can page through history, nudge a stuck task, or close one out.`
+5. 「What agents and clients does it work with?」整答换成 Kimi Code + dated MCP 2026-07-28 + 远程 OAuth RFC 9728 + dashboard 可撤销 + REST。
+6. 在工单条之后新增「Can I get alerts on my phone?」（ntfy 扫码 / 三档出境 / 一键撤销）。
+7. AgentMail 差异 / 域名 / spam / 安全围栏 4 条未动。
+8. `faqJsonLd` 是 `faq.map(...)` 同源映射，不是独立写死；改数组即同步 JSON-LD。`dist/index.html` 可见区与 FAQPage 均为 9 条且逐字一致。
+9. README 补一句：FAQ 文案业主锁定、JSON-LD 同源。
+
+### 我们遇到了哪些错误？
+1. 工位无 `node_modules`，直接 `npm run build` 报 `astro: not found`。
+2. `npm install` 会改 `package-lock.json` 可选依赖的 `libc` 字段（上轮已踩过，与本单无关）。
+
+### 我们是如何解决这些错误的？
+1. `npm install` 后 build 绿：23 pages Complete（既有 Starlight `Entry docs → 404` 与 caddyfile 高亮警告，非本单引入）。
+2. `git checkout -- package-lock.json`，不把 npm 噪音带进 PR。
+3. 独立自审新 agent `9a54fb64`：mergeable，P0/P1/P2 = 0/0/0。确认 faqJsonLd 同源映射、9 条逐字、顺序正确、旧 Dashboard 口径已清。
