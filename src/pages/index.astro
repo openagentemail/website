@@ -66,7 +66,7 @@ const faq = [
   // 业主逐字新增：手机推送 / ntfy 扫码配对 + 三档出境 + 一键撤销
   {
     q: 'Can I get alerts on my phone?',
-    a: 'Yes — pair the ntfy app by scanning a QR code from the dashboard, after a one-time ntfy HTTPS setup covered in the phone guide. You pick how much of a message may leave the server per identity: just a ping, sender + subject, or body + OTP (tier 3 asks for your explicit risk confirmation, and agents can never raise their own tier). Lost phone? One click revokes it.',
+    a: 'Yes — pair the ntfy app by scanning a QR code from the dashboard, after a one-time ntfy HTTPS setup covered in the phone guide. You pick how much of a message may leave the server per identity: just a ping, masked sender + subject, or body + OTP (tier 3 asks for your explicit risk confirmation, and agents can never raise their own tier). Lost phone? One click revokes it.',
   },
   // #23：source 打标 + MCP 围栏——诚实定性为 defense-in-depth，不是绝对保证
   {
@@ -319,7 +319,7 @@ const faqJsonLd = {
           <div class="card reveal">
             <span class="num">02</span>
             <h3>Phone push, with boundaries</h3>
-            <p>Pair your phone by scanning a QR code — ten seconds, no command line. Three content tiers decide how much of a message may leave the server: just a ping, sender + subject, or body + OTP. Tier 3 needs your explicit risk confirmation, and agents can never raise their own tier. Lost phone? One-click revoke cuts it off immediately.</p>
+            <p>Pair your phone by scanning a QR code — ten seconds, no command line. Three content tiers decide how much of a message may leave the server: just a ping, masked sender + subject, or body + OTP. Tier 3 needs your explicit risk confirmation, and agents can never raise their own tier. Lost phone? One-click revoke cuts it off immediately.</p>
             <div class="card-viz" aria-hidden="true">
               <svg class="viz-phone" viewBox="0 0 220 92" role="img">
                 <rect class="phone-frame" x="6" y="8" width="36" height="76" rx="6" />

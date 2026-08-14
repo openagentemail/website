@@ -121,3 +121,16 @@
 
 ### 我们是如何解决这些错误的？
 1. 无。ZCode Review Gate 复审本 commit head；不自 merge。
+
+## 2026-08-14 FAQ R4（MBP msg 213 · masked）
+
+### 我们实现了哪些功能？
+1. FAQ phone 条与特性卡 2 正文的三档列举各加 `masked`：`just a ping, masked sender + subject, or body + OTP`。
+2. SVG 档位标签 `2  sender + subject` 未动。全仓 grep 只剩这两处 masked + 一处 SVG。
+3. 一条 commit。截屏免。本轮起后续 P2 措辞 nit 记债攒批。
+
+### 我们遇到了哪些错误？
+1. 无。`npm run build` 23 pages Complete。
+
+### 我们是如何解决这些错误的？
+1. 无。ZCode Review Gate 复审本 commit head；不自 merge。

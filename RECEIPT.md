@@ -164,3 +164,24 @@ Codex Local `4c50b18` 新 P2×2 采纳候选修订。只改 clients 条中间整
 ### ZCode
 
 本 commit push 后由 ZCode Review Gate 复审新 head。施工会话不另开 MCP（上轮两次超时）。结果见 PR 评论；此处不二次改码。
+
+---
+
+## R4（2026-08-14 · 同分支就地 · MBP 拍板 task msg `213`）
+
+Codex Local `a4e7ec0` P2（tier 2 未写 masked）两处同改：FAQ phone 条 + 特性卡 2 正文。仅三档列举短语内 `sender + subject` → `masked sender + subject`。SVG 档位标签 `2  sender + subject` **未动**。截屏免。
+
+本轮起截止线：后续 P2 措辞 nit **一律记债攒批**，不再逐轮单修。
+
+### 两处对账
+
+| # | 位置 | 旧片段 | 新片段 | 源码 | `dist` | JSON-LD |
+|---|---|---|---|---|---|---|
+| ① | FAQ「Can I get alerts on my phone?」 | `just a ping, sender + subject, or body + OTP (tier 3 asks` | `just a ping, masked sender + subject, or body + OTP (tier 3 asks` | **过** | **过** | **过**（`faq.map`） |
+| ② | 特性卡 2「Phone push, with boundaries」 | `just a ping, sender + subject, or body + OTP. Tier 3 needs` | `just a ping, masked sender + subject, or body + OTP. Tier 3 needs` | **过** | **过** | n/a |
+
+全仓 `sender + subject` 仅剩：上述两处（已 masked）+ SVG `2  sender + subject`（预期保留）。邮票墙 / 文档区无此短语。`npm run build` 23 pages Complete。
+
+### ZCode
+
+本 commit push 后由 ZCode Review Gate 复审新 head。不自 merge。
