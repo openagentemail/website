@@ -61,7 +61,7 @@ head（本回执对应）：见随后 commit。
 | 闸 | 状态 | 处置 |
 |---|---|---|
 | CI build | 本仓无 GitHub Actions；本地 `npm run build` 23 pages Complete | 过 |
-| CodeRabbit | 首轮 PENDING/summarize；修闸后再推 | 等新 head |
+| CodeRabbit | 首轮 4 条 inline（对 `f0bb17f`） | DESIGN 归属注 **已修**；QR 矛盾 **已在 c68cee2 关闭**（评过时）；主题名口径 **已修**（按 Dashboard 实装：人话 User alerts/User low，QR 带物理名，不照抄 CR 的 `user-alerts-…` 误述）；`currentcolor` **已修** |
 | Codex 云端 connector | usage limit 一条；仍留下 3 条 inline | P2 QR **已修**；P1 截图 **记债**；P2 no-JS **已修** |
 | Codex Local | P1 QR 矛盾 | **已修** `notifications.md` |
 | ZCode MCP `zcode_pr_review` | 两次 -32001 timeout | 以独立 Cursor subagent 自审代替（见上表） |

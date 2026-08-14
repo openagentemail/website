@@ -101,7 +101,7 @@ motion:
 
 ## 5. 组件清单 + 状态矩阵
 
-> class 名与 `global.css` 一一对应。Focus 统一：**3px `gold` outline**（官网全局 `:focus-visible` 与 /ui 均已实现）。
+> class 名与 `global.css` / `upgrade.css` 一一对应（v0.4 大卡、Hero 徽章、邮票墙在 `upgrade.css`）。Focus 统一：**3px `gold` outline**（官网全局 `:focus-visible` 与 /ui 均已实现）。
 
 | 组件 | default | hover | focus/disabled |
 |---|---|---|---|

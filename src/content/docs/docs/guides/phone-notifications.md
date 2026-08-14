@@ -21,9 +21,11 @@ command line.
 2. Open **Configure → Push & Devices**.
 3. Click **Add device**. The server mints a dedicated read-only ntfy account
    and shows a one-time password together with a QR code.
-4. Scan the QR in the ntfy app (or type the server URL, username, and
-   password). Subscribe to both topics it names — alerts (ring) and low
-   (silent).
+4. Scan the QR in the ntfy app (preferred — it carries the physical topic
+   names). Or type the server URL, username, and password, then subscribe
+   to both topics the dashboard lists as **User alerts** (ring) and **User
+   low** (silent). The physical names are random-suffixed, same as the CLI
+   path below.
 5. Lost the phone? **Revoke** on that row. The ntfy login for that device is
    deleted and push to it stops immediately.
 
