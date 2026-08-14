@@ -5,6 +5,7 @@
 /* 邮戳（copy 反馈）样式，与文档站 starlight-custom.css 共用同一份文件。
    @import 必须在所有规则之前，所以放在文件最顶上。 */
 @import './postmark.css';
+@import './upgrade.css';
 
 /* Satoshi (Fontshare, free license) — our Gellix-equivalent geometric sans.
    Self-hosted woff2, latin subset; CJK falls through to PingFang/Noto. */

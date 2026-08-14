@@ -2,7 +2,7 @@
 
 > 给 AI 编码 agent 和人类贡献者的单一设计事实来源。
 > 改任何页面**之前**先读本文件；新页面必须复用这里的令牌、组件和动效语言，不许另起炉灶。
-> 正源代码：`src/styles/global.css`（官网）与 `src/styles/starlight-custom.css`（文档站覆盖）。
+> 正源代码：`src/styles/global.css`（官网，`@import` `upgrade.css` / `postmark.css`）与 `src/styles/starlight-custom.css`（文档站覆盖）。
 > 本文件若与代码冲突，**以代码为准并当场修正本文件**。
 
 ---
@@ -109,6 +109,9 @@ motion:
 | `.btn-ghost` | 透明 + line-strong 描边 | 描边/字变金、上浮 1px | 同上 |
 | `.copy-btn` | mono 小按钮 | 描边/字变金 | copied：绿 + scale(1.06)，同时盖邮戳（S1，见 §7 已实现） |
 | `.card` | bg-card + line | 描边变金(35%)、上浮 3px、聚光灯点亮、光标跟随 3D 倾斜（S2） | — |
+| `.card-cockpit` | 2 列宽 + 等距截图 | 截图转正、金箔边缘加亮 | 窄屏改单列 |
+| `.hero-chips` | 副标题下 mono 小丸 | — | — |
+| `.stamp-wall` | 四枚倾斜邮戳 | 回正 | 窄屏 2×2 |
 | `.terminal` | 底 `#0a0b10` + 大投影 + 三色圆点 `#ff5f57/#febc2e/#28c840` | — | 着色 class：`.t-cmd .t-ok .t-json .t-key .t-dim .t-wait` |
 | `.cmdline` | bg-raise + line | — | `.cmd` 部分可全选 |
 | `.step` | line 左边框 + 圆点数字 | — | `.lit`：金底黑字 + 金光晕 |
@@ -145,7 +148,10 @@ motion:
 
 - **飞（2D）**：hero 信封 JS 弹簧跟随，CSS 只负责淡入（`.envs/.env`）。
 - **盖（邮戳，S1）**：copy 成功盖下一枚圆形邮戳（`src/scripts/postmark.js` + `src/styles/postmark.css`；docs 经 `src/components/DocsHead.astro` 挂载）。静止直径首页 **96px** / docs **64px**，窄屏（≤640px）76/52px；峰值 scale 2.2、press 1520ms；做旧为九成墨（N1 定稿"做大做实"）；视口边缘由 JS 按比例保底收缩（最多八成），不再缩小戳本体。
-- **卡片 3D 倾斜（S2）**：`.card` 朝向光标倾斜 `perspective(800px) rotateX/Y ±7°`（`src/pages/index.astro` spotlight 脚本；pointer:fine 限定、触摸/笔不触发、rAF 合帧、离开 0.3s 回正）。±7° 为 N1 业主拍板（原规格 ≤3° 无感）。
+- **卡片 3D 倾斜（S2）**：`.card` 朝向光标倾斜 `perspective(800px) rotateX/Y ±7°`（`src/pages/index.astro` spotlight 脚本；pointer:fine 限定、触摸/笔不触发、rAF 合帧、离开 0.3s 回正）。±7° 为 N1 业主拍板（原规格 ≤3° 无感）。`.card-cockpit` 除外——大卡内层自己做等距微缩 + hover 转正，不再叠光标倾斜。
+- **Dashboard 等距微缩（v0.4）**：`.cockpit-shot` 静止 `rotateX(7°) rotateY(-7°) rotateZ(2°)`，hover 微转正，金箔边缘泛光。截图只用 `public/images/dashboard-overview.webp`（Overview，零内部内容）；inbox 截图默认不用。
+- **Standards 邮票墙（v0.4）**：`src/components/StampWall.astro` + `src/styles/upgrade.css`。四枚做旧邮戳（齿孔/双圈/缺墨，沿用 S1 语言做大做实），静止 ±7°，大小错落；hover 回正。A2A 小字注解放在邮票下方。
+- **特性微缩图（v0.4）**：Phone 三档出境 / Sent 虚线航线+账本行 / MCP 终端↔云+钥匙。hover 只做一次微位移或金点泛光，不新开循环动画。
 - **金箔标题（S3）**：hero 标题金字扫光（`global.css` `.foil-wrap/.foil`，纯 CSS）。定稿 **A 版 `.foil-fill`**（实心金箔填充，`foil-sweep 4.5s linear infinite`；暗部 `#d99c14` 在画布上 ≈8:1 对比度合格）。B 版 `.foil-outline` 保留可切换——描边必须走独立兄弟层 `.foil-stroke`：background-clip:text 与 text-stroke 同元素会夹坏 Satoshi "y" 下勾。
 - **页尾 Lottie 信封**：Final CTA 区 `#lottie-final`（`src/pages/index.astro`）。动画 `public/animations/email-sent.json`（LottieFiles "contact-email"，Simple License，已改色品牌金）；播放器 lottie-web v5.13.0 vendored `public/vendor/lottie_svg.min.js`。IO 懒加载、离屏暂停、reduced-motion 静态帧。**这是"不引外部库"的唯一先例**（2026-07-30 业主点名），条件：本地 vendored 不走 CDN、懒加载不进首屏、reduce 下有完整静态形态。后来者不算惯例，仍需单独提案。
 - **发光**：`.hero-glow` 呼吸、`.aurora-1/2/3` 光斑摇曳、卡片聚光灯、`.cursor` 终端光标闪烁。
@@ -183,7 +189,7 @@ motion:
 
 | 路由 | 源文件 | 说明 |
 |---|---|---|
-| `/` | `src/pages/index.astro` | 首页：hero（命令行 + npm 徽章 + 信封）、logo 墙、终端、特性卡、步骤、统计、OTP 演示、对比表、OSS CTA、页脚 |
+| `/` | `src/pages/index.astro` | 首页：hero（命令行 + npm 徽章 + 信封 + 低调小徽章）、logo 墙、终端、特性卡（Dashboard 2 倍宽大卡）、Standards 邮票墙、步骤、统计、OTP 演示、对比表、OSS CTA、页脚 |
 | `/alternatives/agentmail`、`/alternatives/mailslurp` | `src/pages/alternatives/*.astro` | 竞品对比页（承接 P4 目录外链） |
 | `/privacy`、`/terms` | `src/pages/*.astro` + `src/layouts/Legal.astro` | 法律页 |
 | `/docs/*` | `src/content/docs/docs/`（Starlight） | 文档站 |
