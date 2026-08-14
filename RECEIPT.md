@@ -57,7 +57,8 @@ const faqJsonLd = {
 |---|---|---|---|---|
 | 初审（新 agent，禁止自审自） | `9a54fb64` | **mergeable** | **0 / 0 / 0** | 逐字 9 条、顺序、faqJsonLd 同源映射、旧 Dashboard 口径已清、未改 4 条与 main 字节相同。No findings。 |
 
-ZCode MCP `zcode_pr_review` / `zcode_review` 两次超时（与上轮相同）。用上述独立 Cursor subagent 代替。
+施工会话内 ZCode MCP `zcode_pr_review` / `zcode_review` 两次超时，故用独立 Cursor subagent `9a54fb64` 代替（0/0/0）。  
+PR 上另有自托管 **ZCode Review Gate**（与 MCP 超时不是同一条证据）：`6fbee19` ⚠️ P2×2 存量（JSON-LD `set:html` / 文案无法在本仓验证产品行为）结论仍「可以合并」；`168f723` ✅ pass（P0/P1=0，新引入 P2 为当时锁定文案口径，已记债）。R2 head `4c50b18` 闸上尚未出 ZCode 报告。
 
 ## 记债
 
@@ -68,7 +69,7 @@ Codex 云端 4 条 P2 都要求改 FAQ 措辞。**文案业主逐字锁定，不
 | 1 | Codex inline `3785930135` | 「Sign in once and stay signed in for 30 days.」未写 Trust this device 勾选 | **R2 已修。** 业主拍板新尾句。 |
 | 2 | Codex inline `3785930144` | 扫码配对未写 ntfy 须先公开 HTTPS | **R2 已修。** 业主拍板改首句分句。 |
 | 3 | Codex inline `3785930147` | `OAuth (RFC 9728)` 把 RFC 9728 写成 OAuth 本身；文档里 RFC 9728 是 PRM | **仍记债。** R2 只批 P2×3，本条未入修订。 |
-| 4 | Codex inline `3785930151` | 远程不只 OAuth，还有 `oa_…` / admin bearer；那些不进可撤销客户端表 | **R2 已修。** `authorized` → `connected OAuth`。 |
+| 4 | Codex inline `3785930151` | 远程不只 OAuth，还有 `oa_…` / admin bearer；那些不进可撤销客户端表 | **片段已修**（`authorized` → `connected OAuth`）。Codex Local `4c50b18` 仍报「with OAuth」像唯一远程鉴权——业主未批改该分句，**剩余记债**。 |
 
 上轮记债「FAQ 旧 Dashboard 口径」**本单关闭**（业主已批新答）。umami / CSP 仍是存量，不扩 scope。
 
@@ -83,14 +84,15 @@ PR：https://github.com/openagentemail/website/pull/10
 | Codex 云端 connector | 先一条 security-review usage limit；随后 4 条 P2 inline | **有理记债**（见上），不改锁定文案 |
 | Codex Local `6fbee19` | ✅ pass · P0/P1/P2/P3=0 | 过（FAQ 码提交） |
 | Codex Local `d690bad` | ⚠️ 4×P2，与云端 4 条同题 | **同一组有理记债**，不改锁定文案。回执提交触发复审，不另开修。 |
-| ZCode | MCP 两次超时 | 独立自审 `9a54fb64` 代替 |
+| ZCode Review Gate `6fbee19` | ⚠️ P2×2 存量，结论可以合并 | 记入「独立自审」；不扩 scope |
+| ZCode Review Gate `168f723` | ✅ pass · P0/P1=0 | 过 |
 
 ## 工位截屏
 
 目录：`<acceptance>/2026-08-14-website-faq/`  
 `astro preview` + Chrome。9 条全开特写。md5 全唯一，见该目录 README。
 
-```
+```text
 abf78994f5499c9b4bc2fcfd3deb319c  01-faq-1280.png
 aaf287129faff066d4460e9d9271db4b  02-faq-375.png
 ```
@@ -113,7 +115,7 @@ Codex P2×3 全修。修订措辞逐字执行。未改 RFC 9728 括注（P2 第 
 
 旧三句已不在 `index.astro` / `dist/index.html` / JSON-LD。其余 FAQ 字节未动。
 
-### 四闸（R2 新 head，push 后填）
+### 四闸（R2 head `4c50b18`）
 
 PR：https://github.com/openagentemail/website/pull/10  
 来源：业主拍板 task `686d6aa7` msg `208`。
@@ -121,12 +123,19 @@ PR：https://github.com/openagentemail/website/pull/10
 | 闸 | 状态 | 处置 |
 |---|---|---|
 | CI build | 本地 `npm run build` 23 pages Complete | 过 |
-| CodeRabbit | push 后等 | — |
-| Codex 云端 | push 后等 | — |
-| Codex Local | push 后等 | — |
-| ZCode | MCP 易超时；必要时独立自审 | — |
+| CodeRabbit | 对 `4c50b18` **review limit**（约 19 min 后才有额度）。此前对 FAQ 码无 actionable；对回执 2 条 minor：ZCode 证据要对齐、checksum fence 加 language | **已修回执**（本段 + fence 标 `text`）。FAQ 文案无 CR 意见 |
+| Codex 云端 | `4c50b18` 无新 inline；初轮 4 条 P2 中 3 条已按业主拍板修 | 剩 RFC 9728 **仍记债** |
+| Codex Local `4c50b18` | ⚠️ P2×2 | ① 远程不只 OAuth（`oa_…`/admin）② RFC 9728 是 PRM。均为业主未批改的剩余口径，**记债不改** |
+| ZCode Review Gate | `4c50b18` 尚未出报告；前 head `168f723` ✅ pass | 不阻断。施工会话 MCP 仍超时，不重复自审（R2 仅三处逐字替换） |
 
 ### 工位截屏（R2 覆盖同名）
 
 目录：`<acceptance>/2026-08-14-website-faq/`  
-复拍 1280+375 两镜，覆盖 `01-faq-1280.png` / `02-faq-375.png`。md5 见该目录 README（拍完回填）。
+复拍 1280+375，覆盖同名两镜。md5 与 R1 不同且互异。
+
+```text
+39e66154db8bc4af3142acf9a83e718f  01-faq-1280.png
+8846651ec18f11fd22420280bd6a7f01  02-faq-375.png
+```
+
+停等指挥终审。不合并。

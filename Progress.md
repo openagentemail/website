@@ -107,4 +107,4 @@
 1. 无新构建错误。`npm run build` 23 pages Complete。
 
 ### 我们是如何解决这些错误的？
-1. 无。四闸与复拍在 push 后补。
+1. 无构建错误。四闸：CodeRabbit 对 `4c50b18` 触 review limit，回执修其对旧 head 的 2 条 minor（ZCode 证据对齐、checksum ` ```text `）。Codex Local `4c50b18` 剩 P2×2（OAuth 非唯一远程鉴权 + RFC 9728 PRM），业主未批改，记债。复拍两镜 md5 `39e66154…` / `8846651e…`。
