@@ -74,3 +74,23 @@
 1. `npm install` 后 build 绿：23 pages Complete（既有 Starlight `Entry docs → 404` 与 caddyfile 高亮警告，非本单引入）。
 2. `git checkout -- package-lock.json`，不把 npm 噪音带进 PR。
 3. 独立自审新 agent `9a54fb64`：mergeable，P0/P1/P2 = 0/0/0。确认 faqJsonLd 同源映射、9 条逐字、顺序正确、旧 Dashboard 口径已清。
+
+## 2026-08-14 FAQ 四闸 + 回执
+
+### 我们实现了哪些功能？
+1. 开 PR https://github.com/openagentemail/website/pull/10 （英文标题正文）。未 merge。
+2. 四闸：本地 build 过；CodeRabbit 无 actionable；Codex Local `6fbee19` pass 0/0/0/0；Codex 云端 4 条 P2 因业主锁定文案有理记债；ZCode MCP 两次超时，用自审 `9a54fb64` 代替。
+3. FAQ 特写两镜（1280 + 375，9 条全开）存 `<acceptance>/2026-08-14-website-faq/`，md5 唯一。
+4. 写 RECEIPT：faqJsonLd 属 `faq.map` 同源映射；上轮「旧 Dashboard 口径」记债关闭。
+
+### 我们遇到了哪些错误？
+1. ZCode MCP `zcode_pr_review` / `zcode_review` 两次超时。
+2. 本机 `codex review --base origin/main` 401（缺 bearer）。闸上 Codex Local 评论已由现有自托管闸打在 PR 上，结论 pass。
+3. Codex 云端先报 security-review usage limit，随后仍留下 4 条 P2，全部要求改锁定 FAQ 措辞。
+4. 初拍 375 特写被粘性导航裁掉第一条标题。
+
+### 我们是如何解决这些错误的？
+1. 与上轮相同：独立 Cursor subagent `9a54fb64` 代替 ZCode。
+2. 采用 PR 上已发布的 Codex Local 闸结果（head `6fbee19`，P0–P3 = 0）。
+3. 4 条 P2 有理记债，不改业主逐字文案。细口径已在 quickstart / phone-notifications / mcp-clients。
+4. 截屏前 `nav { display:none }`，改拍 FAQ `.wrap`，375 第一条标题完整。

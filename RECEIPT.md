@@ -1,92 +1,96 @@
-# RECEIPT — website v0.4 copy + visual
+# RECEIPT — website homepage FAQ copy
 
 日期：2026-08-14  
 工位：`<worktree>`  
-基线：`origin/main` **`9b90939`**  
-禁动 main / 禁碰 openagentemail 主仓 / 禁止自 merge。合并权属 MBP。
+基线：`origin/main` **`992e48a`**  
+head：`6fbee19`  
+禁动 main / 禁碰 openagentemail 主仓 / 禁止自 merge。合并权属 MBP。业主授权 MBP 终审后直接合并。
 
 ## 交付
 
-官网叙事补到 Dashboard 大改版 / 设备管理 / Sent box / dated MCP。文案业主逐字批准，未改措辞。视觉同 PR。
+清掉上轮记债「FAQ 旧 Dashboard 口径」。首页 FAQ 8→9 条，文案业主逐字锁定，未改措辞。
+
+## faqJsonLd 属哪种
+
+**引用 `faq` 数组，自动同步。** 不是独立写死的问答。
+
+```94:102:src/pages/index.astro
+const faqJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: faq.map((item) => ({
+    '@type': 'Question',
+    name: item.q,
+    acceptedAnswer: { '@type': 'Answer', text: item.a },
+  })),
+};
+```
+
+可见 FAQ 区（约 623 行）也 `faq.map`。改数组即页面 + JSON-LD 一起变。`dist/index.html` 可见 9 条 `<details>` 与 FAQPage `mainEntity` 9 条逐字一致。
 
 ## 范围对账
 
 | # | 范围 | 结果 | 证据 |
 |---|---|---|---|
-| A1 | Dashboard 升主角 2 倍宽；标题/正文逐字 | **过** | `src/pages/index.astro` `.card-cockpit` |
-| A2 | Phone push 重写逐字 + 三档出境 SVG | **过** | 同文件 `.viz-phone` |
-| A3 | Sent box 新卡逐字 + 航线账本 | **过** | `.viz-sent` |
-| A4 | MCP 重写逐字 + 双态小图 | **过** | `.viz-mcp` |
-| A5 | Tasks 保留原文 + 批准尾句 | **过** | 原段未改，尾句 `Watch the board…` |
-| A6 | 其余六卡正文不动 | **过** | 与 `origin/main` 逐字相同（仅序号 06–11） |
-| B | Standards 邮票墙四枚 + A2A 小字在戳下 | **过** | `src/components/StampWall.astro` |
-| C | Hero 布局不动；副标题下三枚低调徽章 | **过** | `.hero-chips`；CTA 行未改 |
-| D | Pricing badge + Notes 句 | **过** | `Launching soon`；Waitlist 句逐字 |
-| E1 | phone-notifications Dashboard 扫码捷径；手工流程保留 | **过** | 新节「Pair from the dashboard」 |
-| E2 | quickstart Trust-30d | **过（已有）** | `origin/main` 已有 `Tick **Trust this device**…30 days.` 未重复 |
-| F1 | Overview WebP（R1 起为 demo 身份） | **过** | `public/images/dashboard-overview.webp` md5 `ac455a38998a760e4038e0877e83d3ac`（现场指挥重拍 demo 版覆盖同名） |
-| F2–5 | Phone / Sent / MCP / 邮票造型 | **过** | CSS/SVG；邮票 ±7°、大小错落、缺墨滤镜 |
-| F6 | 新动效从简；375；WebP；reduced-motion | **过** | hover-only transform/opacity；无新循环；`upgrade.css` reduce 段 |
+| 1 | 「Is it really free?」仅尾句 `coming soon` → `launching soon` | **过** | 其余字节与 `origin/main` 相同 |
+| 2 | 「Is there a UI for humans?」整答换成 cockpit 清单 | **过** | 旧句 `Every install ships a built-in dashboard…` 已不在 |
+| 3 | 「Can agents hand work to each other?」末尾追加工单句 | **过** | 原文保留 + `From the board you can page through history, nudge a stuck task, or close one out.` |
+| 4 | 「What agents and clients does it work with?」整答替换 | **过** | Kimi Code + dated MCP 2026-07-28 + OAuth RFC 9728 + dashboard 可撤销 + REST |
+| 5 | 新增「Can I get alerts on my phone?」紧接工单条之后 | **过** | 第 8 条；安全围栏仍是第 9 条 |
+| 6 | AgentMail / 域名 / spam / 安全围栏 不动 | **过** | 与 `origin/main` 字节相同（4 条；派单写「其余 3 条」但点了这 4 项） |
+| 7 | faqJsonLd 同步 | **过** | 同源 `faq.map`，非独立副本 |
 
 ## 验收对账
 
 | 项 | 结果 | 证据 |
 |---|---|---|
-| 文案零改写 | **过** | 施工后 Python 逐句 `in` 核对；复审再核 |
-| `npm run build` | **过** | 23 pages，Complete（既有 Starlight `Entry docs → 404` 警告，非本单引入） |
-| 375 单列 / 邮票 2×2 | **过** | `@media (max-width: 900px)` / `420px` |
-| inbox 截图未用 | **过** | 源码无 `dashboard-inbox` |
+| 文案零改写 | **过** | Python 9 条逐字 `==`；自审再核 |
+| `npm run build` | **过** | 23 pages Complete（既有 Starlight `Entry docs → 404` / caddyfile 高亮警告，非本单引入） |
+| FAQ 区 9 条 1280+375 | **过** | `<acceptance>/2026-08-14-website-faq/` |
 | 未改 `.env` | **过** | 本仓无 `.env` 改动 |
+| 未自 merge | **过** | PR #10 仍 OPEN |
 
 ## 独立自审
 
 | 轮 | Subagent ID | 结论 | P0/P1/P2 | 过程 |
 |---|---|---|---|---|
-| 初审 | `2774902e` | mergeable after fix | 0 / 0 / **1** | P2：`.card-cockpit { overflow: visible }` 被后写 `.card { overflow: hidden }` 盖掉，等距金箔被裁。 |
-| 复审（新 agent，禁止自审自） | `840e1a53` | **mergeable** | **0 / 0 / 0** | 独立核 cascade：`.card.card-cockpit` 特异度 0,2,0 压过 `.card` 0,1,0。文案/资产/375/reduce 再过。No findings。 |
-| 闸后复审（新 agent） | `f0f9c379` | **block（截图）** | 0 / **1** / 0 | QR 与 noscript **closed**。P1：当时 Overview 能读出生产身份表。该 P1 在 R1 换 demo 图后关闭（见下），不记债。 |
+| 初审（新 agent，禁止自审自） | `9a54fb64` | **mergeable** | **0 / 0 / 0** | 逐字 9 条、顺序、faqJsonLd 同源映射、旧 Dashboard 口径已清、未改 4 条与 main 字节相同。No findings。 |
 
-初审 P2 已修：选择器改为 `.card.card-cockpit`。
+ZCode MCP `zcode_pr_review` / `zcode_review` 两次超时（与上轮相同）。用上述独立 Cursor subagent 代替。
 
 ## 记债
 
-1. FAQ「Is there a UI for humans?」仍是旧 Dashboard 口径，FAQ 文案业主未批，未改。（ZCode P2-4 存量：FAQ 旧口径 / umami 脚本 / CSP 一并保留，不扩 scope。）
+Codex 云端 4 条 P2 都要求改 FAQ 措辞。**文案业主逐字锁定，不得改。** 文档站已有更细口径，FAQ 保持业主批准的营销长度。
 
-## 四闸（初轮，head `0a7cdb7`）
+| # | 来源 | 问题 | 处置 |
+|---|---|---|---|
+| 1 | Codex inline `3785930135` | 「Sign in once and stay signed in for 30 days.」未写 Trust this device 勾选 | **记债。** `quickstart.md:112-113` 已写勾选才延 30 日。业主锁定本句。 |
+| 2 | Codex inline `3785930144` | 扫码配对未写 ntfy 须先公开 HTTPS | **记债。** `phone-notifications.md:6-18` 已写该前提。业主锁定短答。 |
+| 3 | Codex inline `3785930147` | `OAuth (RFC 9728)` 把 RFC 9728 写成 OAuth 本身；文档里 RFC 9728 是 PRM | **记债。** 技术上对，但业主锁定该括注。 |
+| 4 | Codex inline `3785930151` | 远程不只 OAuth，还有 `oa_…` / admin bearer；那些不进可撤销客户端表 | **记债。** `mcp-clients.md:30-38` 已列三种 Bearer。业主锁定本句。 |
 
-PR：https://github.com/openagentemail/website/pull/9
+上轮记债「FAQ 旧 Dashboard 口径」**本单关闭**（业主已批新答）。umami / CSP 仍是存量，不扩 scope。
+
+## 四闸（head `6fbee19`）
+
+PR：https://github.com/openagentemail/website/pull/10
 
 | 闸 | 状态 | 处置 |
 |---|---|---|
 | CI build | 本仓无 GitHub Actions；本地 `npm run build` 23 pages Complete | 过 |
-| CodeRabbit | 首轮 4 条 inline（对 `f0bb17f`） | DESIGN 归属注 **已修**；QR 矛盾 **已在 c68cee2 关闭**（评过时）；主题名口径 **已修**；`currentcolor` **已修**。后续 commit 触发 review limit，记外部。 |
-| Codex 云端 connector | usage limit 一条；仍留下 3 条 inline | P2 QR **已修**；P1 截图 **R1 换图关闭**；P2 no-JS **已修** |
-| Codex Local `6a82594` | ✅ pass · P0/P1/P2=0 | 过 |
-| Codex Local `9000dd6` | P1：noscript style 被 Astro scope，StampWall `.reveal` 吃不到 | **已修**：`html.no-js` + `upgrade.css` 全局规则 + `style is:global` |
-| Codex Local `0a7cdb7` | ✅ pass · P0/P1/P2=0 | 过 |
-| ZCode | P1×1 + P2×4 在案 | P1 截图 **R1 换图关闭**；P2-1 回执脱敏 **R1 修**；P2-2 `.mimosa/` **R1 修**；P2-3 charset 顺序 **R1 修**；P2-4 存量 **记债** |
+| CodeRabbit | 「No actionable comments were generated.」Pre-merge 5/5；Merge Risk Minimal | 过，无修 |
+| Codex 云端 connector | 先一条 security-review usage limit；随后 4 条 P2 inline | **有理记债**（见上），不改锁定文案 |
+| Codex Local `6fbee19` | ✅ pass · P0/P1/P2/P3=0 | 过 |
+| ZCode | MCP 两次超时 | 独立自审 `9a54fb64` 代替 |
 
 ## 工位截屏
 
-目录：`<acceptance>/2026-08-14-website-visual/`  
-`astro preview` 真 Chrome（非 headless）+ 滚页触发 reveal + 真 hover。md5 全唯一，见该目录 README。R1 重拍含 Dashboard 卡的首页镜头。
+目录：`<acceptance>/2026-08-14-website-faq/`  
+`astro preview` + Chrome。9 条全开特写。md5 全唯一，见该目录 README。
 
----
+```
+abf78994f5499c9b4bc2fcfd3deb319c  01-faq-1280.png
+aaf287129faff066d4460e9d9271db4b  02-faq-375.png
+```
 
-## R1（2026-08-14 · PR #9 复审返工）
-
-同一分支就地修。未新开分支、未动 `main`、未自 merge。
-
-### 评论对账
-
-| # | 来源 | 问题 | 处置 | 证据 |
-|---|---|---|---|---|
-| 1 | Codex 云端 inline `3785104791`（`index.astro`「Replace the production dashboard screenshot」）+ 自审 `f0f9c379` + ZCode P1 | 当时 Overview 图身份表可读（生产名/地址） | **已修。** 现场指挥重拍 demo 数据版，同名覆盖 `public/images/dashboard-overview.webp`。引用路径不动。 | 新 md5 `ac455a38998a760e4038e0877e83d3ac`；身份为 fox-k7d2@yourdomain 等营销口径 |
-| 2 | ZCode P2-1 + 指挥 R1 + 主仓 PR #33 E / PR #29 回执纪律 | 回执含主机绝对路径 / 显示号 / 工位名；且把派单原话误写成「业主裁定」并据此记债 | **已修。** 路径改 `<worktree>` / `<acceptance>`。P1 三处同报 → 现场指挥重拍 demo 版替换 → **关闭**。不存在业主/MBP 对原图的记债批准，已删该表述。 | 本文件；`Progress.md` |
-| 3 | ZCode P2-2 | 未忽略 `.mimosa/` | **已修。** | `.gitignore` |
-| 4 | ZCode P2-3 | head inline script 在 `<meta charset>` 之前 | **已修。** 一行挪到 charset 之后。 | `src/pages/index.astro` |
-| 5 | ZCode P2-4 | FAQ 旧口径 / umami / CSP | **记债，不改码。** FAQ 文案业主未批。 | 见上「记债」 |
-
-### 更正（原回执错误归属）
-
-初轮把「首选 dashboard-overview.webp…零内部内容」写成业主原文并据此记债，**归属错**。那是现场指挥派单原话，不是业主裁定；且「零内部内容」判断有误（身份名/地址清晰可读，正是本次 P1）。R1 按如实纪律改写，不再引用该表述。
+停等指挥终审。不合并。
