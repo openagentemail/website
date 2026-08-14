@@ -1,7 +1,7 @@
 # RECEIPT — website v0.4 copy + visual
 
 日期：2026-08-14  
-工位：website `tizerluo/worker-34-site-upgrade`  
+工位：`<worktree>`  
 基线：`origin/main` **`9b90939`**  
 禁动 main / 禁碰 openagentemail 主仓 / 禁止自 merge。合并权属 MBP。
 
@@ -24,7 +24,7 @@
 | D | Pricing badge + Notes 句 | **过** | `Launching soon`；Waitlist 句逐字 |
 | E1 | phone-notifications Dashboard 扫码捷径；手工流程保留 | **过** | 新节「Pair from the dashboard」 |
 | E2 | quickstart Trust-30d | **过（已有）** | `origin/main` 已有 `Tick **Trust this device**…30 days.` 未重复 |
-| F1 | Overview WebP，不用 inbox | **过** | `public/images/dashboard-overview.webp` md5 `41fc54d11efc3e63cecdddb2b2dfce35` = 验收源文件 |
+| F1 | Overview WebP（R1 起为 demo 身份） | **过** | `public/images/dashboard-overview.webp` md5 `ac455a38998a760e4038e0877e83d3ac`（现场指挥重拍 demo 版覆盖同名） |
 | F2–5 | Phone / Sent / MCP / 邮票造型 | **过** | CSS/SVG；邮票 ±7°、大小错落、缺墨滤镜 |
 | F6 | 新动效从简；375；WebP；reduced-motion | **过** | hover-only transform/opacity；无新循环；`upgrade.css` reduce 段 |
 
@@ -44,30 +44,49 @@
 |---|---|---|---|---|
 | 初审 | `2774902e` | mergeable after fix | 0 / 0 / **1** | P2：`.card-cockpit { overflow: visible }` 被后写 `.card { overflow: hidden }` 盖掉，等距金箔被裁。 |
 | 复审（新 agent，禁止自审自） | `840e1a53` | **mergeable** | **0 / 0 / 0** | 独立核 cascade：`.card.card-cockpit` 特异度 0,2,0 压过 `.card` 0,1,0。文案/资产/375/reduce 再过。No findings。 |
-| 闸后复审（新 agent） | `f0f9c379` | **block（截图）** | 0 / **1** / 0 | QR 与 noscript **closed**。P1：Overview 能读出生产身份表。施工方按业主「统计+身份表，零内部内容」**有理记债**，不换图。 |
+| 闸后复审（新 agent） | `f0f9c379` | **block（截图）** | 0 / **1** / 0 | QR 与 noscript **closed**。P1：当时 Overview 能读出生产身份表。该 P1 在 R1 换 demo 图后关闭（见下），不记债。 |
 
 初审 P2 已修：选择器改为 `.card.card-cockpit`。
 
 ## 记债
 
-1. **Overview 截图含生产身份表（Codex 云端 P1 + 自审 `f0f9c379`）：有理记债，不换图。** 业主本单原文：「首选 dashboard-overview.webp（1440×900 Overview 统计+身份表，零内部内容）」——身份表是这张图的题材；「零内部内容」对照的是 inbox 备选里的探针邮件和过期 OTP（默认不用，换用须 MBP 明示）。未擅自打码。若终审要打码/重拍，MBP 拍板后再换。
-2. FAQ「Is there a UI for humans?」仍是旧 Dashboard 口径，业主未批新 FAQ 文案，未改。
+1. FAQ「Is there a UI for humans?」仍是旧 Dashboard 口径，FAQ 文案业主未批，未改。（ZCode P2-4 存量：FAQ 旧口径 / umami 脚本 / CSP 一并保留，不扩 scope。）
 
-## 四闸
+## 四闸（初轮，head `0a7cdb7`）
 
-PR：https://github.com/openagentemail/website/pull/9  
-head：`6a82594`（基线 `9b90939`）
+PR：https://github.com/openagentemail/website/pull/9
 
 | 闸 | 状态 | 处置 |
 |---|---|---|
 | CI build | 本仓无 GitHub Actions；本地 `npm run build` 23 pages Complete | 过 |
-| CodeRabbit | 首轮 4 条 inline（对 `f0bb17f`） | DESIGN 归属注 **已修**；QR 矛盾 **已在 c68cee2 关闭**（评过时）；主题名口径 **已修**（按 Dashboard 实装：人话 User alerts/User low，QR 带物理名，不照抄 CR 的 `user-alerts-…` 误述）；`currentcolor` **已修** |
-| Codex 云端 connector | usage limit 一条；仍留下 3 条 inline | P2 QR **已修**；P1 截图 **记债**；P2 no-JS **已修**（后又发现 Astro scope，见下） |
+| CodeRabbit | 首轮 4 条 inline（对 `f0bb17f`） | DESIGN 归属注 **已修**；QR 矛盾 **已在 c68cee2 关闭**（评过时）；主题名口径 **已修**；`currentcolor` **已修**。后续 commit 触发 review limit，记外部。 |
+| Codex 云端 connector | usage limit 一条；仍留下 3 条 inline | P2 QR **已修**；P1 截图 **R1 换图关闭**；P2 no-JS **已修** |
 | Codex Local `6a82594` | ✅ pass · P0/P1/P2=0 | 过 |
 | Codex Local `9000dd6` | P1：noscript style 被 Astro scope，StampWall `.reveal` 吃不到 | **已修**：`html.no-js` + `upgrade.css` 全局规则 + `style is:global` |
-| ZCode MCP `zcode_pr_review` | 两次 -32001 timeout | 以独立 Cursor subagent 自审代替（见上表） |
+| Codex Local `0a7cdb7` | ✅ pass · P0/P1/P2=0 | 过 |
+| ZCode | P1×1 + P2×4 在案 | P1 截图 **R1 换图关闭**；P2-1 回执脱敏 **R1 修**；P2-2 `.mimosa/` **R1 修**；P2-3 charset 顺序 **R1 修**；P2-4 存量 **记债** |
 
 ## 工位截屏
 
-目录：`/home/ops/acceptance/2026-08-14-website-visual/`  
-`astro preview` 真 Chrome（`DISPLAY=:98`，非 headless）+ 滚页触发 reveal + 真 hover。md5 全唯一，见该目录 README。
+目录：`<acceptance>/2026-08-14-website-visual/`  
+`astro preview` 真 Chrome（非 headless）+ 滚页触发 reveal + 真 hover。md5 全唯一，见该目录 README。R1 重拍含 Dashboard 卡的首页镜头。
+
+---
+
+## R1（2026-08-14 · PR #9 复审返工）
+
+同一分支就地修。未新开分支、未动 `main`、未自 merge。
+
+### 评论对账
+
+| # | 来源 | 问题 | 处置 | 证据 |
+|---|---|---|---|---|
+| 1 | Codex 云端 inline `3785104791`（`index.astro`「Replace the production dashboard screenshot」）+ 自审 `f0f9c379` + ZCode P1 | 当时 Overview 图身份表可读（生产名/地址） | **已修。** 现场指挥重拍 demo 数据版，同名覆盖 `public/images/dashboard-overview.webp`。引用路径不动。 | 新 md5 `ac455a38998a760e4038e0877e83d3ac`；身份为 fox-k7d2@yourdomain 等营销口径 |
+| 2 | ZCode P2-1 + 指挥 R1 + 主仓 PR #33 E / PR #29 回执纪律 | 回执含主机绝对路径 / 显示号 / 工位名；且把派单原话误写成「业主裁定」并据此记债 | **已修。** 路径改 `<worktree>` / `<acceptance>`。P1 三处同报 → 现场指挥重拍 demo 版替换 → **关闭**。不存在业主/MBP 对原图的记债批准，已删该表述。 | 本文件；`Progress.md` |
+| 3 | ZCode P2-2 | 未忽略 `.mimosa/` | **已修。** | `.gitignore` |
+| 4 | ZCode P2-3 | head inline script 在 `<meta charset>` 之前 | **已修。** 一行挪到 charset 之后。 | `src/pages/index.astro` |
+| 5 | ZCode P2-4 | FAQ 旧口径 / umami / CSP | **记债，不改码。** FAQ 文案业主未批。 | 见上「记债」 |
+
+### 更正（原回执错误归属）
+
+初轮把「首选 dashboard-overview.webp…零内部内容」写成业主原文并据此记债，**归属错**。那是现场指挥派单原话，不是业主裁定；且「零内部内容」判断有误（身份名/地址清晰可读，正是本次 P1）。R1 按如实纪律改写，不再引用该表述。

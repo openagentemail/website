@@ -149,7 +149,7 @@ motion:
 - **飞（2D）**：hero 信封 JS 弹簧跟随，CSS 只负责淡入（`.envs/.env`）。
 - **盖（邮戳，S1）**：copy 成功盖下一枚圆形邮戳（`src/scripts/postmark.js` + `src/styles/postmark.css`；docs 经 `src/components/DocsHead.astro` 挂载）。静止直径首页 **96px** / docs **64px**，窄屏（≤640px）76/52px；峰值 scale 2.2、press 1520ms；做旧为九成墨（N1 定稿"做大做实"）；视口边缘由 JS 按比例保底收缩（最多八成），不再缩小戳本体。
 - **卡片 3D 倾斜（S2）**：`.card` 朝向光标倾斜 `perspective(800px) rotateX/Y ±7°`（`src/pages/index.astro` spotlight 脚本；pointer:fine 限定、触摸/笔不触发、rAF 合帧、离开 0.3s 回正）。±7° 为 N1 业主拍板（原规格 ≤3° 无感）。`.card-cockpit` 除外——大卡内层自己做等距微缩 + hover 转正，不再叠光标倾斜。
-- **Dashboard 等距微缩（v0.4）**：`.cockpit-shot` 静止 `rotateX(7°) rotateY(-7°) rotateZ(2°)`，hover 微转正，金箔边缘泛光。截图只用 `public/images/dashboard-overview.webp`（Overview，零内部内容）；inbox 截图默认不用。
+- **Dashboard 等距微缩（v0.4）**：`.cockpit-shot` 静止 `rotateX(7°) rotateY(-7°) rotateZ(2°)`，hover 微转正，金箔边缘泛光。截图只用 `public/images/dashboard-overview.webp`（Overview demo 营销身份，R1 替换生产表）；inbox 截图默认不用。
 - **Standards 邮票墙（v0.4）**：`src/components/StampWall.astro` + `src/styles/upgrade.css`。四枚做旧邮戳（齿孔/双圈/缺墨，沿用 S1 语言做大做实），静止 ±7°，大小错落；hover 回正。A2A 小字注解放在邮票下方。
 - **特性微缩图（v0.4）**：Phone 三档出境 / Sent 虚线航线+账本行 / MCP 终端↔云+钥匙。hover 只做一次微位移或金点泛光，不新开循环动画。
 - **金箔标题（S3）**：hero 标题金字扫光（`global.css` `.foil-wrap/.foil`，纯 CSS）。定稿 **A 版 `.foil-fill`**（实心金箔填充，`foil-sweep 4.5s linear infinite`；暗部 `#d99c14` 在画布上 ≈8:1 对比度合格）。B 版 `.foil-outline` 保留可切换——描边必须走独立兄弟层 `.foil-stroke`：background-clip:text 与 text-stroke 同元素会夹坏 Satoshi "y" 下勾。
