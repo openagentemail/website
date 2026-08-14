@@ -108,3 +108,16 @@
 
 ### 我们是如何解决这些错误的？
 1. 无构建错误。四闸：CodeRabbit 对 `4c50b18` 触 review limit，回执修其对旧 head 的 2 条 minor（ZCode 证据对齐、checksum ` ```text `）。Codex Local `4c50b18` 剩 P2×2（OAuth 非唯一远程鉴权 + RFC 9728 PRM），业主未批改，记债。复拍两镜 md5 `39e66154…` / `8846651e…`。
+
+## 2026-08-14 FAQ R3（MBP msg 210）
+
+### 我们实现了哪些功能？
+1. clients 条中间整句按 MBP 拍板替换：`Cloud agents` + `OAuth — protected-resource metadata per RFC 9728 — or a scoped identity token`；句尾 connected OAuth 保持 R2。
+2. 关闭 R2 剩余记债（RFC 9728 括注 / OAuth 像唯一远程鉴权）。`faqJsonLd` 同源，`dist` 可见区与 `mainEntity` 均含新句。
+3. 一条 commit。截屏免了。
+
+### 我们遇到了哪些错误？
+1. 无。`npm run build` 23 pages Complete。
+
+### 我们是如何解决这些错误的？
+1. 无。ZCode Review Gate 复审本 commit head；不自 merge。

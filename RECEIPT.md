@@ -5,6 +5,7 @@
 基线：`origin/main` **`992e48a`**  
 初轮 FAQ head：`6fbee19`  
 R2 head：`4c50b18`  
+R3：clients 整句，见下「R3」（本条 commit）  
 禁动 main / 禁碰 openagentemail 主仓 / 禁止自 merge。合并权属 MBP。业主授权 MBP 终审后直接合并。
 
 ## 交付
@@ -68,8 +69,8 @@ Codex 云端 4 条 P2 都要求改 FAQ 措辞。**文案业主逐字锁定，不
 |---|---|---|---|
 | 1 | Codex inline `3785930135` | 「Sign in once and stay signed in for 30 days.」未写 Trust this device 勾选 | **R2 已修。** 业主拍板新尾句。 |
 | 2 | Codex inline `3785930144` | 扫码配对未写 ntfy 须先公开 HTTPS | **R2 已修。** 业主拍板改首句分句。 |
-| 3 | Codex inline `3785930147` | `OAuth (RFC 9728)` 把 RFC 9728 写成 OAuth 本身；文档里 RFC 9728 是 PRM | **仍记债。** R2 只批 P2×3，本条未入修订。 |
-| 4 | Codex inline `3785930151` | 远程不只 OAuth，还有 `oa_…` / admin bearer；那些不进可撤销客户端表 | **片段已修**（`authorized` → `connected OAuth`）。Codex Local `4c50b18` 仍报「with OAuth」像唯一远程鉴权——业主未批改该分句，**剩余记债**。 |
+| 3 | Codex inline `3785930147` | `OAuth (RFC 9728)` 把 RFC 9728 写成 OAuth 本身；文档里 RFC 9728 是 PRM | **R3 已修。** MBP msg 210：改为 em-dash PRM 口径。 |
+| 4 | Codex inline `3785930151` | 远程不只 OAuth，还有 `oa_…` / admin bearer；那些不进可撤销客户端表 | **R3 已修。** MBP msg 210：补 `or a scoped identity token`；句尾 connected OAuth 保持 R2。 |
 
 上轮记债「FAQ 旧 Dashboard 口径」**本单关闭**（业主已批新答）。umami / CSP 仍是存量，不扩 scope。
 
@@ -139,3 +140,27 @@ PR：https://github.com/openagentemail/website/pull/10
 ```
 
 停等指挥终审。不合并。
+
+---
+
+## R3（2026-08-14 · 同分支就地 · MBP 终审拍板 task msg `210`）
+
+Codex Local `4c50b18` 新 P2×2 采纳候选修订。只改 clients 条中间整句。`faqJsonLd` 仍是 `faq.map`。截屏免了（MBP：纯文案微调，上轮结构已验）。
+
+### 逐条对账
+
+| 项 | 内容 |
+|---|---|
+| 条 | What agents and clients does it work with? |
+| 旧 | `Agents that aren't on your box connect over stateless HTTPS with OAuth (RFC 9728), and every connected OAuth client shows up in the dashboard where you can revoke it.` |
+| 新 | `Cloud agents connect over stateless HTTPS with OAuth — protected-resource metadata per RFC 9728 — or a scoped identity token, and every connected OAuth client shows up in the dashboard where you can revoke it.` |
+| 句首 | `Agents that aren't on your box` → `Cloud agents` |
+| 中段 | `with OAuth (RFC 9728)` → `with OAuth — protected-resource metadata per RFC 9728 — or a scoped identity token` |
+| 句尾 | `, and every connected OAuth client…` **保持 R2** |
+| 源码 / `dist` 可见 / FAQPage `mainEntity` | **过 / 过 / 过** |
+
+旧句（`aren't on your box`、`OAuth (RFC 9728)`）已不在源码与 `dist`。`npm run build` 23 pages Complete。
+
+### ZCode
+
+本 commit push 后由 ZCode Review Gate 复审新 head。施工会话不另开 MCP（上轮两次超时）。结果见 PR 评论；此处不二次改码。

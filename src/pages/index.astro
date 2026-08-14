@@ -47,7 +47,7 @@ const faq = [
   {
     q: 'What agents and clients does it work with?',
     // 业主逐字：Kimi Code + dated MCP 2026-07-28 + 远程 OAuth + dashboard 可撤销
-    a: 'Anything that speaks MCP — Claude Code, Cursor, Kimi Code, and friends — via the @openagentemail/mcp server, current to the dated MCP 2026-07-28 spec. Agents that aren\'t on your box connect over stateless HTTPS with OAuth (RFC 9728), and every connected OAuth client shows up in the dashboard where you can revoke it. A plain REST API covers everything else.',
+    a: 'Anything that speaks MCP — Claude Code, Cursor, Kimi Code, and friends — via the @openagentemail/mcp server, current to the dated MCP 2026-07-28 spec. Cloud agents connect over stateless HTTPS with OAuth — protected-resource metadata per RFC 9728 — or a scoped identity token, and every connected OAuth client shows up in the dashboard where you can revoke it. A plain REST API covers everything else.',
   },
   {
     q: 'Will my mail land in spam?',
