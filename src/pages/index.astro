@@ -32,7 +32,8 @@ const jsonOut = `{
 const faq = [
   {
     q: 'Is it really free?',
-    a: 'Yes — self-hosting is free and unlimited under the Apache-2.0 license: no paid tier, no usage limits, no per-inbox pricing. The only thing you pay for is the server you run it on, and a $5/mo VPS is enough. An optional hosted plan (we run it for you) is coming soon — see /pricing.',
+    // 尾句与 pricing 页 badge「Launching soon」对齐；其余逐字不动
+    a: 'Yes — self-hosting is free and unlimited under the Apache-2.0 license: no paid tier, no usage limits, no per-inbox pricing. The only thing you pay for is the server you run it on, and a $5/mo VPS is enough. An optional hosted plan (we run it for you) is launching soon — see /pricing.',
   },
   {
     q: 'How is it different from AgentMail?',
@@ -45,7 +46,8 @@ const faq = [
   },
   {
     q: 'What agents and clients does it work with?',
-    a: 'Anything that speaks MCP — Claude Code, Claude Desktop, Cursor, and friends — via the @openagentemail/mcp server, plus a plain HTTPS REST API for everything else.',
+    // 业主逐字：Kimi Code + dated MCP 2026-07-28 + 远程 OAuth + dashboard 可撤销
+    a: 'Anything that speaks MCP — Claude Code, Cursor, Kimi Code, and friends — via the @openagentemail/mcp server, current to the dated MCP 2026-07-28 spec. Cloud agents connect over stateless HTTPS with OAuth — protected-resource metadata per RFC 9728 — or a scoped identity token, and every connected OAuth client shows up in the dashboard where you can revoke it. A plain REST API covers everything else.',
   },
   {
     q: 'Will my mail land in spam?',
@@ -53,12 +55,18 @@ const faq = [
   },
   {
     q: 'Is there a UI for humans?',
-    a: 'Yes. Every install ships a built-in dashboard at /ui where you can see all your agent identities, read their inboxes, mark messages read or unread, create new identities with custom addresses, rotate tokens, and delete identities.',
+    // 业主逐字：清掉旧 Dashboard 口径，改成 cockpit 全功能清单
+    a: 'Yes — a full cockpit at /ui, not just a viewer. Read every agent inbox in a three-pane mail client with one-click OTP copy, review the 30-day push log with daily summaries and masked sensitive content, nudge or close agent tasks from the work-order board, manage identities, tokens, push tiers, and connected clients, pair your phone by QR code, and audit what agents sent from the Sent folder. Trust this device once, stay signed in for 30 days.',
   },
   // #22 / tasks：agent 间工单交接（服务端戳状态 + 唤醒收单方 + Dashboard 工单视图）
   {
     q: 'Can agents hand work to each other?',
-    a: 'Yes. Tasks are email-backed threads between managed identities, with server-stamped states (submitted → working → completed/failed). Creating a task wakes the receiving agent; the dashboard rebuilds each thread into a work-order card with participants, a timeline, and a result block.',
+    a: 'Yes. Tasks are email-backed threads between managed identities, with server-stamped states (submitted → working → completed/failed). Creating a task wakes the receiving agent; the dashboard rebuilds each thread into a work-order card with participants, a timeline, and a result block. From the board you can page through history, nudge a stuck task, or close one out.',
+  },
+  // 业主逐字新增：手机推送 / ntfy 扫码配对 + 三档出境 + 一键撤销
+  {
+    q: 'Can I get alerts on my phone?',
+    a: 'Yes — pair the ntfy app by scanning a QR code from the dashboard, after a one-time ntfy HTTPS setup covered in the phone guide. You pick how much of a message may leave the server per identity: just a ping, masked sender + subject, or body + OTP (tier 3 asks for your explicit risk confirmation, and agents can never raise their own tier). Lost phone? One click revokes it.',
   },
   // #23：source 打标 + MCP 围栏——诚实定性为 defense-in-depth，不是绝对保证
   {
@@ -311,7 +319,7 @@ const faqJsonLd = {
           <div class="card reveal">
             <span class="num">02</span>
             <h3>Phone push, with boundaries</h3>
-            <p>Pair your phone by scanning a QR code — ten seconds, no command line. Three content tiers decide how much of a message may leave the server: just a ping, sender + subject, or body + OTP. Tier 3 needs your explicit risk confirmation, and agents can never raise their own tier. Lost phone? One-click revoke cuts it off immediately.</p>
+            <p>Pair your phone by scanning a QR code — ten seconds, no command line. Three content tiers decide how much of a message may leave the server: just a ping, masked sender + subject, or body + OTP. Tier 3 needs your explicit risk confirmation, and agents can never raise their own tier. Lost phone? One-click revoke cuts it off immediately.</p>
             <div class="card-viz" aria-hidden="true">
               <svg class="viz-phone" viewBox="0 0 220 92" role="img">
                 <rect class="phone-frame" x="6" y="8" width="36" height="76" rx="6" />

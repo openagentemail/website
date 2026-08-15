@@ -52,3 +52,85 @@
 ### 我们是如何解决这些错误的？
 1. 用指挥重拍的 demo WebP 同名覆盖，引用不动。
 2. 回执改写为：P1 三处同报 → 现场指挥重拍 demo 版替换 → 关闭。FAQ 文案业主未批，仍记债。
+
+## 2026-08-14 FAQ 口径更新（本单）
+
+### 我们实现了哪些功能？
+1. 首页 `const faq` 从 8 条改为 9 条：改 4 条 + 新增 1 条。文案业主逐字锁定，未改措辞。
+2. 「Is it really free?」仅尾句 `coming soon` → `launching soon`，与 pricing 页 badge 对齐。
+3. 「Is there a UI for humans?」整答换成 cockpit 全功能清单（三栏收件箱 / 30 日推送账 / 工单板 / 身份令牌档位客户端 / 扫码配对 / Sent / 30 日登录）。
+4. 「Can agents hand work to each other?」原文保留，末尾追加 `From the board you can page through history, nudge a stuck task, or close one out.`
+5. 「What agents and clients does it work with?」整答换成 Kimi Code + dated MCP 2026-07-28 + 远程 OAuth RFC 9728 + dashboard 可撤销 + REST。
+6. 在工单条之后新增「Can I get alerts on my phone?」（ntfy 扫码 / 三档出境 / 一键撤销）。
+7. AgentMail 差异 / 域名 / spam / 安全围栏 4 条未动。
+8. `faqJsonLd` 是 `faq.map(...)` 同源映射，不是独立写死；改数组即同步 JSON-LD。`dist/index.html` 可见区与 FAQPage 均为 9 条且逐字一致。
+9. README 补一句：FAQ 文案业主锁定、JSON-LD 同源。
+
+### 我们遇到了哪些错误？
+1. 工位无 `node_modules`，直接 `npm run build` 报 `astro: not found`。
+2. `npm install` 会改 `package-lock.json` 可选依赖的 `libc` 字段（上轮已踩过，与本单无关）。
+
+### 我们是如何解决这些错误的？
+1. `npm install` 后 build 绿：23 pages Complete（既有 Starlight `Entry docs → 404` 与 caddyfile 高亮警告，非本单引入）。
+2. `git checkout -- package-lock.json`，不把 npm 噪音带进 PR。
+3. 独立自审新 agent `9a54fb64`：mergeable，P0/P1/P2 = 0/0/0。确认 faqJsonLd 同源映射、9 条逐字、顺序正确、旧 Dashboard 口径已清。
+
+## 2026-08-14 FAQ 四闸 + 回执
+
+### 我们实现了哪些功能？
+1. 开 PR https://github.com/openagentemail/website/pull/10 （英文标题正文）。未 merge。
+2. 四闸：本地 build 过；CodeRabbit 无 actionable；Codex Local `6fbee19` pass 0/0/0/0；Codex 云端 4 条 P2 因业主锁定文案有理记债；ZCode MCP 两次超时，用自审 `9a54fb64` 代替。
+3. FAQ 特写两镜（1280 + 375，9 条全开）存 `<acceptance>/2026-08-14-website-faq/`，md5 唯一。
+4. 写 RECEIPT：faqJsonLd 属 `faq.map` 同源映射；上轮「旧 Dashboard 口径」记债关闭。
+
+### 我们遇到了哪些错误？
+1. ZCode MCP `zcode_pr_review` / `zcode_review` 两次超时。
+2. 本机 `codex review --base origin/main` 401（缺 bearer）。闸上 Codex Local 评论已由现有自托管闸打在 PR 上，结论 pass。
+3. Codex 云端先报 security-review usage limit，随后仍留下 4 条 P2，全部要求改锁定 FAQ 措辞。
+4. 初拍 375 特写被粘性导航裁掉第一条标题。
+
+### 我们是如何解决这些错误的？
+1. 与上轮相同：独立 Cursor subagent `9a54fb64` 代替 ZCode。
+2. 采用 PR 上已发布的 Codex Local 闸结果（head `6fbee19`，P0–P3 = 0）。
+3. 4 条 P2 有理记债，不改业主逐字文案。细口径已在 quickstart / phone-notifications / mcp-clients。
+4. 截屏前 `nav { display:none }`，改拍 FAQ `.wrap`，375 第一条标题完整。
+5. 回执提交 `d690bad` 触发 Codex Local 复审，报与云端相同的 4 条 P2。不改锁定文案，回执补记「同一组记债」，停止循环。
+
+## 2026-08-14 FAQ R2（业主拍板 P2×3）
+
+### 我们实现了哪些功能？
+1. 同分支就地改三处 FAQ 措辞（来源 task `686d6aa7` msg `208`）：UI 尾句 Trust this device；phone 首句改为 one-time ntfy HTTPS setup；clients 片段 `authorized` → `connected OAuth`。
+2. `faqJsonLd` 同源映射，未另改。`dist/index.html` 可见区与 FAQPage `mainEntity` 三条新文案都在。
+3. 未动 RFC 9728 括注（Codex P2 第 3 条，本批未批）。
+
+### 我们遇到了哪些错误？
+1. 无新构建错误。`npm run build` 23 pages Complete。
+
+### 我们是如何解决这些错误的？
+1. 无构建错误。四闸：CodeRabbit 对 `4c50b18` 触 review limit，回执修其对旧 head 的 2 条 minor（ZCode 证据对齐、checksum ` ```text `）。Codex Local `4c50b18` 剩 P2×2（OAuth 非唯一远程鉴权 + RFC 9728 PRM），业主未批改，记债。复拍两镜 md5 `39e66154…` / `8846651e…`。
+
+## 2026-08-14 FAQ R3（MBP msg 210）
+
+### 我们实现了哪些功能？
+1. clients 条中间整句按 MBP 拍板替换：`Cloud agents` + `OAuth — protected-resource metadata per RFC 9728 — or a scoped identity token`；句尾 connected OAuth 保持 R2。
+2. 关闭 R2 剩余记债（RFC 9728 括注 / OAuth 像唯一远程鉴权）。`faqJsonLd` 同源，`dist` 可见区与 `mainEntity` 均含新句。
+3. 一条 commit。截屏免了。
+
+### 我们遇到了哪些错误？
+1. 无。`npm run build` 23 pages Complete。
+
+### 我们是如何解决这些错误的？
+1. 无。ZCode Review Gate 复审本 commit head；不自 merge。
+
+## 2026-08-14 FAQ R4（MBP msg 213 · masked）
+
+### 我们实现了哪些功能？
+1. FAQ phone 条与特性卡 2 正文的三档列举各加 `masked`：`just a ping, masked sender + subject, or body + OTP`。
+2. SVG 档位标签 `2  sender + subject` 未动。全仓 grep 只剩这两处 masked + 一处 SVG。
+3. 一条 commit。截屏免。本轮起后续 P2 措辞 nit 记债攒批。
+
+### 我们遇到了哪些错误？
+1. 无。`npm run build` 23 pages Complete。
+
+### 我们是如何解决这些错误的？
+1. 无。ZCode Review Gate 复审本 commit head；不自 merge。
