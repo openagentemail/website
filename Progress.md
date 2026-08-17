@@ -122,6 +122,19 @@
 ### 我们是如何解决这些错误的？
 1. 无。ZCode Review Gate 复审本 commit head；不自 merge。
 
+## 2026-08-14 FAQ R4（MBP msg 213 · masked）
+
+### 我们实现了哪些功能？
+1. FAQ phone 条与特性卡 2 正文的三档列举各加 `masked`：`just a ping, masked sender + subject, or body + OTP`。
+2. SVG 档位标签 `2  sender + subject` 未动。全仓 grep 只剩这两处 masked + 一处 SVG。
+3. 一条 commit。截屏免。本轮起后续 P2 措辞 nit 记债攒批。
+
+### 我们遇到了哪些错误？
+1. 无。`npm run build` 23 pages Complete。
+
+### 我们是如何解决这些错误的？
+1. 无。ZCode Review Gate 复审本 commit head；不自 merge。
+
 ## 2026-08-17 · Connect your agent 接入指南（派单 ②）
 
 ### 我们实现了哪些功能？
@@ -129,11 +142,14 @@
 2. `astro.config.mjs` 侧栏 Start here 增加「Connect your agent」。
 3. 首页在 logos 与 terminal demo 之间加小板块 `#connect`（kicker + 标题 + 一句说明 + 双 CTA），页脚 Docs 增加同页链接；不大改首页视觉体系。
 4. 事实锚点：Claude 网页版 URL=`https://mcp.openagent.email/mcp`；Grok 必须 `https://inbox.openagent.email/mcp`（mcp 域会 invalid_target）；ChatGPT OAuth / 不收裸 token / Plus·Pro 只读、写要 Business+；Gemini/Poe/Copilot 消费版 → API 参考。
+5. 独立 subagent 审查后补 Mistral 可粘贴 URL，并恢复被误覆盖的 FAQ R4 Progress 条目。
 
 ### 我们遇到了哪些错误？
 1. 初跑 `npm run build` 报 `astro: not found`（本机未装依赖）。
-2. `git fetch/pull` 偶发 `Connection reset by peer`（GitHub HTTPS）。
+2. `git fetch/pull` / `git push` 偶发 `Connection reset by peer`（GitHub HTTPS）。
+3. subagent P2：Mistral 段缺可粘贴 URL；Progress 误用替换而非追加盖掉 FAQ R4。
 
 ### 我们是如何解决这些错误的？
-1. 先 `npm install` 再 `npm run build`。
-2. 本地 main 已与 origin/main 对齐，直接 `git checkout -b feat/connect-your-agent-guide`；push 时重试。
+1. 先 `npm install` 再 `npm run build`（24 pages，含新指南页）。
+2. 本地 main 已与 origin/main 对齐，直接开 `feat/connect-your-agent-guide`；push 重试。
+3. Mistral 明确写 `https://mcp.openagent.email/mcp` 并警示勿用 inbox 域；Progress 恢复 FAQ R4 后再追加本轮日志。

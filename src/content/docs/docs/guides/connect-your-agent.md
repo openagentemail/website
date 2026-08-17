@@ -90,9 +90,12 @@ purpose.
 
 ### Mistral Le Chat
 
-Le Chat supports connecting to openagent.email over MCP / OAuth the same
-family of flow as other web agents. Add the connector in Le Chat’s connector
-settings and approve OAuth in the dashboard when prompted.
+Le Chat supports custom MCP / OAuth connectors.
+
+1. Open Le Chat’s connector / MCP settings and add a custom connector.
+2. **URL:** `https://mcp.openagent.email/mcp` (same hostname as Claude — **not**
+   the Grok `inbox.openagent.email` host).
+3. Finish **OAuth** when the dashboard consent screen appears.
 
 ### Not supported on consumer chat UIs
 
