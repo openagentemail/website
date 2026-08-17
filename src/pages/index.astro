@@ -234,6 +234,22 @@ const faqJsonLd = {
       </div>
     </div>
 
+    <!-- 2.5 ── CONNECT YOUR AGENT（小板块：链到文档接入指南，不大改首页） ── -->
+    <section id="connect">
+      <div class="wrap">
+        <p class="kicker reveal">Get connected</p>
+        <h2 class="reveal">Connect your agent.</h2>
+        <p class="sub reveal">
+          CLI, Claude Desktop, or web chat — Claude, ChatGPT, Grok, Mistral Le Chat, and plain REST
+          when MCP is not an option. One short guide, step by step.
+        </p>
+        <div class="cta-row reveal" style="margin-top: 1.75rem">
+          <a class="btn btn-gold" href="/docs/guides/connect-your-agent/">Connect your agent →</a>
+          <a class="btn btn-ghost" href="/docs/reference/mcp-clients/">CLI / Desktop configs</a>
+        </div>
+      </div>
+    </section>
+
     <!-- 3 ── TERMINAL DEMO ─────────────────────────────────────────────── -->
     <section id="demo">
       <div class="wrap">
@@ -689,6 +705,8 @@ const faqJsonLd = {
             <h4>Docs</h4>
             <ul>
               <li><a href="/docs/quickstart/">Quickstart</a></li>
+              {/* 页脚 Docs：接入指南入口，与首页小板块同目标页 */}
+              <li><a href="/docs/guides/connect-your-agent/">Connect your agent</a></li>
               <li><a href="/docs/reference/api/">API reference</a></li>
               <li><a href="/docs/guides/security/">Security</a></li>
               <li><a href="/docs/reference/mcp-clients/">MCP setup</a></li>

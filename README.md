@@ -5,6 +5,7 @@ Marketing site and docs for [openagent.email](https://openagent.email) — self-
 - Stack: [Astro](https://astro.build) 5 + [Starlight](https://starlight.astro.build)
 - Pages: `src/pages/` (home, pricing, legal, alternatives)
 - Docs: `src/content/docs/docs/` → `/docs/`
+- Connect guide: `/docs/guides/connect-your-agent/` (CLI / desktop / web chat)
 - Design tokens and motion language: `DESIGN.md`
 
 ```bash
