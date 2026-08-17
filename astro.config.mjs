@@ -39,6 +39,8 @@ export default defineConfig({
             { label: 'Introduction', slug: 'docs' },
             { label: 'Get a VPS', slug: 'docs/get-a-vps' },
             { label: 'Quickstart', slug: 'docs/quickstart' },
+            // 普通用户接入入口：CLI / 桌面 / 网页三形态
+            { label: 'Connect your agent', slug: 'docs/guides/connect-your-agent' },
           ],
         },
         {

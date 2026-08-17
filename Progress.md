@@ -134,3 +134,22 @@
 
 ### 我们是如何解决这些错误的？
 1. 无。ZCode Review Gate 复审本 commit head；不自 merge。
+
+## 2026-08-17 · Connect your agent 接入指南（派单 ②）
+
+### 我们实现了哪些功能？
+1. 新增文档页 `src/content/docs/docs/guides/connect-your-agent.md`：覆盖 CLI（汇总入口链到 mcp-clients）、桌面端 Claude Desktop、网页端（Claude / ChatGPT / Grok / Mistral Le Chat）及不支持的消费版导流 REST API。
+2. `astro.config.mjs` 侧栏 Start here 增加「Connect your agent」。
+3. 首页在 logos 与 terminal demo 之间加小板块 `#connect`（kicker + 标题 + 一句说明 + 双 CTA），页脚 Docs 增加同页链接；不大改首页视觉体系。
+4. 事实锚点：Claude 网页版 URL=`https://mcp.openagent.email/mcp`；Grok 必须 `https://inbox.openagent.email/mcp`（mcp 域会 invalid_target）；ChatGPT OAuth / 不收裸 token / Plus·Pro 只读、写要 Business+；Gemini/Poe/Copilot 消费版 → API 参考。
+5. 独立 subagent 审查后补 Mistral 可粘贴 URL，并恢复被误覆盖的 FAQ R4 Progress 条目。
+
+### 我们遇到了哪些错误？
+1. 初跑 `npm run build` 报 `astro: not found`（本机未装依赖）。
+2. `git fetch/pull` / `git push` 偶发 `Connection reset by peer`（GitHub HTTPS）。
+3. subagent P2：Mistral 段缺可粘贴 URL；Progress 误用替换而非追加盖掉 FAQ R4。
+
+### 我们是如何解决这些错误的？
+1. 先 `npm install` 再 `npm run build`（24 pages，含新指南页）。
+2. 本地 main 已与 origin/main 对齐，直接开 `feat/connect-your-agent-guide`；push 重试。
+3. Mistral 明确写 `https://mcp.openagent.email/mcp` 并警示勿用 inbox 域；Progress 恢复 FAQ R4 后再追加本轮日志。
