@@ -84,13 +84,17 @@ this succeeds:
 docker compose --profile letsencrypt-bootstrap up -d certbot-bootstrap
 docker compose logs -f certbot-bootstrap
 # Wait for “Successfully received certificate”, then:
-docker compose --profile letsencrypt-bootstrap exec certbot-bootstrap \
-  ls -l /etc/letsencrypt/live/mail.example.com/{fullchain.pem,privkey.pem}
+docker compose --profile letsencrypt-bootstrap run --rm --no-deps \
+  --entrypoint ls certbot-bootstrap -- -l \
+  /etc/letsencrypt/live/mail.example.com/fullchain.pem \
+  /etc/letsencrypt/live/mail.example.com/privkey.pem
 ```
 
 The whole persistent `/etc/letsencrypt` tree is shared read-only with the
 mailserver; `live/` contains symlinks into `archive/`, so mounting only
-`live/` is incorrect. Once bootstrap succeeds, start the normal opt-in profile:
+`live/` is incorrect. This temporary container reads that shared volume, so the
+check still works after the one-shot bootstrap has stopped. Once it succeeds,
+start the normal opt-in profile:
 
 ```bash
 docker compose --profile letsencrypt up -d
