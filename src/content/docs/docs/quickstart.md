@@ -85,7 +85,7 @@ docker compose --profile letsencrypt-bootstrap up -d certbot-bootstrap
 docker compose logs -f certbot-bootstrap
 # Wait for “Successfully received certificate”, then:
 docker compose --profile letsencrypt-bootstrap run --rm --no-deps \
-  --entrypoint ls certbot-bootstrap -- -l \
+  --entrypoint ls certbot-bootstrap -l \
   /etc/letsencrypt/live/mail.example.com/fullchain.pem \
   /etc/letsencrypt/live/mail.example.com/privkey.pem
 ```
