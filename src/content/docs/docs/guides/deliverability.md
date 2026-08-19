@@ -105,11 +105,19 @@ deliverability-relevant summary:
   the closest thing to ground truth for Gmail.
 - **Microsoft SNDS** — [sendersupport.olc.protection.outlook.com/snds](https://sendersupport.olc.protection.outlook.com/snds):
   per-IP view of what Outlook thinks of you.
-- **`deploy/doctor.sh`** — local end-to-end check: DNS records, TLS certs, IMAP/SMTP
-  login, and a real round-trip message through the stack. Run it after any config
-  change and on a cron if you're paranoid.
+- **`deploy/doctor.sh`** — local configuration check: `.env` permissions; MX, A,
+  SPF, DKIM, DMARC, PTR, outbound port 25, DNS blocklists, TLS on 465/993, and
+  the server-side ntfy verification endpoint. Run it after any config change and
+  on a cron if you're paranoid; it does not perform IMAP/SMTP login or a
+  round-trip send.
 - **Mail-tester** — [mail-tester.com](https://www.mail-tester.com): send to the
   address it gives you, get a spam-score breakdown of exactly what receivers see.
+
+When no SMTP relay is configured and outbound port 25 is blocked, API
+`queued:true` does **not** mean delivery to the recipient. It means the local
+mailserver accepted the message; Postfix may retain it in its queue. Treat
+doctor's outbound-port-25 result as the direct-delivery prerequisite, or
+configure a relay.
 
 ## 7. Spam-score pitfalls specific to this setup
 

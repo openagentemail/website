@@ -55,9 +55,58 @@ DMARC, PTR). What each one does and why:
 ./deploy/doctor.sh
 ```
 
-The doctor checks DNS, TLS, IMAP/SMTP login, a round-trip send, the ntfy
-notification loop, and that `.env` is owner-readable only. Fix whatever it
-flags before your agents depend on this box.
+The doctor checks `.env` permissions; MX, A, SPF, DKIM, and DMARC; PTR;
+outbound port 25; DNS blocklists; TLS certificates on 465 and 993; and the
+server-side ntfy verification endpoint. It does not log in over IMAP/SMTP or
+send a round-trip message. Fix whatever it flags before your agents depend on
+this box.
+
+## Optional: public TLS with Let's Encrypt
+
+The default stack remains self-signed: a normal `docker compose up -d` does
+not start Certbot or expose TCP 80. To opt in to a publicly trusted mail
+certificate, first point `mail.$DOMAIN` (A, and AAAA if used) at this VPS and
+allow inbound TCP 80. HTTP-01 cannot create DNS records or open your firewall.
+
+Before starting the mailserver in Let's Encrypt mode, add this to `.env`:
+
+```dotenv
+SSL_TYPE=letsencrypt
+SSL_DOMAIN=mail.example.com       # exactly mail.$DOMAIN
+LETSENCRYPT_EMAIL=admin@example.net  # optional, but recommended
+```
+
+Bootstrap the first certificate with the dedicated one-shot profile, then
+confirm the two files exist. Do not start the full `letsencrypt` profile until
+this succeeds:
+
+```bash
+docker compose --profile letsencrypt-bootstrap up -d certbot-bootstrap
+docker compose logs -f certbot-bootstrap
+# Wait for “Successfully received certificate”, then:
+docker compose --profile letsencrypt-bootstrap run --rm --no-deps \
+  --entrypoint ls certbot-bootstrap -- -l \
+  /etc/letsencrypt/live/mail.example.com/fullchain.pem \
+  /etc/letsencrypt/live/mail.example.com/privkey.pem
+```
+
+The whole persistent `/etc/letsencrypt` tree is shared read-only with the
+mailserver; `live/` contains symlinks into `archive/`, so mounting only
+`live/` is incorrect. This temporary container reads that shared volume, so the
+check still works after the one-shot bootstrap has stopped. Once it succeeds,
+start the normal opt-in profile:
+
+```bash
+docker compose --profile letsencrypt up -d
+./deploy/doctor.sh
+```
+
+If bootstrap fails, correct DNS, port 80, or the domain and explicitly rerun
+the bootstrap command; it intentionally stops instead of repeatedly consuming
+ACME attempts. After success, the renewal sidecar runs `certbot renew` every
+12 hours and restarts with Docker. docker-mailserver detects updated
+Let's Encrypt material and reloads Postfix and Dovecot, so renewed certificates
+take effect on 465 and 993 without a manual restart.
 
 ## 6. Create your agent's identity
 

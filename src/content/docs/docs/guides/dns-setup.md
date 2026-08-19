@@ -134,8 +134,10 @@ dig +short TXT    _dmarc.example.com
 dig +short -x     <VPS IP>                  # → mail.example.com.
 ```
 
-or just run `./deploy/doctor.sh`, which checks all of the above plus TLS, IMAP/SMTP
-login, and a live round-trip.
+or just run `./deploy/doctor.sh`. It checks `.env` permissions; MX, A, SPF,
+DKIM, DMARC, PTR, outbound port 25, DNS blocklists, TLS on 465/993, and the
+server-side ntfy verification endpoint. It does not perform IMAP/SMTP login or
+a live round-trip send.
 
 ## Registrar-agnostic how-to
 
