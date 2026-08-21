@@ -1,0 +1,27 @@
+---
+interface Props { compact?: boolean }
+const { compact = false } = Astro.props;
+---
+
+<div class:list={['envs', { 'envs-compact': compact }]} aria-hidden="true">
+  <svg class="env" data-x="86" data-y="16" data-rot="6" style="width: 120px" viewBox="0 0 64 64" fill="none">
+    <rect x="6" y="14" width="52" height="38" rx="6" stroke="#fbbf24" stroke-width="3" fill="#14161f" />
+    <path d="M9 19 32 36l23-17" stroke="#fbbf24" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+  </svg>
+  <svg class="env" data-x="68" data-y="56" data-rot="-8" style="width: 74px" viewBox="0 0 64 64" fill="none">
+    <rect x="6" y="14" width="52" height="38" rx="6" stroke="#fbbf24" stroke-width="3" fill="#14161f" />
+    <path d="M9 19 32 36l23-17" stroke="#fbbf24" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+  </svg>
+  <svg class="env" data-x="50" data-y="72" data-rot="11" style="width: 52px" viewBox="0 0 64 64" fill="none">
+    <rect x="6" y="14" width="52" height="38" rx="6" stroke="#fbbf24" stroke-width="3" fill="#14161f" />
+    <path d="M9 19 32 36l23-17" stroke="#fbbf24" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
+  </svg>
+</div>
+
+<style>
+  .envs-compact { position: relative; height: 5.2rem; margin: -1.2rem 0 .2rem; overflow: visible; }
+  .envs-compact .env { opacity: .85; transform: none !important; }
+  .envs-compact .env:nth-child(1) { left: 72%; top: .2rem; width: 4.2rem !important; }
+  .envs-compact .env:nth-child(2) { left: 58%; top: 2.4rem; width: 2.8rem !important; }
+  .envs-compact .env:nth-child(3) { left: 84%; top: 3rem; width: 2.2rem !important; }
+</style>

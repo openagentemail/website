@@ -7,6 +7,10 @@ import starlight from '@astrojs/starlight';
 export default defineConfig({
   site: 'https://openagent.email',
   output: 'static',
+  redirects: {
+    '/alternatives/agentmail': '/compare#agentmail',
+    '/alternatives/mailslurp': '/compare#mailslurp',
+  },
   integrations: [
     starlight({
       title: 'openagent.email',

@@ -1,0 +1,60 @@
+---
+import Legal from '../layouts/Legal.astro';
+import EnvelopeOrbit from '../components/EnvelopeOrbit.astro';
+import PaperPlane from '../components/PaperPlane.astro';
+---
+
+<Legal title="Compare agent email options" description="An honest comparison of openagent.email, AgentMail, and MailSlurp for AI-agent email.">
+  <EnvelopeOrbit compact />
+  <h1>Compare agent email options</h1>
+  <p class="lede">Different products make different trade-offs: openagent.email is open-source software you run; AgentMail is a managed agent-email product with enterprise BYOC; MailSlurp is a hosted testing platform for email and SMS.</p>
+  <div class="table-wrap"><table class="compare"><thead><tr><th></th><th>openagent.email</th><th>AgentMail</th><th>MailSlurp</th></tr></thead><tbody>
+    <tr><td>Open source</td><td>Apache-2.0</td><td>Closed source</td><td>Closed source</td></tr><tr><td>Deployment</td><td>Any VPS or cloud</td><td>SaaS or AWS Outposts BYOC</td><td>SaaS only</td></tr><tr><td>Price</td><td>Free software + your server</td><td>Per-inbox subscription</td><td>Metered usage</td></tr><tr><td>Unlimited inboxes</td><td>Yes, on your domain</td><td>Paid-tier limits</td><td>Metered, often disposable</td></tr><tr><td>MCP-native</td><td>Yes</td><td>Not independently verified</td><td>REST/SDKs</td></tr><tr><td>OTP/link extraction</td><td>Built in</td><td>Not independently verified</td><td>Testing workflows</td></tr><tr><td>Mail data residency</td><td>Your box</td><td>SaaS: theirs; Outposts: your AWS</td><td>Their infrastructure</td></tr><tr><td>Vendor control plane</td><td>None</td><td>Yes, including Outposts</td><td>Yes</td></tr><tr><td>You run a server</td><td>Yes</td><td>No, unless enterprise BYOC</td><td>No</td></tr>
+  </tbody></table></div>
+
+  <h2 id="agentmail">1. Open source</h2>
+  <p>Source availability determines whether you can audit, fork, and keep running the system. openagent.email is Apache-2.0 software with standard SMTP/IMAP underneath. AgentMail and MailSlurp are closed-source hosted products. The trade-off is simple: a managed vendor removes operations; open source leaves the operating choice with you.</p>
+
+  <h2>2. Deployment</h2>
+  <p>openagent.email runs on any VPS or cloud you choose. AgentMail is hosted SaaS by default, with an enterprise Outposts BYOC option that runs send, receive, storage, and search in your AWS account (AWS today; more clouds planned). MailSlurp is SaaS only. If you never want to operate a server, hosted is the fastest path; self-hosting trades that convenience for portability.</p>
+
+  <h2>3. Price</h2>
+  <p>openagent.email is free software: a small VPS of about $5/month and a domain cover the infrastructure. AgentMail uses a usage-scaling subscription with a limited free tier; Outposts is enterprise-tier. MailSlurp meters inboxes and volume. Hosted pricing buys operational convenience, while a fixed server bill is usually easier to predict for many persistent identities.</p>
+
+  <h2>4. Unlimited inboxes</h2>
+  <p>One openagent.email domain can hold unlimited persistent <code>anything@yourdomain</code> identities without provisioning or per-inbox cost. AgentMail's capacity depends on its paid tier. MailSlurp's inboxes are metered and are often disposable by design. Persistent production mailboxes for agents and throwaway test inboxes are useful for different jobs.</p>
+
+  <h2>5. MCP-native access</h2>
+  <p>openagent.email includes a REST API, MCP server, and a human dashboard. AgentMail offers REST, websockets, webhooks, and SDKs; MailSlurp offers REST, language SDKs, and a dashboard. The practical difference is not whether an API exists, but whether your agent's primary workflow is mailbox work or testing an application you are building.</p>
+
+  <h2>6. OTP and verification links</h2>
+  <p>openagent.email automatically extracts OTP codes and verification links while keeping raw text and HTML available. The earlier AgentMail comparison did not independently verify an equivalent extraction feature, so it makes no claim here. MailSlurp is specifically geared to exercising an app's email and SMS flows, and it offers SMS testing, which openagent.email does not.</p>
+
+  <h2>7. Mail data residency</h2>
+  <p>Your openagent.email mail and tokens stay on your machine. AgentMail Outposts is a real option when email content must stay in AWS, but AgentMail Cloud still operates its dashboard, authentication, billing, upgrades, and product control plane. MailSlurp stores mail in its hosted infrastructure. Residency is a meaningful distinction, but it is not identical to owning the whole stack.</p>
+
+  <h2>8. Vendor control plane</h2>
+  <p>openagent.email has no vendor control plane: you run the dashboard, auth, upgrades, and mail system. Managed products own those operational pieces, including uptime and deliverability. That is valuable when you want a vendor accountable for operations; it is also the dependency you avoid when you self-host.</p>
+
+  <h2>9. You run a server</h2>
+  <p>Self-hosting means you own DNS, the machine, and its reputation. In return, you get an auditable stack and can use Amazon SES or another SMTP relay with one environment variable if your VPS provider blocks port 25. AgentMail is the better fit when that is not work you want; MailSlurp is the better fit for CI/QA and zero-infrastructure test inboxes.</p>
+
+  <h2>AgentMail: deployment and control, in detail</h2>
+  <p>AgentMail's enterprise Outposts BYOC option has real AWS data residency. It is not the same as open-source self-hosting, because the AgentMail product control plane remains operated by the vendor. That may be exactly the trade-off an enterprise team wants.</p>
+  <p class="note">Fair credit where it is due: Outposts is a real option when email content must stay in AWS. If you want zero servers, AgentMail's managed path is the fastest one.</p>
+
+  <h2>Agent workflows beyond the mailbox</h2>
+  <p>openagent.email includes a REST API, MCP server, and a human dashboard. AgentMail offers REST, websockets, webhooks, and SDKs; MailSlurp offers REST, language SDKs, and a dashboard. openagent.email automatically extracts OTP codes and verification links while keeping raw text and HTML available. It also has email-backed agent-to-agent task threads with server-stamped states, receiving-agent wake-ups, a dashboard work-order view, an A2A-vocabulary Agent Card, and per-identity ntfy push tiers: interrupt only, sender + subject, or body + OTP, set by an admin. Equivalent task and push features were not verified for the other products, so no claim is made.</p>
+
+  <h2 id="mailslurp">MailSlurp: test infrastructure or a production mailbox?</h2>
+  <div class="choices"><section><h3>AgentMail</h3><ul><li>Choose it if you never want to operate a server.</li><li>Choose Outposts if you need enterprise AWS data residency with a managed product.</li><li>Choose it if you would rather pay usage fees and have the vendor own uptime and deliverability.</li></ul></section><section><h3>MailSlurp</h3><ul><li>Choose it for CI/QA testing of your app's email or SMS.</li><li>Choose it when SMS testing matters.</li><li>Choose it for throwaway inboxes with zero infrastructure, typically on vendor domains.</li></ul></section><section><h3>openagent.email</h3><ul><li>Choose it for real, persistent production mailboxes for agents that sign up for services and receive verification mail.</li><li>Choose it for unlimited addresses on your own domain at a fixed infrastructure cost, with a dashboard for humans.</li><li>Choose it for task handoff, phone push, and an auditable stack with no vendor control plane.</li></ul></section></div>
+
+  <h2>5. Also noted: LobsterMail</h2>
+  <p>LobsterMail promoted agent self-signup through a skill URL without an API key or human signup flow, closed-source hosting, and published injection-risk scanning on email bodies (<code>safeBodyForLLM</code> / <code>isInjectionRisk</code>). openagent.email instead uses source stamps and MCP fencing as defense-in-depth. Its published pricing included Free $0, Builder $9, and Scale $99 monthly tiers, with additional tiers in its skill file; its plan limits were not independently load-tested. It announced shutdown on August 17, 2026: existing API and inboxes worked until then, while new signups and upgrades were closed. Do not start a new integration on it; it is included for honest category context.</p>
+  <p class="honest">To be fair: if you never want to touch a VPS, a hosted service is genuinely easier — and AgentMail's Outposts BYOC is a real option when email content must stay in AWS. We still think owning the mailbox — the OTPs, links, and reputation — with no vendor control plane is worth ten minutes of setup. Your call. Push tiers 2/3 relay sender/subject or body/OTP via ntfy, and are off by default.</p>
+  <div class="cta-row"><PaperPlane /><a class="btn btn-gold" href="/pricing">See hosted and self-hosted pricing →</a></div>
+</Legal>
+
+<style>
+  .table-wrap { overflow-x:auto; margin:1.5rem 0; }.compare { width:100%; min-width:42rem; border-collapse:collapse; }.compare th,.compare td { border:1px solid var(--line); padding:.7rem; text-align:left; vertical-align:top; line-height:1.5; }.compare th,.compare td:first-child { color:var(--ink); font-weight:700; }.choices { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:1rem; }.choices section { border:1px solid var(--line); border-radius:.75rem; padding:1rem; }.choices h3 { margin-top:0; }.note,.honest { color:var(--ink-dim); line-height:1.6; }.cta-row { margin-top:2rem; } @media (max-width:48rem){.choices{grid-template-columns:1fr}}
+</style>

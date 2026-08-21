@@ -87,6 +87,16 @@
 }
 .card-viz svg { display: block; width: 100%; height: auto; max-width: 16.5rem; }
 
+/* ── Why it exists: three readable themes, horizontal cards within each ── */
+.why-groups { display: grid; gap: 2.6rem; }
+.why-group { min-width: 0; }
+.why-heading { margin: 0 0 .9rem; color: var(--gold); font-family: var(--mono); font-size: .76rem; letter-spacing: .09em; text-transform: uppercase; }
+.why-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.2rem; align-items: stretch; }
+.why-grid .card.card-cockpit { grid-column: span 1; grid-template-columns: 1fr; }
+.why-grid .cockpit-stage { min-height: auto; }
+.why-grid .card { display: flex; flex-direction: column; }
+.why-grid .card-viz { margin-top: auto; padding-top: 1rem; }
+
 /* Phone：三档出境。静止即完整可读；hover 只把第 3 档金 OTP 点微亮 */
 .viz-phone { color: var(--ink-dim); }
 .viz-phone .phone-frame { fill: var(--bg-raise); stroke: rgba(251, 191, 36, 0.45); }
@@ -173,6 +183,7 @@
     grid-template-columns: 1fr;
   }
   .cockpit-stage { padding: 0.4rem 0 0; }
+  .why-grid { grid-template-columns: 1fr; }
   .stamp-wall { grid-template-columns: 1fr 1fr; gap: 1.6rem 0.8rem; }
 }
 @media (max-width: 420px) {

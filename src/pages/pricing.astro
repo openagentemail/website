@@ -1,11 +1,14 @@
 ---
 import Legal from '../layouts/Legal.astro';
+import EnvelopeOrbit from '../components/EnvelopeOrbit.astro';
+import PaperPlane from '../components/PaperPlane.astro';
 ---
 
 <Legal
   title="Pricing"
   description="openagent.email is free and open source. Hosted Pro starts at $5/month with a 3-day free trial."
 >
+  <EnvelopeOrbit compact />
   <h1>Pricing</h1>
   <p class="updated">Simple, honest pricing. No per-mailbox caps, ever.</p>
 
@@ -24,7 +27,7 @@ import Legal from '../layouts/Legal.astro';
         You only pay for your own infrastructure: a VPS (~$4–6/month at any provider) and a
         domain (~$10/year).
       </p>
-      <p class="cta"><a href="/docs/quickstart/">Get started →</a></p>
+      <p class="cta"><a class="btn btn-ghost" href="/docs/quickstart/">Get started →</a></p>
     </section>
 
     <section class="plan">
@@ -41,10 +44,10 @@ import Legal from '../layouts/Legal.astro';
         <li>3-day free trial on the monthly plan</li>
       </ul>
       <p class="cost-note"><strong>Early-bird annual plan:</strong> $30/year — <strong>half price</strong> versus monthly, <strong>locked in for life</strong>. No free trial.</p>
-      <p class="cta">
-        <a href="https://hosted.openagent.email/checkout">Start your 3-day trial — $5/month →</a>
-      </p>
-      <p class="cta"><a href="https://hosted.openagent.email/checkout?plan=yearly">Lock in early-bird — $30/year →</a></p>
+      <div class="cta cta-stack">
+        <a class="btn btn-gold" href="https://hosted.openagent.email/checkout">Start your 3-day trial — $5/month →</a>
+        <a class="btn btn-ghost" href="https://hosted.openagent.email/checkout?plan=yearly">Lock in early-bird — $30/year →</a>
+      </div>
     </section>
   </div>
 
@@ -56,6 +59,7 @@ import Legal from '../layouts/Legal.astro';
       Questions? Email <a href="mailto:support@openagent.email">support@openagent.email</a>.
     </li>
   </ul>
+  <PaperPlane />
 </Legal>
 
 <style>
@@ -73,9 +77,12 @@ import Legal from '../layouts/Legal.astro';
     border: 1px solid color-mix(in srgb, currentColor 14%, transparent);
     border-radius: 0.75rem;
     padding: 1.25rem 1.4rem;
+    display: flex;
+    flex-direction: column;
   }
   .plan h2 {
     margin-top: 0;
+    min-height: 2.1rem;
   }
   .plan .badge {
     font-size: 0.7rem;
@@ -100,11 +107,26 @@ import Legal from '../layouts/Legal.astro';
   }
   .plan .tagline {
     margin: 0 0 0.8rem;
+    min-height: 3.4rem;
   }
   .plan .cost-note {
     font-size: 0.9rem;
   }
-  .plan .cta a {
-    font-weight: 600;
+  .plan .cta {
+    margin: auto 0 0;
+    min-height: 5.8rem;
+    display: flex;
+    align-items: flex-end;
   }
+  .plan .cta-stack {
+    display: grid;
+    align-content: end;
+    gap: 0.65rem;
+  }
+  .plan .cta .btn {
+    width: 100%;
+    justify-content: center;
+    box-sizing: border-box;
+  }
+  @media (max-width: 43.99rem) { .plan .tagline { min-height: 0; } }
 </style>

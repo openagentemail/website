@@ -1,0 +1,26 @@
+---
+interface Props { kind: 'mcp' | 'tasks' | 'identities' | 'tokens' | 'otp' | 'safety' | 'relay' | 'dns' }
+const { kind } = Astro.props;
+---
+
+<div class="card-viz feature-viz" aria-hidden="true">
+  <svg viewBox="0 0 220 78" fill="none">
+    <rect x="1" y="1" width="218" height="76" rx="8" fill="#14161f" stroke="rgba(251,191,36,.2)" />
+    {kind === 'mcp' && <><rect class="pane" x="12" y="12" width="78" height="52" rx="6" /><rect class="icon" x="25" y="21" width="23" height="30" rx="3"/><path class="icon" d="M31 29h11m-11 7h11m-11 7h6"/><circle class="icon" cx="63" cy="37" r="9"/><path class="icon" d="M63 24v4m0 18v4m13-13h-4m-18 0h-4m18-9-3 3m-4 12-3 3m10 0-3-3m-4-12-3-3"/><text class="label" x="20" y="59">server + cog</text><path class="swap" d="M100 31h19m-5-5 5 5-5 5m5 11h-19m5-5-5 5 5 5" /><rect class="pane" x="130" y="12" width="78" height="52" rx="6" /><path class="icon" d="M145 43h35a9 9 0 0 0-3-17 13 13 0 0 0-24 4 7 7 0 0 0-8 13Z" /><circle class="icon" cx="170" cy="38" r="6"/><path class="icon" d="M170 28v3m0 14v3m10-10h-3m-14 0h-3m15-7-2 2m-6 10-2 2m10 0-2-2m-6-10-2-2"/><path class="icon" d="M189 43v7a4 4 0 0 0 8 0v-7m-4-5a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z"/><text class="label" x="139" y="59">HTTPS + key</text></>}
+    {kind === 'tasks' && <><circle class="icon" cx="48" cy="21" r="5"/><circle class="icon" cx="48" cy="57" r="5"/><circle class="icon" cx="102" cy="39" r="5"/><circle class="icon" cx="164" cy="21" r="5"/><circle class="icon" cx="164" cy="57" r="5"/><path class="icon" d="M53 21h33l11 18m10 0h52m-7-18 7 18-7 18m-7 0h-33l-10-18M53 57h33"/></>}
+    {kind === 'identities' && <><circle class="icon" cx="75" cy="27" r="13"/><path class="icon" d="M62 27c0 17 26 17 26 0 0-17-26-17-26 0Zm6 0c0-8 14-8 14 0s-14 8-14 0Z"/><path class="icon" d="M130 24c-17 0-17 30 0 30 17 0 17-30 0-30Zm0 0c17 0 17 30 0 30"/><path d="M95 39h22" class="icon"/></>}
+    {kind === 'tokens' && <><circle class="icon" cx="77" cy="39" r="13"/><path class="icon" d="M88 48l34-34m0 0 11 11m-11-11-8 8m-6 6 8 8m-14-2 8 8m-14-2 8 8"/><path class="icon" d="M133 25h39v28h-39z"/><path class="icon" d="M144 34h17m-17 7h10"/></>}
+    {kind === 'otp' && <><rect class="icon" x="25" y="17" width="67" height="44" rx="5"/><path class="icon" d="m29 23 29 21 29-21"/><circle class="icon" cx="126" cy="36" r="13"/><path class="icon" d="m136 46 15 15"/><rect class="icon" x="156" y="30" width="34" height="24" rx="4"/><path class="icon" d="M165 30v-5a8 8 0 0 1 16 0v5m-8 8v8"/></>}
+    {kind === 'safety' && <><path class="icon" d="M29 19v40m14-40v40m14-40v40m14-40v40m14-40v40m14-40v40m14-40v40"/><path class="icon" d="M25 27h62M25 51h62"/><path class="icon" d="M144 15 178 27v18c0 13-11 20-17 22-6-2-17-9-17-22V27l17-12Z"/><path class="icon" d="m153 41 6 6 12-14"/></>}
+    {kind === 'relay' && <><circle class="icon" cx="34" cy="52" r="8"/><circle class="icon" cx="104" cy="23" r="8"/><circle class="icon" cx="183" cy="45" r="8"/><path class="icon" d="m42 49 54-22m16-2 63 17"/><path class="icon" d="m167 35 8 7-10 4m-77-27 8 6-10 5"/><path d="M31 40v-14h20" class="icon"/></>}
+    {kind === 'dns' && <><path class="icon" d="M54 17 74 37 54 57 34 37 54 17Z"/><path class="icon" d="m54 17 7 13 13 7-13 7-7 13-7-13-13-7 13-7 7-13Z"/><path class="icon" d="M123 21a15 15 0 1 0 22 22l19 19 9-9-19-19a15 15 0 0 0-31-13Z"/><path class="icon" d="M133 31h11m-5-5v10"/></>}
+  </svg>
+</div>
+
+<style>
+  .feature-viz svg { color: var(--gold); }
+  .feature-viz .icon { stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+  .feature-viz .pane { fill: rgba(255,255,255,.025); stroke: rgba(251,191,36,.38); }
+  .feature-viz .swap { stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
+  .feature-viz .label { fill: var(--ink-faint); font: 7px var(--mono); }
+</style>
