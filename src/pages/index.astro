@@ -143,7 +143,7 @@ const faqJsonLd = {
   <body>
     <nav>
       <div class="wrap">
-        <a class="brand" href="/">
+        <a class="brand" href="/" aria-label="openagent.email home">
           <img src="/favicon.svg" alt="" />
           <span>openagent<span class="gold">.email</span></span>
         </a>
@@ -304,7 +304,7 @@ const faqJsonLd = {
         <p class="kicker reveal">Why it exists</p>
         <h2 class="reveal">Everything an agent mailbox needs.<br />Nothing it doesn't.</h2>
         <div class="why-groups" style="margin-top: 3rem">
-          <section class="why-group"><h3 class="why-heading">For the human</h3><div class="why-grid">
+          <div class="why-group"><h3 class="why-heading">For the human</h3><div class="why-grid">
           {/* 卡1 Dashboard：升主角、2 倍宽。文案逐字锁定。截图用 Overview demo 身份，不用 inbox。 */}
           <div class="card card-cockpit reveal">
             <div class="card-copy">
@@ -368,8 +368,8 @@ const faqJsonLd = {
               </svg>
             </div>
           </div>
-          </div></section>
-          <section class="why-group"><h3 class="why-heading">For the agent</h3><div class="why-grid">
+          </div></div>
+          <div class="why-group"><h3 class="why-heading">For the agent</h3><div class="why-grid">
           {/* 卡4 MCP：文案重写 + 双态小图 */}
           <div class="card reveal">
             <span class="num">04</span>
@@ -403,8 +403,8 @@ const faqJsonLd = {
             <p>Long-poll an inbox until the signup mail lands — codes and verification links come out parsed. Built for automated signups.</p>
             <FeatureViz kind="otp" />
           </div>
-          </div></section>
-          <section class="why-group"><h3 class="why-heading">Your box, your rules</h3><div class="why-grid">
+          </div></div>
+          <div class="why-group"><h3 class="why-heading">Your box, your rules</h3><div class="why-grid">
           <div class="card reveal">
             <span class="num">09</span>
             <h3>Safety rails</h3>
@@ -424,7 +424,7 @@ const faqJsonLd = {
             <p><code>dns-records.sh</code> prints your exact DNS records. <code>doctor.sh</code> runs a 13-point deliverability check before agents depend on it.</p>
             <FeatureViz kind="dns" />
           </div>
-          </div></section>
+          </div></div>
         </div>
       </div>
     </section>
