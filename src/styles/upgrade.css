@@ -137,17 +137,14 @@
 }
 .stamp-mark {
   color: var(--gold);
-  width: 168px;
-  height: 168px;
+  flex: 0 0 160px;
+  width: 160px;
+  height: 160px;
   transform: rotate(var(--stamp-rot, -7deg));
   filter: drop-shadow(0 10px 18px rgba(0, 0, 0, 0.35));
   transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 }
 .stamp-item:hover .stamp-mark { transform: rotate(0deg); }
-.stamp-lg .stamp-mark { width: 180px; height: 180px; }
-.stamp-md .stamp-mark { width: 160px; height: 160px; }
-.stamp-sm .stamp-mark { width: 148px; height: 148px; }
-.stamp-xs .stamp-mark { width: 136px; height: 136px; }
 .stamp-mark svg { width: 100%; height: 100%; overflow: visible; }
 .stamp-mark .stamp-paper { fill: rgba(12, 13, 18, 0.82); }
 .stamp-mark text {
@@ -183,7 +180,7 @@
   .stamp-md .stamp-mark,
   .stamp-sm .stamp-mark,
   .stamp-xs .stamp-mark,
-  .stamp-mark { width: 120px; height: 120px; }
+  .stamp-mark { flex-basis: 120px; width: 120px; height: 120px; }
   .hero-chips li { font-size: 0.64rem; padding: 0.14rem 0.45rem; }
   .card-viz { min-height: 4.8rem; }
 }
