@@ -5,6 +5,7 @@ import PaperPlane from '../components/PaperPlane.astro';
 ---
 
 <Legal title="Compare agent email options" description="An honest comparison of openagent.email, AgentMail, and MailSlurp for AI-agent email." wide>
+  <div class="compare-shell">
   <header class="compare-hero" data-envelope-root>
     <EnvelopeOrbit compact />
     <h1>Compare agent email options</h1>
@@ -15,31 +16,31 @@ import PaperPlane from '../components/PaperPlane.astro';
   </tbody></table></div>
 
   <div class="dims">
-    <h2>1. Open source</h2>
+    <h2>Open source</h2>
     <p>Source availability determines whether you can audit, fork, and keep running the system. openagent.email is Apache-2.0 software with standard SMTP/IMAP underneath. AgentMail and MailSlurp are closed-source hosted products. The trade-off is simple: a managed vendor removes operations; open source leaves the operating choice with you.</p>
 
-    <h2>2. Deployment</h2>
+    <h2>Deployment</h2>
     <p>openagent.email runs on any VPS or cloud you choose. AgentMail is hosted SaaS by default, with an enterprise Outposts BYOC option that runs send, receive, storage, and search in your AWS account (AWS today; more clouds planned). MailSlurp is SaaS only. If you never want to operate a server, hosted is the fastest path; self-hosting trades that convenience for portability.</p>
 
-    <h2>3. Price</h2>
+    <h2>Price</h2>
     <p>openagent.email is free software: a small VPS of about $5/month and a domain cover the infrastructure. AgentMail uses a usage-scaling subscription with a limited free tier; Outposts is enterprise-tier. MailSlurp meters inboxes and volume. Hosted pricing buys operational convenience, while a fixed server bill is usually easier to predict for many persistent identities.</p>
 
-    <h2>4. Unlimited inboxes</h2>
+    <h2>Unlimited inboxes</h2>
     <p>One openagent.email domain can hold unlimited persistent <code>anything@yourdomain</code> identities without provisioning or per-inbox cost. AgentMail's capacity depends on its paid tier. MailSlurp's inboxes are metered and are often disposable by design. Persistent production mailboxes for agents and throwaway test inboxes are useful for different jobs.</p>
 
-    <h2>5. MCP-native access</h2>
+    <h2>MCP-native access</h2>
     <p>openagent.email includes a REST API, MCP server, and a human dashboard. AgentMail offers REST, websockets, webhooks, and SDKs; MailSlurp offers REST, language SDKs, and a dashboard. The practical difference is not whether an API exists, but whether your agent's primary workflow is mailbox work or testing an application you are building.</p>
 
-    <h2>6. OTP and verification links</h2>
+    <h2>OTP and verification links</h2>
     <p>openagent.email automatically extracts OTP codes and verification links while keeping raw text and HTML available. The earlier AgentMail comparison did not independently verify an equivalent extraction feature, so it makes no claim here. MailSlurp is specifically geared to exercising an app's email and SMS flows, and it offers SMS testing, which openagent.email does not.</p>
 
-    <h2>7. Mail data residency</h2>
+    <h2>Mail data residency</h2>
     <p>Your openagent.email mail and tokens stay on your machine. AgentMail Outposts is a real option when email content must stay in AWS, but AgentMail Cloud still operates its dashboard, authentication, billing, upgrades, and product control plane. MailSlurp stores mail in its hosted infrastructure. Residency is a meaningful distinction, but it is not identical to owning the whole stack.</p>
 
-    <h2>8. Vendor control plane</h2>
+    <h2>Vendor control plane</h2>
     <p>openagent.email has no vendor control plane: you run the dashboard, auth, upgrades, and mail system. Managed products own those operational pieces, including uptime and deliverability. That is valuable when you want a vendor accountable for operations; it is also the dependency you avoid when you self-host.</p>
 
-    <h2>9. You run a server</h2>
+    <h2>You run a server</h2>
     <p>Self-hosting means you own DNS, the machine, and its reputation. In return, you get an auditable stack and can use Amazon SES or another SMTP relay with one environment variable if your VPS provider blocks port 25. AgentMail is the better fit when that is not work you want; MailSlurp is the better fit for CI/QA and zero-infrastructure test inboxes.</p>
   </div>
 
@@ -56,12 +57,14 @@ import PaperPlane from '../components/PaperPlane.astro';
     <PaperPlane lottie />
     <div class="cta-row"><a class="btn btn-gold" href="/pricing">See hosted and self-hosted pricing →</a></div>
   </div>
+  </div>
 </Legal>
 
 <style>
+  .compare-shell { width: 100%; max-width: var(--max); margin-inline: auto; }
   .compare-hero { position: relative; padding-bottom: 2.5rem; border-bottom: 1px solid var(--line); }
   .compare-hero .lede { max-width: 48rem; margin-bottom: 0; }
-  .table-wrap { overflow-x:auto; margin:2rem 0 3.5rem; border: 1px solid var(--line); border-radius: 14px; background: var(--bg-card); box-shadow: 0 24px 70px rgba(0,0,0,.24); }
+  .table-wrap { width: 100%; overflow-x:auto; margin:2rem 0 3.5rem; border: 1px solid var(--line); border-radius: 14px; background: var(--bg-card); box-shadow: 0 24px 70px rgba(0,0,0,.24); }
   .compare { width:100%; min-width:42rem; border-collapse:collapse; }
   .compare th,.compare td { border-bottom:1px solid var(--line); padding:.82rem 1rem; text-align:left; vertical-align:top; line-height:1.5; }
   .compare tr:last-child td { border-bottom: 0; }
@@ -69,7 +72,7 @@ import PaperPlane from '../components/PaperPlane.astro';
   .compare th:nth-child(2),.compare td:nth-child(2) { background: rgba(251,191,36,.055); }
   .compare th:nth-child(2) { color: var(--gold); border-top: 2px solid var(--gold); }
 
-  .dims { counter-reset: dim; max-width: 44rem; margin: 0 0 3.5rem; }
+  .dims { counter-reset: dim; max-width: 75ch; margin: 0 auto 3.5rem; }
   .dims > h2 {
     counter-increment: dim;
     display: flex;
