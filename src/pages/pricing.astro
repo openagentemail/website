@@ -9,7 +9,7 @@ import PaperPlane from '../components/PaperPlane.astro';
   description="openagent.email is free and open source. Hosted Pro starts at $5/month with a 3-day free trial."
   wide
 >
-  <header class="pricing-hero">
+  <header class="pricing-hero" data-envelope-root>
     <EnvelopeOrbit compact />
     <h1>Pricing</h1>
     <p class="updated">Simple, honest pricing. No per-mailbox caps, ever.</p>
@@ -62,7 +62,7 @@ import PaperPlane from '../components/PaperPlane.astro';
       Questions? Email <a href="mailto:support@openagent.email">support@openagent.email</a>.
     </li>
   </ul>
-  <PaperPlane />
+  <PaperPlane lottie />
 </Legal>
 
 <style>

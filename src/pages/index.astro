@@ -35,8 +35,8 @@ const jsonOut = `{
 const faq = [
   {
     q: 'Is it really free?',
-    a: 'Yes — self-hosting is free and unlimited under the Apache-2.0 license: no paid tier, no usage limits, no per-inbox pricing. The only thing you pay for is the server you run it on, and a $5/mo VPS is enough. If you would rather not run a server, Hosted Pro starts at $5/month with a 3-day free trial — see /pricing.',
-    aHtml: 'Yes — self-hosting is free and unlimited under the Apache-2.0 license: no paid tier, no usage limits, no per-inbox pricing. The only thing you pay for is the server you run it on, and a $5/mo VPS is enough. If you would rather not run a server, Hosted Pro starts at $5/month with a 3-day free trial — <a href="/pricing">see /pricing</a>.',
+    a: 'Yes — self-hosting is free and unlimited under the Apache-2.0 license: no paid tier, no usage limits, no per-inbox pricing. The only thing you pay for is the server you run it on, and a $5/mo VPS is enough. If you would rather not run a server, Hosted Pro starts at $5/month with a 3-day free trial — see our pricing.',
+    aHtml: 'Yes — self-hosting is free and unlimited under the Apache-2.0 license: no paid tier, no usage limits, no per-inbox pricing. The only thing you pay for is the server you run it on, and a $5/mo VPS is enough. If you would rather not run a server, Hosted Pro starts at $5/month with a 3-day free trial — <a href="/pricing">see our <strong>pricing</strong></a>.',
   },
   {
     q: 'How is it different from AgentMail?',
@@ -157,7 +157,7 @@ const faqJsonLd = {
     </nav>
 
     <!-- 1 ── HERO ──────────────────────────────────────────────────────── -->
-    <header class="hero">
+    <header class="hero" data-envelope-root>
       <div class="aurora aurora-1"></div>
       <div class="aurora aurora-2"></div>
       <div class="aurora aurora-3"></div>
@@ -637,7 +637,6 @@ const faqJsonLd = {
             ))
           }
         </div>
-        <p class="reveal"><small><a href="/pricing">See pricing →</a></small></p>
       </div>
     </section>
 
@@ -916,143 +915,6 @@ const faqJsonLd = {
           });
         });
       });
-
-      // ── hero envelopes: spring-follow the cursor ─────────────────────
-      // Nearest envelope within FOLLOW_R gets attracted and trails the
-      // mouse with a laggy spring + velocity tilt; the rest idle-bob at
-      // home. Mouse leaves the hero → follower glides back home.
-      function initEnvelopes() {
-        const hero = document.querySelector('.hero');
-        const els = [...document.querySelectorAll('.env')];
-        if (!hero || els.length === 0) return;
-        const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-        const finePointer = window.matchMedia('(pointer: fine)').matches;
-        const FOLLOW_R = 460;
-
-        let rect = hero.getBoundingClientRect();
-        const remeasure = () => { rect = hero.getBoundingClientRect(); };
-        addEventListener('resize', remeasure);
-        addEventListener('scroll', remeasure, { passive: true });
-
-        const specs = els.map((el, i) => ({
-          el,
-          // NOTE: SVG elements have no offsetWidth — measure via BCR once,
-          // before any transform is applied.
-          w: el.getBoundingClientRect().width,
-          h: el.getBoundingClientRect().height,
-          px: parseFloat(el.dataset.x) / 100, // home, as a fraction of hero size
-          py: parseFloat(el.dataset.y) / 100,
-          rot: parseFloat(el.dataset.rot || '0'),
-          phase: i * 2.1,
-          x: 0, y: 0,
-        }));
-        const homeX = (s) => s.px * rect.width - s.w / 2;
-        const homeY = (s) => s.py * rect.height - s.h / 2;
-
-        if (reduce) {
-          for (const s of specs) {
-            s.el.style.transform = `translate(${homeX(s)}px, ${homeY(s)}px) rotate(${s.rot}deg)`;
-          }
-          return; // CSS forces opacity:1 under reduced-motion
-        }
-
-        // entrance: start up-right of home, the spring pulls them in
-        for (const s of specs) {
-          s.x = homeX(s) + 180;
-          s.y = homeY(s) - 110;
-          // apply synchronously so the resting spot is never (0,0)
-          s.el.style.transform = `translate(${s.x}px, ${s.y}px) rotate(${s.rot}deg)`;
-        }
-        els.forEach((el, i) => setTimeout(() => { el.style.opacity = '1'; }, 250 + i * 200));
-
-        // watchdog: environments where rAF never fires (some headless
-        // renderers) would leave the envelopes frozen — settle them home.
-        let framesRan = 0;
-        setTimeout(() => {
-          if (framesRan > 0) return;
-          for (const s of specs) {
-            s.el.style.transform = `translate(${homeX(s)}px, ${homeY(s)}px) rotate(${s.rot}deg)`;
-          }
-        }, 1500);
-
-        let mouse = null;
-        hero.addEventListener('mousemove', (e) => {
-          mouse = { x: e.clientX - rect.left, y: e.clientY - rect.top };
-        });
-        hero.addEventListener('mouseleave', () => { mouse = null; });
-
-        function frame(t) {
-          framesRan++;
-          const time = t / 1000;
-          // pick the attracted envelope: nearest home within radius
-          let follower = null;
-          if (mouse && finePointer) {
-            let best = FOLLOW_R;
-            for (const s of specs) {
-              const d = Math.hypot(mouse.x - homeX(s), mouse.y - homeY(s));
-              if (d < best) { best = d; follower = s; }
-            }
-          }
-          for (const s of specs) {
-            const bob = Math.sin(time * 1.5 + s.phase) * 6;
-            let tx, ty;
-            if (s === follower) {
-              // trail behind-left of the cursor so text stays readable
-              tx = mouse.x - 160;
-              ty = mouse.y - 70 + bob * 0.4;
-            } else {
-              tx = homeX(s);
-              ty = homeY(s) + bob;
-            }
-            const k = s === follower ? 0.085 : 0.05; // spring stiffness
-            const px = s.x;
-            s.x += (tx - s.x) * k;
-            s.y += (ty - s.y) * k;
-            const vx = s.x - px;
-            const tilt = s === follower ? Math.max(-16, Math.min(16, vx * 1.1)) : 0;
-            s.el.style.transform = `translate(${s.x}px, ${s.y}px) rotate(${s.rot + tilt}deg)`;
-          }
-          requestAnimationFrame(frame);
-        }
-        requestAnimationFrame(frame);
-      }
-      initEnvelopes();
-
-      // ── final CTA lottie (lazy load, reduced-motion aware) ─────────────
-      (function initFinalLottie() {
-        const host = document.getElementById('lottie-final');
-        if (!host) return;
-        const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-        let anim = null;
-        const start = () => {
-          if (anim || !window.lottie) return;
-          anim = window.lottie.loadAnimation({
-            container: host,
-            renderer: 'svg',
-            loop: true,
-            autoplay: !reduce,
-            path: '/animations/email-sent.json',
-          });
-          if (reduce) {
-            // static golden envelope, no motion — content still complete
-            anim.addEventListener('DOMLoaded', () => anim.goToAndStop(60, true));
-          } else {
-            new IntersectionObserver((entries) => {
-              entries.forEach((en) => (en.isIntersecting ? anim.play() : anim.pause()));
-            }, { threshold: 0.15 }).observe(host);
-          }
-        };
-        const load = () => {
-          if (window.lottie) return start();
-          const s = document.createElement('script');
-          s.src = '/vendor/lottie_svg.min.js';
-          s.onload = start;
-          document.head.appendChild(s);
-        };
-        new IntersectionObserver((entries, io) => {
-          if (entries.some((en) => en.isIntersecting)) { io.disconnect(); load(); }
-        }, { rootMargin: '400px' }).observe(host);
-      })();
 
       runTerminal();
     </script>
