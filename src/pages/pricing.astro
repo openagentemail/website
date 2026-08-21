@@ -7,10 +7,13 @@ import PaperPlane from '../components/PaperPlane.astro';
 <Legal
   title="Pricing"
   description="openagent.email is free and open source. Hosted Pro starts at $5/month with a 3-day free trial."
+  wide
 >
-  <EnvelopeOrbit compact />
-  <h1>Pricing</h1>
-  <p class="updated">Simple, honest pricing. No per-mailbox caps, ever.</p>
+  <header class="pricing-hero">
+    <EnvelopeOrbit compact />
+    <h1>Pricing</h1>
+    <p class="updated">Simple, honest pricing. No per-mailbox caps, ever.</p>
+  </header>
 
   <div class="plans">
     <section class="plan">
@@ -68,6 +71,7 @@ import PaperPlane from '../components/PaperPlane.astro';
     gap: 1.25rem;
     margin: 1.5rem 0 2rem;
   }
+  .pricing-hero { position: relative; padding-bottom: .5rem; }
   @media (min-width: 44rem) {
     .plans {
       grid-template-columns: 1fr 1fr;

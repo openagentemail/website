@@ -19,9 +19,24 @@ const { compact = false } = Astro.props;
 </div>
 
 <style>
-  .envs-compact { position: relative; height: 5.2rem; margin: -1.2rem 0 .2rem; overflow: visible; }
-  .envs-compact .env { opacity: .85; transform: none !important; }
+  .envs-compact { position: relative; height: 6rem; margin: -1.4rem 0 .2rem; overflow: visible; }
+  .envs-compact::after {
+    content: ''; position: absolute; right: 2%; top: 10%; width: 18rem; height: 7rem;
+    background: radial-gradient(ellipse, rgba(251,191,36,.11), transparent 68%);
+    filter: blur(10px); pointer-events: none;
+  }
+  .envs-compact .env { opacity: .88; transform: translateY(12px) scale(.94); animation: compact-arrive .8s cubic-bezier(.16,1,.3,1) forwards; }
+  .envs-compact .env:nth-child(2) { animation-delay: .08s; }
+  .envs-compact .env:nth-child(3) { animation-delay: .16s; }
   .envs-compact .env:nth-child(1) { left: 72%; top: .2rem; width: 4.2rem !important; }
   .envs-compact .env:nth-child(2) { left: 58%; top: 2.4rem; width: 2.8rem !important; }
   .envs-compact .env:nth-child(3) { left: 84%; top: 3rem; width: 2.2rem !important; }
+  @keyframes compact-arrive { to { opacity: .88; transform: translateY(0) scale(1); } }
+  @media (max-width: 900px) { .envs-compact { display: block; } }
+  @media (max-width: 44rem) {
+    .envs-compact .env:nth-child(1) { left: 68%; }
+    .envs-compact .env:nth-child(2) { left: 51%; }
+    .envs-compact .env:nth-child(3) { left: 86%; }
+  }
+  @media (prefers-reduced-motion: reduce) { .envs-compact .env { animation: none; transform: none; } }
 </style>

@@ -181,7 +181,7 @@ nav a.navlink:hover { color: var(--gold); }
   will-change: transform;
   filter: drop-shadow(0 10px 24px rgba(251, 191, 36, 0.18));
 }
-@media (max-width: 900px) { .envs { display: none; } }
+@media (max-width: 900px) { .hero .envs { display: none; } }
 
 /* ── logo wall ───────────────────────────────────────────────────────── */
 .logos { padding: 2.5rem 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }

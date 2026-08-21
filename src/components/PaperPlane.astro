@@ -6,13 +6,35 @@ const { lottie = false, class: className = '' } = Astro.props;
 {lottie ? (
   <div id="lottie-final" class:list={['lottie-final', className]} aria-hidden="true"></div>
 ) : (
-  <svg class:list={['paper-plane', className]} viewBox="0 0 220 78" aria-hidden="true" fill="none">
-    <path d="m24 39 166-27-55 54-18-23-31-4Z" fill="#14161f" stroke="currentColor" stroke-width="2" stroke-linejoin="round" />
-    <path d="m117 43 73-31-55 54-2-30" stroke="currentColor" stroke-width="2" stroke-linejoin="round" />
-    <path d="M44 58c35 8 66 6 91-3" stroke="currentColor" stroke-width="1.5" stroke-dasharray="4 5" stroke-linecap="round" />
+  <svg class:list={['paper-plane', 'mail-to-plane', className]} viewBox="0 0 220 78" aria-hidden="true" fill="none">
+    <g class="mail-shape">
+      <rect x="69" y="18" width="82" height="48" rx="7" fill="#14161f" stroke="currentColor" stroke-width="2" />
+      <path d="m73 23 37 27 37-27" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+    </g>
+    <g class="plane-shape">
+      <path d="m24 39 166-27-55 54-18-23-31-4Z" fill="#14161f" stroke="currentColor" stroke-width="2" stroke-linejoin="round" />
+      <path d="m117 43 73-31-55 54-2-30" stroke="currentColor" stroke-width="2" stroke-linejoin="round" />
+      <path d="M44 58c35 8 66 6 91-3" stroke="currentColor" stroke-width="1.5" stroke-dasharray="4 5" stroke-linecap="round" />
+    </g>
   </svg>
 )}
 
 <style>
   .paper-plane { display:block; width:10rem; height:auto; margin:2rem auto 1rem; color:var(--gold); filter:drop-shadow(0 8px 15px rgba(251,191,36,.16)); }
+  .mail-to-plane { width: 12rem; overflow: visible; }
+  .mail-shape { transform-origin: center; animation: mail-fold 6s cubic-bezier(.16,1,.3,1) infinite; }
+  .plane-shape { opacity: 0; transform-origin: center; animation: plane-launch 6s cubic-bezier(.16,1,.3,1) infinite; }
+  @keyframes mail-fold {
+    0%,28% { opacity: 1; transform: translateX(0) scale(1); }
+    40%,100% { opacity: 0; transform: translateX(22px) scale(.74); }
+  }
+  @keyframes plane-launch {
+    0%,30% { opacity: 0; transform: translate(-18px,8px) scale(.76); }
+    43%,88% { opacity: 1; transform: translate(0,0) scale(1); }
+    100% { opacity: 0; transform: translate(16px,-5px) scale(.98); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .mail-shape { display: none; }
+    .plane-shape { opacity: 1; animation: none; transform: none; }
+  }
 </style>

@@ -36,6 +36,7 @@ const faq = [
   {
     q: 'Is it really free?',
     a: 'Yes — self-hosting is free and unlimited under the Apache-2.0 license: no paid tier, no usage limits, no per-inbox pricing. The only thing you pay for is the server you run it on, and a $5/mo VPS is enough. If you would rather not run a server, Hosted Pro starts at $5/month with a 3-day free trial — see /pricing.',
+    aHtml: 'Yes — self-hosting is free and unlimited under the Apache-2.0 license: no paid tier, no usage limits, no per-inbox pricing. The only thing you pay for is the server you run it on, and a $5/mo VPS is enough. If you would rather not run a server, Hosted Pro starts at $5/month with a 3-day free trial — <a href="/pricing">see /pricing</a>.',
   },
   {
     q: 'How is it different from AgentMail?',
@@ -304,7 +305,7 @@ const faqJsonLd = {
         <p class="kicker reveal">Why it exists</p>
         <h2 class="reveal">Everything an agent mailbox needs.<br />Nothing it doesn't.</h2>
         <div class="why-groups" style="margin-top: 3rem">
-          <div class="why-group"><h3 class="why-heading">For the human</h3><div class="why-grid">
+          <div class="why-group"><h3 class="why-heading reveal">For the human</h3><div class="why-grid">
           {/* 卡1 Dashboard：升主角、2 倍宽。文案逐字锁定。截图用 Overview demo 身份，不用 inbox。 */}
           <div class="card card-cockpit reveal">
             <div class="card-copy">
@@ -369,7 +370,7 @@ const faqJsonLd = {
             </div>
           </div>
           </div></div>
-          <div class="why-group"><h3 class="why-heading">For the agent</h3><div class="why-grid">
+          <div class="why-group"><h3 class="why-heading reveal">For the agent</h3><div class="why-grid">
           {/* 卡4 MCP：文案重写 + 双态小图 */}
           <div class="card reveal">
             <span class="num">04</span>
@@ -404,7 +405,7 @@ const faqJsonLd = {
             <FeatureViz kind="otp" />
           </div>
           </div></div>
-          <div class="why-group"><h3 class="why-heading">Your box, your rules</h3><div class="why-grid">
+          <div class="why-group"><h3 class="why-heading reveal">Your box, your rules</h3><div class="why-grid">
           <div class="card reveal">
             <span class="num">09</span>
             <h3>Safety rails</h3>
@@ -631,7 +632,7 @@ const faqJsonLd = {
             faq.map((item) => (
               <details>
                 <summary>{item.q}</summary>
-                <p>{item.a}</p>
+                {'aHtml' in item ? <p set:html={item.aHtml} /> : <p>{item.a}</p>}
               </details>
             ))
           }

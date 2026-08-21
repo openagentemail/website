@@ -4,9 +4,10 @@ import '../styles/global.css';
 interface Props {
   title: string;
   description: string;
+  wide?: boolean;
 }
 
-const { title, description } = Astro.props;
+const { title, description, wide = false } = Astro.props;
 ---
 
 <!doctype html>
@@ -34,7 +35,7 @@ const { title, description } = Astro.props;
       </div>
     </nav>
 
-    <main class="legal wrap">
+    <main class:list={['legal', 'wrap', { 'legal-wide': wide }]}>
       <slot />
     </main>
 
@@ -58,6 +59,7 @@ const { title, description } = Astro.props;
     max-width: 44rem;
     padding: 3.5rem 1.5rem 5rem;
   }
+  .legal.legal-wide { max-width: 72rem; }
   .legal h1 {
     font-size: clamp(2rem, 5vw, 2.8rem);
     margin-bottom: 0.4rem;
