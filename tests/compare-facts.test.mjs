@@ -38,7 +38,8 @@ function isFreshLastChecked(date, now = new Date()) {
 }
 
 const fixedNow = new Date('2026-08-22T00:00:00.000Z');
-assert.equal(isFreshLastChecked(lastChecked.groups.date), true, 'Current Last checked date must be fresh');
+const freshnessMaintenanceMessage = 'Last checked is stale: refresh the comparison facts and Last checked date. This guard intentionally fails closed after the 90-day freshness window.';
+assert.equal(isFreshLastChecked(lastChecked.groups.date), true, freshnessMaintenanceMessage);
 assert.equal(isFreshLastChecked('2026-08-22', fixedNow), true, 'Current Last checked date must pass with a fixed clock');
 assert.equal(isFreshLastChecked('2026-05-24', new Date('2026-08-22T12:00:00.000Z')), true, 'A date 90 calendar days old must remain fresh throughout that day');
 assert.equal(isFreshLastChecked('2026-05-23', fixedNow), false, 'A date 91 days old must fail freshness');
@@ -51,5 +52,5 @@ for (const source of [
   'https://www.agentmail.to/blog/agentmail-official-openclaw-plugin',
   'https://www.agentmail.to/blog/give-grok-bot-email-address',
 ]) {
-  assert.ok(lastChecked.groups.sources.includes(`href="${source}"`), `Missing primary AgentMail source: ${source}`);
+  assert.ok(lastChecked.groups.sources.includes(`href="${source}" rel="noopener noreferrer"`), `Missing primary AgentMail source or rel protection: ${source}`);
 }
