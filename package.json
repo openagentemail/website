@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
-    "preview": "astro preview"
+    "preview": "astro preview",
+    "test:compare-facts": "node --test tests/compare-facts.test.mjs",
+    "test:compare-freshness": "CHECK_COMPARE_FRESHNESS=1 node --test tests/compare-facts.test.mjs"
   },
   "dependencies": {
     "@astrojs/starlight": "^0.37.7",

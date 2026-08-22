@@ -39,12 +39,19 @@ function isFreshLastChecked(date, now = new Date()) {
 
 const fixedNow = new Date('2026-08-22T00:00:00.000Z');
 const freshnessMaintenanceMessage = 'Last checked is stale: refresh the comparison facts and Last checked date. This guard intentionally fails closed after the 90-day freshness window.';
-assert.equal(isFreshLastChecked(lastChecked.groups.date), true, freshnessMaintenanceMessage);
 assert.equal(isFreshLastChecked('2026-08-22', fixedNow), true, 'Current Last checked date must pass with a fixed clock');
 assert.equal(isFreshLastChecked('2026-05-24', new Date('2026-08-22T12:00:00.000Z')), true, 'A date 90 calendar days old must remain fresh throughout that day');
 assert.equal(isFreshLastChecked('2026-05-23', fixedNow), false, 'A date 91 days old must fail freshness');
 assert.equal(isFreshLastChecked('2026-08-24', fixedNow), false, 'A future date beyond the one-day timezone allowance must fail freshness');
 assert.equal(isFreshLastChecked('2026-02-30', fixedNow), false, 'An impossible calendar date must fail freshness');
+
+if (process.env.CHECK_COMPARE_FRESHNESS === '1') {
+  assert.equal(isFreshLastChecked(lastChecked.groups.date), true, freshnessMaintenanceMessage);
+}
+
+const sourceLinks = [...lastChecked.groups.sources.matchAll(/<a\b(?<attributes>[^>]*)>/g)].map(({ groups }) =>
+  Object.fromEntries([...groups.attributes.matchAll(/(?<name>[^\s=]+)="(?<value>[^"]*)"/g)].map(({ groups: attribute }) => [attribute.name, attribute.value])),
+);
 
 for (const source of [
   'https://www.agentmail.to/pricing',
@@ -52,5 +59,7 @@ for (const source of [
   'https://www.agentmail.to/blog/agentmail-official-openclaw-plugin',
   'https://www.agentmail.to/blog/give-grok-bot-email-address',
 ]) {
-  assert.ok(lastChecked.groups.sources.includes(`href="${source}" rel="noopener noreferrer"`), `Missing primary AgentMail source or rel protection: ${source}`);
+  const link = sourceLinks.find(({ href }) => href === source);
+  assert.ok(link, `Missing primary AgentMail source: ${source}`);
+  assert.equal(link.rel, 'noopener noreferrer', `Missing rel protection for primary AgentMail source: ${source}`);
 }
