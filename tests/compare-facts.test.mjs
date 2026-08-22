@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
+import { parse } from 'parse5';
 import { agentmailSources } from '../src/data/agentmailSources.js';
 
 const compare = await readFile(new URL('../src/pages/compare.astro', import.meta.url), 'utf8');
@@ -12,12 +13,12 @@ for (const fact of [
   'Official OpenClaw plugin + Grok Bot Cursor plugin',
   'Universal MCP: connect directly from Claude, ChatGPT, Grok, or Cursor; official connection guide',
 ]) {
-  assert.ok(compare.includes(fact), `Missing comparison fact: ${fact}`);
+  assert.match(compare, new RegExp(fact.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')), `Missing comparison fact: ${fact}`);
 }
 
-assert.ok(!compare.includes('Not independently verified</td><td>REST/SDKs'), 'AgentMail MCP must not be described as unverified');
-assert.ok(!compare.includes('Per-inbox subscription'), 'Price must not imply a subscription cliff');
-assert.ok(!compare.includes('The openagent.email difference is clear'), 'Comparison copy must remain neutral');
+assert.doesNotMatch(compare, /Not independently verified<\/td><td>REST\/SDKs/, 'AgentMail MCP must not be described as unverified');
+assert.doesNotMatch(compare, /Per-inbox subscription/, 'Price must not imply a subscription cliff');
+assert.doesNotMatch(compare, /The openagent\.email difference is clear/, 'Comparison copy must remain neutral');
 
 const lastChecked = compare.match(/<p class="last-checked">Last checked: (?<date>\d{4}-\d{2}-\d{2})(?<sources>[\s\S]*?)<\/p>/);
 assert.ok(lastChecked?.groups, 'Last checked date and sources must be present');
@@ -50,26 +51,34 @@ if (process.argv.includes('--check-freshness')) {
   assert.equal(isFreshLastChecked(lastChecked.groups.date), true, freshnessMaintenanceMessage);
 }
 
-assert.ok(compare.includes('agentmailSources.map'), 'Compare page must render the shared AgentMail sources');
-assert.ok(compare.includes('source.href') && compare.includes('source.label') && compare.includes('rel="noopener noreferrer"'), 'Compare page must bind each source href, label, and rel protection');
+assert.match(compare, /import\s+\{\s*agentmailSources\s*\}\s+from\s+['"]\.\.\/data\/agentmailSources\.js['"]/, 'Compare page must import the shared AgentMail sources');
+assert.match(compare, /agentmailSources\.map\(/, 'Compare page must render the shared AgentMail sources');
 
-function parseSourceLinks(markup) {
-  return [...markup.matchAll(/<a\b(?<attributes>[^>]*)>(?<label>[\s\S]*?)<\/a>/g)].map(({ groups }) => ({
-    ...Object.fromEntries([...groups.attributes.matchAll(/(?<name>[^\s=]+)="(?<value>[^"]*)"/g)].map(({ groups: attribute }) => [attribute.name, attribute.value])),
-    label: groups.label,
-  }));
+function descendants(node) {
+  return (node.childNodes ?? []).flatMap((child) => [child, ...descendants(child)]);
+}
+
+function attribute(node, name) {
+  return node.attrs?.find((entry) => entry.name === name)?.value;
+}
+
+function text(node) {
+  return (node.childNodes ?? []).map((child) => child.nodeName === '#text' ? child.value : text(child)).join('');
 }
 
 if (process.argv.includes('--check-rendered')) {
   const renderedCompare = await readFile(new URL('../dist/compare/index.html', import.meta.url), 'utf8');
-  const renderedLastChecked = renderedCompare.match(/<p\b[^>]*\bclass="[^"]*\blast-checked\b[^"]*"[^>]*>(?<content>[\s\S]*?)<\/p>/);
-  assert.ok(renderedLastChecked?.groups, 'Built compare page must include Last checked sources');
+  const document = parse(renderedCompare);
+  const renderedLastChecked = descendants(document).find((node) =>
+    node.nodeName === 'p' && attribute(node, 'class')?.split(/\s+/).includes('last-checked'),
+  );
+  assert.ok(renderedLastChecked, 'Built compare page must include Last checked sources');
 
-  const sourceLinks = parseSourceLinks(renderedLastChecked.groups.content);
+  const sourceLinks = descendants(renderedLastChecked).filter((node) => node.nodeName === 'a');
   for (const source of agentmailSources) {
-    const link = sourceLinks.find(({ href }) => href === source.href);
+    const link = sourceLinks.find((node) => attribute(node, 'href') === source.href);
     assert.ok(link, `Built compare page is missing primary AgentMail source: ${source.href}`);
-    assert.equal(link.rel, 'noopener noreferrer', `Built compare page is missing rel protection: ${source.href}`);
-    assert.equal(link.label, source.label, `Built compare page has the wrong source label: ${source.href}`);
+    assert.equal(attribute(link, 'rel'), 'noopener noreferrer', `Built compare page is missing rel protection: ${source.href}`);
+    assert.equal(text(link), source.label, `Built compare page has the wrong source label: ${source.href}`);
   }
 }
