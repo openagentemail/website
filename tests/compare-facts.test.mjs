@@ -54,6 +54,12 @@ if (process.argv.includes('--check-freshness')) {
 assert.match(compare, /import\s+\{\s*agentmailSources\s*\}\s+from\s+['"]\.\.\/data\/agentmailSources\.js['"]/, 'Compare page must import the shared AgentMail sources');
 assert.match(compare, /agentmailSources\.map\(/, 'Compare page must render the shared AgentMail sources');
 
+for (const source of agentmailSources) {
+  const url = new URL(source.href);
+  assert.equal(url.protocol, 'https:', `Official AgentMail source must use HTTPS: ${source.href}`);
+  assert.ok(['www.agentmail.to', 'docs.agentmail.to'].includes(url.hostname), `Official AgentMail source must stay on an AgentMail domain: ${source.href}`);
+}
+
 function descendants(node) {
   return (node.childNodes ?? []).flatMap((child) => [child, ...descendants(child)]);
 }
