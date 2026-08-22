@@ -36,6 +36,7 @@ const faq = [
   {
     q: 'Is it really free?',
     a: 'Yes — self-hosting is free and unlimited under the Apache-2.0 license: no paid tier, no usage limits, no per-inbox pricing. The only thing you pay for is the server you run it on, and a $5/mo VPS is enough. If you would rather not run a server, Hosted Pro starts at $5/month with a 3-day free trial — see our pricing.',
+    // Rendered as raw HTML: build-time static content only; never use dynamic data (stored-XSS guard).
     aHtml: 'Yes — self-hosting is free and unlimited under the Apache-2.0 license: no paid tier, no usage limits, no per-inbox pricing. The only thing you pay for is the server you run it on, and a $5/mo VPS is enough. If you would rather not run a server, Hosted Pro starts at $5/month with a 3-day free trial — <a href="/pricing">see our <strong>pricing</strong></a>.',
   },
   {

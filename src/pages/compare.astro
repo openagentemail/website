@@ -67,7 +67,7 @@ import PaperPlane from '../components/PaperPlane.astro';
     <p>AgentMail's enterprise Outposts BYOC option has real AWS data residency. It is not the same as open-source self-hosting, because the AgentMail product control plane remains operated by the vendor. That may be exactly the trade-off an enterprise team wants.</p>
     <p class="note">Fair credit where it is due: Outposts is a real option when email content must stay in AWS. If you want zero servers, AgentMail's managed path is the fastest one.</p>
 
-    <h2>Agent workflows beyond the mailbox</h2>
+    <h2 id="mailslurp">Agent workflows beyond the mailbox</h2>
     <p>openagent.email includes a REST API, MCP server, and a human dashboard. AgentMail offers REST, websockets, webhooks, and SDKs; MailSlurp offers REST, language SDKs, and a dashboard. openagent.email automatically extracts OTP codes and verification links while keeping raw text and HTML available. It also has email-backed agent-to-agent task threads with server-stamped states, receiving-agent wake-ups, a dashboard work-order view, an A2A-vocabulary Agent Card, and per-identity ntfy push tiers: interrupt only, sender + subject, or body + OTP, set by an admin. Equivalent task and push features were not verified for the other products, so no claim is made.</p>
   </div>
 
