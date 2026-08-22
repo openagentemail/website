@@ -1,6 +1,9 @@
 ---
 import '../styles/global.css';
 import StampWall from '../components/StampWall.astro';
+import EnvelopeOrbit from '../components/EnvelopeOrbit.astro';
+import FeatureViz from '../components/FeatureViz.astro';
+import PaperPlane from '../components/PaperPlane.astro';
 
 const rawMail = `From: noreply@github.com
 To: fox-k7d2@yourdomain
@@ -32,13 +35,14 @@ const jsonOut = `{
 const faq = [
   {
     q: 'Is it really free?',
-    // 尾句与 pricing 页 badge「Launching soon」对齐；其余逐字不动
-    a: 'Yes — self-hosting is free and unlimited under the Apache-2.0 license: no paid tier, no usage limits, no per-inbox pricing. The only thing you pay for is the server you run it on, and a $5/mo VPS is enough. An optional hosted plan (we run it for you) is launching soon — see /pricing.',
+    a: 'Yes — self-hosting is free and unlimited under the Apache-2.0 license: no paid tier, no usage limits, no per-inbox pricing. The only thing you pay for is the server you run it on, and a $5/mo VPS is enough. If you would rather not run a server, Hosted Pro starts at $5/month with a 3-day free trial — see our pricing.',
+    // Rendered as raw HTML: build-time static content only; never use dynamic data (stored-XSS guard).
+    aHtml: 'Yes — self-hosting is free and unlimited under the Apache-2.0 license: no paid tier, no usage limits, no per-inbox pricing. The only thing you pay for is the server you run it on, and a $5/mo VPS is enough. If you would rather not run a server, Hosted Pro starts at $5/month with a 3-day free trial — <a href="/pricing">see our <strong>pricing</strong></a>.',
   },
   {
     q: 'How is it different from AgentMail?',
     // BYOC Outposts：邮件内容可留在客户 AWS，但 vendor 控制面仍在 —— 与真自建区分
-    a: 'AgentMail is a hosted SaaS product (usage-based pricing), with an enterprise BYOC option (Outposts) that keeps email content in your AWS account while they still run the control plane. openagent.email is Apache-2.0 software you run yourself on any VPS: unlimited inboxes on your own domain, no vendor control plane, and your mail never leaves a machine you own — unless you opt into push tiers 2/3, which relay subject/from or body/OTP via ntfy. See the full comparison at /alternatives/agentmail.',
+    a: 'AgentMail is a hosted SaaS product (usage-based pricing), with an enterprise BYOC option (Outposts) that keeps email content in your AWS account while they still run the control plane. openagent.email is Apache-2.0 software you run yourself on any VPS: unlimited inboxes on your own domain, no vendor control plane, and your mail never leaves a machine you own — unless you opt into push tiers 2/3, which relay subject/from or body/OTP via ntfy. See the full comparison at /compare.',
   },
   {
     q: 'Do I need my own domain?',
@@ -141,35 +145,24 @@ const faqJsonLd = {
   <body>
     <nav>
       <div class="wrap">
-        <a class="brand" href="/">
+        <a class="brand" href="/" aria-label="openagent.email home">
           <img src="/favicon.svg" alt="" />
           <span>openagent<span class="gold">.email</span></span>
         </a>
         <span class="spacer"></span>
-        <a class="navlink" href="/docs/">Docs</a>
+        <a class="navlink" href="/compare">Compare</a>
+        <a class="navlink" href="/pricing">Pricing</a>
         <a class="navlink" href="https://github.com/openagentemail/openagentemail">GitHub</a>
+        <a class="navlink" href="/docs/">Docs</a>
       </div>
     </nav>
 
     <!-- 1 ── HERO ──────────────────────────────────────────────────────── -->
-    <header class="hero">
+    <header class="hero" data-envelope-root>
       <div class="aurora aurora-1"></div>
       <div class="aurora aurora-2"></div>
       <div class="aurora aurora-3"></div>
-      <div class="envs" aria-hidden="true">
-        <svg class="env" data-x="86" data-y="16" data-rot="6" style="width: 120px" viewBox="0 0 64 64" fill="none">
-          <rect x="6" y="14" width="52" height="38" rx="6" stroke="#fbbf24" stroke-width="3" fill="#14161f" />
-          <path d="M9 19 32 36l23-17" stroke="#fbbf24" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
-        </svg>
-        <svg class="env" data-x="68" data-y="56" data-rot="-8" style="width: 74px" viewBox="0 0 64 64" fill="none">
-          <rect x="6" y="14" width="52" height="38" rx="6" stroke="#fbbf24" stroke-width="3" fill="#14161f" />
-          <path d="M9 19 32 36l23-17" stroke="#fbbf24" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
-        </svg>
-        <svg class="env" data-x="50" data-y="72" data-rot="11" style="width: 52px" viewBox="0 0 64 64" fill="none">
-          <rect x="6" y="14" width="52" height="38" rx="6" stroke="#fbbf24" stroke-width="3" fill="#14161f" />
-          <path d="M9 19 32 36l23-17" stroke="#fbbf24" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />
-        </svg>
-      </div>
+      <EnvelopeOrbit />
       <div class="wrap">
         <p class="kicker stagger stagger-1">Open source · Self-hosted · Apache-2.0</p>
         <h1 class="stagger stagger-2">
@@ -206,7 +199,7 @@ const faqJsonLd = {
           </a>
         </div>
         <p class="manual-row stagger stagger-5">
-          <a class="manual-link" href="/docs/quickstart/">Prefer Docker? Manual install →</a>
+          <a class="manual-link" href="/pricing">No VPS? No domain? Skip the setup — join the early-bird plan →</a>
         </p>
       </div>
     </header>
@@ -312,7 +305,8 @@ const faqJsonLd = {
       <div class="wrap">
         <p class="kicker reveal">Why it exists</p>
         <h2 class="reveal">Everything an agent mailbox needs.<br />Nothing it doesn't.</h2>
-        <div class="grid grid-3" style="margin-top: 3rem">
+        <div class="why-groups" style="margin-top: 3rem">
+          <div class="why-group"><h3 class="why-heading reveal">For the human</h3><div class="why-grid">
           {/* 卡1 Dashboard：升主角、2 倍宽。文案逐字锁定。截图用 Overview demo 身份，不用 inbox。 */}
           <div class="card card-cockpit reveal">
             <div class="card-copy">
@@ -376,24 +370,14 @@ const faqJsonLd = {
               </svg>
             </div>
           </div>
+          </div></div>
+          <div class="why-group"><h3 class="why-heading reveal">For the agent</h3><div class="why-grid">
           {/* 卡4 MCP：文案重写 + 双态小图 */}
           <div class="card reveal">
             <span class="num">04</span>
             <h3>MCP 2026-07-28, local or remote</h3>
             <p>Built on the official SDK v2, current to the dated 2026-07-28 spec. Agents on the same box connect over stdio; cloud agents connect over stateless HTTPS with OAuth. Every authorized client is listed in the dashboard — and revocable.</p>
-            <div class="card-viz" aria-hidden="true">
-              <svg class="viz-mcp" viewBox="0 0 220 78" role="img">
-                <rect class="pane" x="8" y="10" width="78" height="50" rx="6" />
-                <text class="glyph" x="22" y="40" stroke="none" fill="#fbbf24" font-family="ui-monospace,monospace" font-size="16">›_</text>
-                <text class="label" x="47" y="39">stdio</text>
-                <text class="swap" x="100" y="42" stroke="none">↔</text>
-                <rect class="pane" x="134" y="10" width="78" height="50" rx="6" />
-                <path class="glyph" d="M154 36 c0-8 12-12 20-6 8-8 24-2 22 10 h-42 c-2-2-2-4 0-4z" />
-                <path class="glyph" d="M186 44 v6 a4 4 0 0 0 8 0 v-6" />
-                <circle class="glyph" cx="190" cy="42" r="3.2" />
-                <text class="label" x="154" y="22">HTTPS + key</text>
-              </svg>
-            </div>
+            <FeatureViz kind="mcp" />
           </div>
           {/* 卡5 Tasks：保留现有正文，只在末尾补批准尾句 */}
           <div class="card reveal">
@@ -401,38 +385,48 @@ const faqJsonLd = {
             <h3>Agent-to-agent tasks</h3>
             {/* #22：邮件工单线程 + 服务端状态戳 + Dashboard 工单视图 + A2A Agent Card */}
             <p>Email-backed task threads with server-stamped states (<code>submitted</code>→<code>working</code>→<code>completed</code>/<code>failed</code>). The receiving agent is woken; the dashboard shows a work-order view. A2A-vocabulary Agent Card at <code>/.well-known/agent-card.json</code> (email transport — not wire-protocol claim). Watch the board, page through history, nudge a stuck task or close one out — you're the dispatcher, not just the observer.</p>
+            <FeatureViz kind="tasks" />
           </div>
           <div class="card reveal">
             <span class="num">06</span>
             <h3>Unlimited identities</h3>
             <p>One catch-all mailbox, unlimited <code>anything@yourdomain</code> addresses. No provisioning, no per-inbox cost, no caps.</p>
+            <FeatureViz kind="identities" />
           </div>
           <div class="card reveal">
             <span class="num">07</span>
             <h3>Scoped tokens</h3>
             <p>Every identity gets its own <code>oa_…</code> token that can only read and send as that address. Your admin key never touches an agent.</p>
+            <FeatureViz kind="tokens" />
           </div>
           <div class="card reveal">
             <span class="num">08</span>
             <h3>wait_for + OTP extraction</h3>
             <p>Long-poll an inbox until the signup mail lands — codes and verification links come out parsed. Built for automated signups.</p>
+            <FeatureViz kind="otp" />
           </div>
+          </div></div>
+          <div class="why-group"><h3 class="why-heading reveal">Your box, your rules</h3><div class="why-grid">
           <div class="card reveal">
             <span class="num">09</span>
             <h3>Safety rails</h3>
             {/* #23：未受信邮件 source 打标 + MCP 围栏；保留原有 rate limit / retention */}
             <p>Per-identity send rate limits (20/hour default) and automatic retention (30 days default). Every message carries <code>source: internal|external</code>; non-internal bodies are fenced at the MCP layer. A leaked token can't become a spam cannon.</p>
+            <FeatureViz kind="safety" />
           </div>
           <div class="card reveal">
             <span class="num">10</span>
             <h3>Bring your own relay</h3>
             <p>Send directly from your VPS, or route outbound through Amazon SES or any SMTP relay with one env var. Your reputation, your choice.</p>
+            <FeatureViz kind="relay" />
           </div>
           <div class="card reveal">
             <span class="num">11</span>
             <h3>DNS wizard + doctor</h3>
             <p><code>dns-records.sh</code> prints your exact DNS records. <code>doctor.sh</code> runs a 13-point deliverability check before agents depend on it.</p>
+            <FeatureViz kind="dns" />
           </div>
+          </div></div>
         </div>
       </div>
     </section>
@@ -639,7 +633,7 @@ const faqJsonLd = {
             faq.map((item) => (
               <details>
                 <summary>{item.q}</summary>
-                <p>{item.a}</p>
+                {'aHtml' in item ? <p set:html={item.aHtml} /> : <p>{item.a}</p>}
               </details>
             ))
           }
@@ -665,7 +659,7 @@ const faqJsonLd = {
         <!-- Lottie: golden "email sent" — the closing send-off. Source: LottieFiles
              "contact-email" by Deedy Intern Team (Lottie Simple License), recolored
              to brand gold. Player: lottie-web v5.13.0 (MIT), vendored, loaded only here. -->
-        <div id="lottie-final" class="lottie-final reveal" aria-hidden="true"></div>
+        <PaperPlane lottie class="reveal" />
         <h2 class="reveal">Ready to give your agents<br /><span class="gold">their own inbox?</span></h2>
         <div class="cta-row reveal">
           <a class="btn btn-gold" href="https://github.com/openagentemail/openagentemail">Star on GitHub</a>
@@ -694,11 +688,8 @@ const faqJsonLd = {
             <h4>Product</h4>
             <ul>
               <li><a href="https://github.com/openagentemail/openagentemail">GitHub</a></li>
-              <li><a href="https://github.com/openagentemail/openagentemail#quickstart">Quickstart</a></li>
-              <li><a href="https://github.com/openagentemail/openagentemail/releases">Changelog</a></li>
               <li><a href="/pricing">Pricing</a></li>
-              <li><a href="/alternatives/agentmail">vs AgentMail</a></li>
-              <li><a href="/alternatives/mailslurp">vs MailSlurp</a></li>
+              <li><a href="/compare">Compare</a></li>
             </ul>
           </div>
           <div>
@@ -925,143 +916,6 @@ const faqJsonLd = {
           });
         });
       });
-
-      // ── hero envelopes: spring-follow the cursor ─────────────────────
-      // Nearest envelope within FOLLOW_R gets attracted and trails the
-      // mouse with a laggy spring + velocity tilt; the rest idle-bob at
-      // home. Mouse leaves the hero → follower glides back home.
-      function initEnvelopes() {
-        const hero = document.querySelector('.hero');
-        const els = [...document.querySelectorAll('.env')];
-        if (!hero || els.length === 0) return;
-        const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-        const finePointer = window.matchMedia('(pointer: fine)').matches;
-        const FOLLOW_R = 460;
-
-        let rect = hero.getBoundingClientRect();
-        const remeasure = () => { rect = hero.getBoundingClientRect(); };
-        addEventListener('resize', remeasure);
-        addEventListener('scroll', remeasure, { passive: true });
-
-        const specs = els.map((el, i) => ({
-          el,
-          // NOTE: SVG elements have no offsetWidth — measure via BCR once,
-          // before any transform is applied.
-          w: el.getBoundingClientRect().width,
-          h: el.getBoundingClientRect().height,
-          px: parseFloat(el.dataset.x) / 100, // home, as a fraction of hero size
-          py: parseFloat(el.dataset.y) / 100,
-          rot: parseFloat(el.dataset.rot || '0'),
-          phase: i * 2.1,
-          x: 0, y: 0,
-        }));
-        const homeX = (s) => s.px * rect.width - s.w / 2;
-        const homeY = (s) => s.py * rect.height - s.h / 2;
-
-        if (reduce) {
-          for (const s of specs) {
-            s.el.style.transform = `translate(${homeX(s)}px, ${homeY(s)}px) rotate(${s.rot}deg)`;
-          }
-          return; // CSS forces opacity:1 under reduced-motion
-        }
-
-        // entrance: start up-right of home, the spring pulls them in
-        for (const s of specs) {
-          s.x = homeX(s) + 180;
-          s.y = homeY(s) - 110;
-          // apply synchronously so the resting spot is never (0,0)
-          s.el.style.transform = `translate(${s.x}px, ${s.y}px) rotate(${s.rot}deg)`;
-        }
-        els.forEach((el, i) => setTimeout(() => { el.style.opacity = '1'; }, 250 + i * 200));
-
-        // watchdog: environments where rAF never fires (some headless
-        // renderers) would leave the envelopes frozen — settle them home.
-        let framesRan = 0;
-        setTimeout(() => {
-          if (framesRan > 0) return;
-          for (const s of specs) {
-            s.el.style.transform = `translate(${homeX(s)}px, ${homeY(s)}px) rotate(${s.rot}deg)`;
-          }
-        }, 1500);
-
-        let mouse = null;
-        hero.addEventListener('mousemove', (e) => {
-          mouse = { x: e.clientX - rect.left, y: e.clientY - rect.top };
-        });
-        hero.addEventListener('mouseleave', () => { mouse = null; });
-
-        function frame(t) {
-          framesRan++;
-          const time = t / 1000;
-          // pick the attracted envelope: nearest home within radius
-          let follower = null;
-          if (mouse && finePointer) {
-            let best = FOLLOW_R;
-            for (const s of specs) {
-              const d = Math.hypot(mouse.x - homeX(s), mouse.y - homeY(s));
-              if (d < best) { best = d; follower = s; }
-            }
-          }
-          for (const s of specs) {
-            const bob = Math.sin(time * 1.5 + s.phase) * 6;
-            let tx, ty;
-            if (s === follower) {
-              // trail behind-left of the cursor so text stays readable
-              tx = mouse.x - 160;
-              ty = mouse.y - 70 + bob * 0.4;
-            } else {
-              tx = homeX(s);
-              ty = homeY(s) + bob;
-            }
-            const k = s === follower ? 0.085 : 0.05; // spring stiffness
-            const px = s.x;
-            s.x += (tx - s.x) * k;
-            s.y += (ty - s.y) * k;
-            const vx = s.x - px;
-            const tilt = s === follower ? Math.max(-16, Math.min(16, vx * 1.1)) : 0;
-            s.el.style.transform = `translate(${s.x}px, ${s.y}px) rotate(${s.rot + tilt}deg)`;
-          }
-          requestAnimationFrame(frame);
-        }
-        requestAnimationFrame(frame);
-      }
-      initEnvelopes();
-
-      // ── final CTA lottie (lazy load, reduced-motion aware) ─────────────
-      (function initFinalLottie() {
-        const host = document.getElementById('lottie-final');
-        if (!host) return;
-        const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-        let anim = null;
-        const start = () => {
-          if (anim || !window.lottie) return;
-          anim = window.lottie.loadAnimation({
-            container: host,
-            renderer: 'svg',
-            loop: true,
-            autoplay: !reduce,
-            path: '/animations/email-sent.json',
-          });
-          if (reduce) {
-            // static golden envelope, no motion — content still complete
-            anim.addEventListener('DOMLoaded', () => anim.goToAndStop(60, true));
-          } else {
-            new IntersectionObserver((entries) => {
-              entries.forEach((en) => (en.isIntersecting ? anim.play() : anim.pause()));
-            }, { threshold: 0.15 }).observe(host);
-          }
-        };
-        const load = () => {
-          if (window.lottie) return start();
-          const s = document.createElement('script');
-          s.src = '/vendor/lottie_svg.min.js';
-          s.onload = start;
-          document.head.appendChild(s);
-        };
-        new IntersectionObserver((entries, io) => {
-          if (entries.some((en) => en.isIntersecting)) { io.disconnect(); load(); }
-        }, { rootMargin: '400px' }).observe(host);
-      })();
 
       runTerminal();
     </script>

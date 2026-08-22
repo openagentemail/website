@@ -4,9 +4,10 @@ import '../styles/global.css';
 interface Props {
   title: string;
   description: string;
+  wide?: boolean;
 }
 
-const { title, description } = Astro.props;
+const { title, description, wide = false } = Astro.props;
 ---
 
 <!doctype html>
@@ -24,17 +25,19 @@ const { title, description } = Astro.props;
   <body>
     <nav>
       <div class="wrap">
-        <a class="brand" href="/">
+        <a class="brand" href="/" aria-label="openagent.email home">
           <img src="/favicon.svg" alt="" />
           <span>openagent<span class="gold">.email</span></span>
         </a>
         <span class="spacer"></span>
-        <a class="navlink" href="/docs/">Docs</a>
+        <a class="navlink" href="/compare">Compare</a>
+        <a class="navlink" href="/pricing">Pricing</a>
         <a class="navlink" href="https://github.com/openagentemail/openagentemail">GitHub</a>
+        <a class="navlink" href="/docs/">Docs</a>
       </div>
     </nav>
 
-    <main class="legal wrap">
+    <main class:list={['legal', 'wrap', { 'legal-wide': wide }]}>
       <slot />
     </main>
 
@@ -58,6 +61,7 @@ const { title, description } = Astro.props;
     max-width: 44rem;
     padding: 3.5rem 1.5rem 5rem;
   }
+  .legal.legal-wide { max-width: 72rem; }
   .legal h1 {
     font-size: clamp(2rem, 5vw, 2.8rem);
     margin-bottom: 0.4rem;

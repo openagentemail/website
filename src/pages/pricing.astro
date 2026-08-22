@@ -1,13 +1,19 @@
 ---
 import Legal from '../layouts/Legal.astro';
+import EnvelopeOrbit from '../components/EnvelopeOrbit.astro';
+import PaperPlane from '../components/PaperPlane.astro';
 ---
 
 <Legal
   title="Pricing"
-  description="openagent.email is free and open source. Hosted Pro — we run it for you — is coming soon at $5/month."
+  description="openagent.email is free and open source. Hosted Pro starts at $5/month with a 3-day free trial."
+  wide
 >
-  <h1>Pricing</h1>
-  <p class="updated">Simple, honest pricing. No per-mailbox caps, ever.</p>
+  <header class="pricing-hero" data-envelope-root>
+    <EnvelopeOrbit compact />
+    <h1>Pricing</h1>
+    <p class="updated">Simple, honest pricing. No per-mailbox caps, ever.</p>
+  </header>
 
   <div class="plans">
     <section class="plan">
@@ -24,11 +30,11 @@ import Legal from '../layouts/Legal.astro';
         You only pay for your own infrastructure: a VPS (~$4–6/month at any provider) and a
         domain (~$10/year).
       </p>
-      <p class="cta"><a href="/docs/quickstart/">Get started →</a></p>
+      <p class="cta"><a class="btn btn-ghost" href="/docs/quickstart/">Get started →</a></p>
     </section>
 
     <section class="plan">
-      <h2>Hosted Pro <span class="badge">Launching soon</span></h2>
+      <h2>Hosted Pro <span class="badge">Available now</span></h2>
       <p class="price">$5 <small>/month</small></p>
       <p class="tagline">
         Same product, we run it for you. No VPS, no setup — your agents get mailboxes on our
@@ -38,28 +44,25 @@ import Legal from '../layouts/Legal.astro';
         <li>Unlimited agent mailboxes</li>
         <li>Dashboard, phone push notifications, agent tasks</li>
         <li>Managed updates, backups, and monitoring</li>
-        <li>Free 3-day trial, cancel anytime</li>
+        <li>3-day free trial on the monthly plan</li>
       </ul>
-      <p class="cost-note">
-        <strong>Early bird:</strong> $30/year (50% off the regular $60/year), locked for early
-        supporters for the lifetime of an uninterrupted subscription.
-      </p>
-      <p class="cta">
-        <a href="mailto:support@openagent.email?subject=Hosted%20Pro%20waitlist"
-          >Join the waitlist →</a
-        >
-      </p>
+      <p class="cost-note"><strong>Early-bird annual plan:</strong> $30/year — <strong>half price</strong> versus monthly, <strong>locked in for life</strong>. No free trial.</p>
+      <div class="cta cta-stack">
+        <a class="btn btn-gold" href="https://hosted.openagent.email/checkout">Start your 3-day trial — $5/month →</a>
+        <a class="btn btn-ghost" href="https://hosted.openagent.email/checkout?plan=yearly">Lock in early-bird — $30/year →</a>
+      </div>
     </section>
   </div>
 
   <h2>Notes</h2>
   <ul>
-    <li>Prices in USD. Hosted subscriptions are processed by a Merchant of Record at launch.</li>
-    <li>Waitlist subscribers get first access — $5/month, 3-day trial at launch.</li>
+    <li>Prices are in USD.</li>
+    <li>The $5 monthly plan includes a 3-day free trial. The $30 annual early-bird plan skips the trial but is half the price of paying monthly — and that rate is locked in for as long as you stay subscribed.</li>
     <li>
       Questions? Email <a href="mailto:support@openagent.email">support@openagent.email</a>.
     </li>
   </ul>
+  <PaperPlane lottie />
 </Legal>
 
 <style>
@@ -68,6 +71,7 @@ import Legal from '../layouts/Legal.astro';
     gap: 1.25rem;
     margin: 1.5rem 0 2rem;
   }
+  .pricing-hero { position: relative; padding-bottom: .5rem; }
   @media (min-width: 44rem) {
     .plans {
       grid-template-columns: 1fr 1fr;
@@ -77,9 +81,12 @@ import Legal from '../layouts/Legal.astro';
     border: 1px solid color-mix(in srgb, currentColor 14%, transparent);
     border-radius: 0.75rem;
     padding: 1.25rem 1.4rem;
+    display: flex;
+    flex-direction: column;
   }
   .plan h2 {
     margin-top: 0;
+    min-height: 2.1rem;
   }
   .plan .badge {
     font-size: 0.7rem;
@@ -104,11 +111,26 @@ import Legal from '../layouts/Legal.astro';
   }
   .plan .tagline {
     margin: 0 0 0.8rem;
+    min-height: 3.4rem;
   }
   .plan .cost-note {
     font-size: 0.9rem;
   }
-  .plan .cta a {
-    font-weight: 600;
+  .plan .cta {
+    margin: auto 0 0;
+    min-height: 5.8rem;
+    display: flex;
+    align-items: flex-end;
   }
+  .plan .cta-stack {
+    display: grid;
+    align-content: end;
+    gap: 0.65rem;
+  }
+  .plan .cta .btn {
+    width: 100%;
+    justify-content: center;
+    box-sizing: border-box;
+  }
+  @media (max-width: 43.99rem) { .plan .tagline { min-height: 0; } }
 </style>

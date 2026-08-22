@@ -1,0 +1,135 @@
+---
+import Legal from '../layouts/Legal.astro';
+import EnvelopeOrbit from '../components/EnvelopeOrbit.astro';
+import PaperPlane from '../components/PaperPlane.astro';
+---
+
+<Legal title="Compare agent email options" description="An honest comparison of openagent.email, AgentMail, and MailSlurp for AI-agent email." wide>
+  <div class="compare-shell">
+  <header class="compare-hero" data-envelope-root>
+    <EnvelopeOrbit compact />
+    <h1>Compare agent email options</h1>
+    <p class="lede">Different products make different trade-offs: openagent.email is open-source software you run; AgentMail is a managed agent-email product with enterprise BYOC; MailSlurp is a hosted testing platform for email and SMS.</p>
+  </header>
+  <div class="table-wrap"><table class="compare"><thead><tr><th></th><th>openagent.email</th><th>AgentMail</th><th>MailSlurp</th></tr></thead><tbody>
+    <tr><td>Open source</td><td>Apache-2.0</td><td>Closed source</td><td>Closed source</td></tr><tr><td>Deployment</td><td>Any VPS or cloud</td><td>SaaS or AWS Outposts BYOC</td><td>SaaS only</td></tr><tr><td>Price</td><td>Free software + your server</td><td>Per-inbox subscription</td><td>Metered usage</td></tr><tr><td>Unlimited inboxes</td><td>Yes, on your domain</td><td>Paid-tier limits</td><td>Metered, often disposable</td></tr><tr><td>MCP-native</td><td>Yes</td><td>Not independently verified</td><td>REST/SDKs</td></tr><tr><td>OTP/link extraction</td><td>Built in</td><td>Not independently verified</td><td>Testing workflows</td></tr><tr><td>Mail data residency</td><td>Your box</td><td>SaaS: theirs; Outposts: your AWS</td><td>Their infrastructure</td></tr><tr><td>Vendor control plane</td><td>None</td><td>Yes, including Outposts</td><td>Yes</td></tr><tr><td>You run a server</td><td>Yes</td><td>No, unless enterprise BYOC</td><td>No</td></tr>
+  </tbody></table></div>
+
+  <div class="dims">
+    <article class="dim-card">
+      <h2>Open source</h2>
+      <p>Source availability determines whether you can audit, fork, and keep running the system. openagent.email is Apache-2.0 software with standard SMTP/IMAP underneath. AgentMail and MailSlurp are closed-source hosted products. The trade-off is simple: a managed vendor removes operations; open source leaves the operating choice with you.</p>
+    </article>
+
+    <article class="dim-card">
+      <h2>Deployment</h2>
+      <p>openagent.email runs on any VPS or cloud you choose. AgentMail is hosted SaaS by default, with an enterprise Outposts BYOC option that runs send, receive, storage, and search in your AWS account (AWS today; more clouds planned). MailSlurp is SaaS only. If you never want to operate a server, hosted is the fastest path; self-hosting trades that convenience for portability.</p>
+    </article>
+
+    <article class="dim-card">
+      <h2>Price</h2>
+      <p>openagent.email is free software: a small VPS of about $5/month and a domain cover the infrastructure. AgentMail uses a usage-scaling subscription with a limited free tier; Outposts is enterprise-tier. MailSlurp meters inboxes and volume. Hosted pricing buys operational convenience, while a fixed server bill is usually easier to predict for many persistent identities.</p>
+    </article>
+
+    <article class="dim-card">
+      <h2>Unlimited inboxes</h2>
+      <p>One openagent.email domain can hold unlimited persistent <code>anything@yourdomain</code> identities without provisioning or per-inbox cost. AgentMail's capacity depends on its paid tier. MailSlurp's inboxes are metered and are often disposable by design. Persistent production mailboxes for agents and throwaway test inboxes are useful for different jobs.</p>
+    </article>
+
+    <article class="dim-card">
+      <h2>MCP-native access</h2>
+      <p>openagent.email includes a REST API, MCP server, and a human dashboard. AgentMail offers REST, websockets, webhooks, and SDKs; MailSlurp offers REST, language SDKs, and a dashboard. The practical difference is not whether an API exists, but whether your agent's primary workflow is mailbox work or testing an application you are building.</p>
+    </article>
+
+    <article class="dim-card">
+      <h2>OTP and verification links</h2>
+      <p>openagent.email automatically extracts OTP codes and verification links while keeping raw text and HTML available. The earlier AgentMail comparison did not independently verify an equivalent extraction feature, so it makes no claim here. MailSlurp is specifically geared to exercising an app's email and SMS flows, and it offers SMS testing, which openagent.email does not.</p>
+    </article>
+
+    <article class="dim-card">
+      <h2>Mail data residency</h2>
+      <p>Your openagent.email mail and tokens stay on your machine. AgentMail Outposts is a real option when email content must stay in AWS, but AgentMail Cloud still operates its dashboard, authentication, billing, upgrades, and product control plane. MailSlurp stores mail in its hosted infrastructure. Residency is a meaningful distinction, but it is not identical to owning the whole stack.</p>
+    </article>
+
+    <article class="dim-card">
+      <h2>Vendor control plane</h2>
+      <p>openagent.email has no vendor control plane: you run the dashboard, auth, upgrades, and mail system. Managed products own those operational pieces, including uptime and deliverability. That is valuable when you want a vendor accountable for operations; it is also the dependency you avoid when you self-host.</p>
+    </article>
+
+    <article class="dim-card">
+      <h2>You run a server</h2>
+      <p>Self-hosting means you own DNS, the machine, and its reputation. In return, you get an auditable stack and can use Amazon SES or another SMTP relay with one environment variable if your VPS provider blocks port 25. AgentMail is the better fit when that is not work you want; MailSlurp is the better fit for CI/QA and zero-infrastructure test inboxes.</p>
+    </article>
+  </div>
+
+  <div class="dims detail">
+    <h2 id="agentmail">AgentMail: deployment and control, in detail</h2>
+    <p>AgentMail's enterprise Outposts BYOC option has real AWS data residency. It is not the same as open-source self-hosting, because the AgentMail product control plane remains operated by the vendor. That may be exactly the trade-off an enterprise team wants.</p>
+    <p class="note">Fair credit where it is due: Outposts is a real option when email content must stay in AWS. If you want zero servers, AgentMail's managed path is the fastest one.</p>
+
+    <h2 id="mailslurp">Agent workflows beyond the mailbox</h2>
+    <p>openagent.email includes a REST API, MCP server, and a human dashboard. AgentMail offers REST, websockets, webhooks, and SDKs; MailSlurp offers REST, language SDKs, and a dashboard. openagent.email automatically extracts OTP codes and verification links while keeping raw text and HTML available. It also has email-backed agent-to-agent task threads with server-stamped states, receiving-agent wake-ups, a dashboard work-order view, an A2A-vocabulary Agent Card, and per-identity ntfy push tiers: interrupt only, sender + subject, or body + OTP, set by an admin. Equivalent task and push features were not verified for the other products, so no claim is made.</p>
+  </div>
+
+  <div class="cta-final">
+    <PaperPlane lottie />
+    <div class="cta-row"><a class="btn btn-gold" href="/pricing">See hosted and self-hosted pricing →</a></div>
+  </div>
+  </div>
+</Legal>
+
+<style>
+  .compare-shell { width: 100%; max-width: var(--max); margin-inline: auto; }
+  .compare-hero { position: relative; padding-bottom: 2.5rem; border-bottom: 1px solid var(--line); }
+  .compare-hero .lede { max-width: 48rem; margin-bottom: 0; }
+  .table-wrap { width: 100%; overflow-x:auto; margin:2rem 0 3.5rem; border: 1px solid var(--line); border-radius: 14px; background: var(--bg-card); box-shadow: 0 24px 70px rgba(0,0,0,.24); }
+  .compare { width:100%; min-width:42rem; border-collapse:collapse; }
+  .compare th,.compare td { border-bottom:1px solid var(--line); padding:.82rem 1rem; text-align:left; vertical-align:top; line-height:1.5; }
+  .compare tr:last-child td { border-bottom: 0; }
+  .compare th,.compare td:first-child { color:var(--ink); font-weight:700; }
+  .compare th:nth-child(2),.compare td:nth-child(2) { background: rgba(251,191,36,.055); }
+  .compare th:nth-child(2) { color: var(--gold); border-top: 2px solid var(--gold); }
+
+  .dims { counter-reset: dim; }
+  .dims:not(.detail) { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.2rem; margin: 0 0 3.5rem; }
+  .dim-card { min-width: 0; padding: 1.5rem; border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg-card); }
+  .dims > h2,
+  .dim-card > h2 {
+    counter-increment: dim;
+    display: flex;
+    align-items: baseline;
+    gap: 0.7rem;
+    font-size: 1.18rem;
+    margin: 0 0 0.6rem;
+  }
+  .dims > h2::before,
+  .dim-card > h2::before {
+    content: '0' counter(dim);
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    letter-spacing: 0.08em;
+    color: var(--gold);
+    border: 1px solid rgba(251, 191, 36, 0.4);
+    border-radius: 999px;
+    padding: 0.08rem 0.5rem;
+    flex-shrink: 0;
+    align-self: center;
+  }
+  .dims > h2 { margin: 2.2rem 0 0.6rem; }
+  .dim-card > h2 { margin: 0 0 0.6rem; }
+  .dim-card > p { margin: 0; }
+  .dims.detail { max-width: 75ch; margin: 0 auto 3.5rem; }
+  .dims.detail > h2::before { content: none; }
+  .dims.detail > h2 { color: var(--gold); font-size: 1.05rem; }
+  .note { color: var(--ink-dim); line-height: 1.7; }
+
+  .cta-final { margin-top: 2.6rem; text-align: center; border-top: 1px solid var(--line); padding-top: 1.5rem; }
+  .cta-final .lottie-final { margin-bottom: 0.4rem; }
+  .cta-row { margin-top: 1.2rem; }
+
+  @media (max-width: 48rem) {
+    .compare-hero { padding-bottom: 2rem; }
+    .dims:not(.detail) { grid-template-columns: 1fr; }
+    .dim-card { padding: 1.25rem; }
+  }
+</style>
