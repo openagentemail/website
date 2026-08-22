@@ -27,18 +27,20 @@ function isFreshLastChecked(date, now = new Date()) {
 
   const [, year, month, day] = parts.map(Number);
   const checkedAt = new Date(Date.UTC(year, month - 1, day));
+  const nowAtStartOfDay = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
   const isExactDate = checkedAt.getUTCFullYear() === year
     && checkedAt.getUTCMonth() === month - 1
     && checkedAt.getUTCDate() === day;
 
   return isExactDate
-    && checkedAt.valueOf() <= now.valueOf() + 24 * 60 * 60 * 1000
-    && now.valueOf() - checkedAt.valueOf() <= 90 * 24 * 60 * 60 * 1000;
+    && checkedAt.valueOf() <= nowAtStartOfDay + 24 * 60 * 60 * 1000
+    && nowAtStartOfDay - checkedAt.valueOf() <= 90 * 24 * 60 * 60 * 1000;
 }
 
 const fixedNow = new Date('2026-08-22T00:00:00.000Z');
 assert.equal(isFreshLastChecked(lastChecked.groups.date), true, 'Current Last checked date must be fresh');
 assert.equal(isFreshLastChecked('2026-08-22', fixedNow), true, 'Current Last checked date must pass with a fixed clock');
+assert.equal(isFreshLastChecked('2026-05-24', new Date('2026-08-22T12:00:00.000Z')), true, 'A date 90 calendar days old must remain fresh throughout that day');
 assert.equal(isFreshLastChecked('2026-05-23', fixedNow), false, 'A date 91 days old must fail freshness');
 assert.equal(isFreshLastChecked('2026-08-24', fixedNow), false, 'A future date beyond the one-day timezone allowance must fail freshness');
 assert.equal(isFreshLastChecked('2026-02-30', fixedNow), false, 'An impossible calendar date must fail freshness');
