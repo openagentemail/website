@@ -22,8 +22,16 @@ const lastChecked = compare.match(/<p class="last-checked">Last checked: (?<date
 assert.ok(lastChecked?.groups, 'Last checked date and sources must be present');
 
 function isFreshLastChecked(date, now = new Date()) {
-  const checkedAt = new Date(`${date}T00:00:00.000Z`);
-  return Number.isFinite(checkedAt.valueOf())
+  const parts = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
+  if (!parts) return false;
+
+  const [, year, month, day] = parts.map(Number);
+  const checkedAt = new Date(Date.UTC(year, month - 1, day));
+  const isExactDate = checkedAt.getUTCFullYear() === year
+    && checkedAt.getUTCMonth() === month - 1
+    && checkedAt.getUTCDate() === day;
+
+  return isExactDate
     && checkedAt.valueOf() <= now.valueOf() + 24 * 60 * 60 * 1000
     && now.valueOf() - checkedAt.valueOf() <= 90 * 24 * 60 * 60 * 1000;
 }
@@ -33,6 +41,7 @@ assert.equal(isFreshLastChecked(lastChecked.groups.date), true, 'Current Last ch
 assert.equal(isFreshLastChecked('2026-08-22', fixedNow), true, 'Current Last checked date must pass with a fixed clock');
 assert.equal(isFreshLastChecked('2026-05-23', fixedNow), false, 'A date 91 days old must fail freshness');
 assert.equal(isFreshLastChecked('2026-08-24', fixedNow), false, 'A future date beyond the one-day timezone allowance must fail freshness');
+assert.equal(isFreshLastChecked('2026-02-30', fixedNow), false, 'An impossible calendar date must fail freshness');
 
 for (const source of [
   'https://www.agentmail.to/pricing',
