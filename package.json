@@ -8,7 +8,10 @@
     "build": "astro build",
     "preview": "astro preview",
     "test:compare-facts": "node --test tests/compare-facts.test.mjs",
-    "test:compare-freshness": "CHECK_COMPARE_FRESHNESS=1 node --test tests/compare-facts.test.mjs"
+    "test:compare-freshness": "node tests/compare-facts.test.mjs --check-freshness",
+    "test:compare-rendered": "node tests/compare-facts.test.mjs --check-rendered",
+    "prebuild": "npm run test:compare-freshness",
+    "postbuild": "npm run test:compare-rendered"
   },
   "dependencies": {
     "@astrojs/starlight": "^0.37.7",

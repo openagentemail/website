@@ -2,6 +2,7 @@
 import Legal from '../layouts/Legal.astro';
 import EnvelopeOrbit from '../components/EnvelopeOrbit.astro';
 import PaperPlane from '../components/PaperPlane.astro';
+import { agentmailSources } from '../data/agentmailSources.js';
 ---
 
 <Legal title="Compare agent email options" description="An honest comparison of openagent.email, AgentMail, and MailSlurp for AI-agent email." wide>
@@ -14,7 +15,7 @@ import PaperPlane from '../components/PaperPlane.astro';
   <div class="table-wrap"><table class="compare"><thead><tr><th></th><th>openagent.email</th><th>AgentMail</th><th>MailSlurp</th></tr></thead><tbody>
     <tr><td>Open source</td><td>Apache-2.0</td><td>Closed source</td><td>Closed source</td></tr><tr><td>Deployment</td><td>Any VPS or cloud</td><td>SaaS or AWS Outposts BYOC</td><td>SaaS only</td></tr><tr><td>Price</td><td>Free software + your server; no per-inbox fee</td><td>Developer/Startup: PAYG +$2 per inbox, domain, or 1k sends; annual plans save 20%</td><td>Metered usage</td></tr><tr><td>Unlimited inboxes</td><td>Yes, on your domain</td><td>Paid-tier limits</td><td>Metered, often disposable</td></tr><tr><td>MCP-native</td><td>Yes</td><td>Official MCP and plugin ecosystem</td><td>REST/SDKs</td></tr><tr><td>Plugins/ecosystem</td><td>Universal MCP: connect directly from Claude, ChatGPT, Grok, or Cursor; official connection guide</td><td>Official OpenClaw plugin + Grok Bot Cursor plugin</td><td>REST/SDKs</td></tr><tr><td>OTP/link extraction</td><td>Built in</td><td>Not independently verified</td><td>Testing workflows</td></tr><tr><td>Mail data residency</td><td>Your box</td><td>SaaS: theirs; Outposts: your AWS</td><td>Their infrastructure</td></tr><tr><td>Vendor control plane</td><td>None</td><td>Yes, including Outposts</td><td>Yes</td></tr><tr><td>You run a server</td><td>Yes</td><td>No, unless enterprise BYOC</td><td>No</td></tr>
   </tbody></table></div>
-  <p class="last-checked">Last checked: 2026-08-22 · AgentMail sources: <a href="https://www.agentmail.to/pricing" rel="noopener noreferrer">pricing</a>, <a href="https://docs.agentmail.to/integrations/mcp" rel="noopener noreferrer">official MCP docs</a>, <a href="https://www.agentmail.to/blog/agentmail-official-openclaw-plugin" rel="noopener noreferrer">official OpenClaw plugin</a>, <a href="https://www.agentmail.to/blog/give-grok-bot-email-address" rel="noopener noreferrer">Grok Bot email / Cursor plugin</a>.</p>
+  <p class="last-checked">Last checked: 2026-08-22 · AgentMail sources: {agentmailSources.map((source, index) => <Fragment><a href={source.href} rel="noopener noreferrer">{source.label}</a>{index < agentmailSources.length - 1 ? ', ' : ''}</Fragment>)}.</p>
 
   <div class="dims">
     <article class="dim-card">

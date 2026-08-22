@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
+import { agentmailSources } from '../src/data/agentmailSources.js';
 
 const compare = await readFile(new URL('../src/pages/compare.astro', import.meta.url), 'utf8');
 
@@ -45,21 +46,30 @@ assert.equal(isFreshLastChecked('2026-05-23', fixedNow), false, 'A date 91 days 
 assert.equal(isFreshLastChecked('2026-08-24', fixedNow), false, 'A future date beyond the one-day timezone allowance must fail freshness');
 assert.equal(isFreshLastChecked('2026-02-30', fixedNow), false, 'An impossible calendar date must fail freshness');
 
-if (process.env.CHECK_COMPARE_FRESHNESS === '1') {
+if (process.argv.includes('--check-freshness')) {
   assert.equal(isFreshLastChecked(lastChecked.groups.date), true, freshnessMaintenanceMessage);
 }
 
-const sourceLinks = [...lastChecked.groups.sources.matchAll(/<a\b(?<attributes>[^>]*)>/g)].map(({ groups }) =>
-  Object.fromEntries([...groups.attributes.matchAll(/(?<name>[^\s=]+)="(?<value>[^"]*)"/g)].map(({ groups: attribute }) => [attribute.name, attribute.value])),
-);
+assert.ok(compare.includes('agentmailSources.map'), 'Compare page must render the shared AgentMail sources');
+assert.ok(compare.includes('source.href') && compare.includes('source.label') && compare.includes('rel="noopener noreferrer"'), 'Compare page must bind each source href, label, and rel protection');
 
-for (const source of [
-  'https://www.agentmail.to/pricing',
-  'https://docs.agentmail.to/integrations/mcp',
-  'https://www.agentmail.to/blog/agentmail-official-openclaw-plugin',
-  'https://www.agentmail.to/blog/give-grok-bot-email-address',
-]) {
-  const link = sourceLinks.find(({ href }) => href === source);
-  assert.ok(link, `Missing primary AgentMail source: ${source}`);
-  assert.equal(link.rel, 'noopener noreferrer', `Missing rel protection for primary AgentMail source: ${source}`);
+function parseSourceLinks(markup) {
+  return [...markup.matchAll(/<a\b(?<attributes>[^>]*)>(?<label>[\s\S]*?)<\/a>/g)].map(({ groups }) => ({
+    ...Object.fromEntries([...groups.attributes.matchAll(/(?<name>[^\s=]+)="(?<value>[^"]*)"/g)].map(({ groups: attribute }) => [attribute.name, attribute.value])),
+    label: groups.label,
+  }));
+}
+
+if (process.argv.includes('--check-rendered')) {
+  const renderedCompare = await readFile(new URL('../dist/compare/index.html', import.meta.url), 'utf8');
+  const renderedLastChecked = renderedCompare.match(/<p\b[^>]*\bclass="[^"]*\blast-checked\b[^"]*"[^>]*>(?<content>[\s\S]*?)<\/p>/);
+  assert.ok(renderedLastChecked?.groups, 'Built compare page must include Last checked sources');
+
+  const sourceLinks = parseSourceLinks(renderedLastChecked.groups.content);
+  for (const source of agentmailSources) {
+    const link = sourceLinks.find(({ href }) => href === source.href);
+    assert.ok(link, `Built compare page is missing primary AgentMail source: ${source.href}`);
+    assert.equal(link.rel, 'noopener noreferrer', `Built compare page is missing rel protection: ${source.href}`);
+    assert.equal(link.label, source.label, `Built compare page has the wrong source label: ${source.href}`);
+  }
 }
