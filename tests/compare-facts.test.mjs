@@ -14,7 +14,7 @@ assert.throws(() => assertOfficialAgentmailSources([{ href: 'not a URL', label: 
 const requiredAgentmailSourcesDigest = 'b60b5ee65e77a90c7d956dfd3770346020bcf71c46eb5a5e99fe92d0df46d874';
 
 function sourceDigest(sources) {
-  const canonicalSources = sources.map(({ href, label }) => `${href}\t${label}`).toSorted().join('\n');
+  const canonicalSources = sources.map(({ href, label }) => `${href}\t${label}`).sort().join('\n');
   return createHash('sha256').update(canonicalSources).digest('hex');
 }
 
