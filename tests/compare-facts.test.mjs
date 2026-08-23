@@ -4,6 +4,14 @@ import { parse } from 'parse5';
 import { agentmailLastChecked, agentmailSources } from '../src/data/agentmailSources.js';
 
 const compare = await readFile(new URL('../src/pages/compare.astro', import.meta.url), 'utf8');
+const requiredAgentmailSources = [
+  { href: 'https://www.agentmail.to/pricing', label: 'pricing' },
+  { href: 'https://docs.agentmail.to/integrations/mcp', label: 'official MCP docs' },
+  { href: 'https://www.agentmail.to/blog/agentmail-official-openclaw-plugin', label: 'official OpenClaw plugin' },
+  { href: 'https://www.agentmail.to/blog/give-grok-bot-email-address', label: 'Grok Bot email / Cursor plugin' },
+];
+
+assert.deepEqual(agentmailSources, requiredAgentmailSources, 'Shared AgentMail sources must retain the independently required official URLs and labels');
 
 for (const fact of [
   'Official MCP and plugin ecosystem',
@@ -71,7 +79,7 @@ if (process.argv.includes('--check-rendered')) {
   assert.ok(text(renderedLastChecked).startsWith(`Last checked: ${agentmailLastChecked} · AgentMail sources:`), 'Built compare page must render the shared Last checked date');
 
   const sourceLinks = descendants(renderedLastChecked).filter((node) => node.nodeName === 'a');
-  for (const source of agentmailSources) {
+  for (const source of requiredAgentmailSources) {
     const link = sourceLinks.find((node) => attribute(node, 'href') === source.href);
     assert.ok(link, `Built compare page is missing primary AgentMail source: ${source.href}`);
     assert.equal(attribute(link, 'rel'), 'noopener noreferrer', `Built compare page is missing rel protection: ${source.href}`);
