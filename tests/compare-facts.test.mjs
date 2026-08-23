@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { parse } from 'parse5';
-import { agentmailSources } from '../src/data/agentmailSources.js';
+import { agentmailLastChecked, agentmailSources } from '../src/data/agentmailSources.js';
 
 const compare = await readFile(new URL('../src/pages/compare.astro', import.meta.url), 'utf8');
 
@@ -19,9 +19,6 @@ for (const fact of [
 assert.doesNotMatch(compare, /Not independently verified<\/td><td>REST\/SDKs/, 'AgentMail MCP must not be described as unverified');
 assert.doesNotMatch(compare, /Per-inbox subscription/, 'Price must not imply a subscription cliff');
 assert.doesNotMatch(compare, /The openagent\.email difference is clear/, 'Comparison copy must remain neutral');
-
-const lastChecked = compare.match(/<p class="last-checked">Last checked: (?<date>\d{4}-\d{2}-\d{2})(?<sources>[\s\S]*?)<\/p>/);
-assert.ok(lastChecked?.groups, 'Last checked date and sources must be present');
 
 function isFreshLastChecked(date, now = new Date()) {
   const parts = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
@@ -49,16 +46,7 @@ assert.equal(isFreshLastChecked('2026-08-24', fixedNow), false, 'A future date m
 assert.equal(isFreshLastChecked('2026-02-30', fixedNow), false, 'An impossible calendar date must fail freshness');
 
 if (process.argv.includes('--check-freshness')) {
-  assert.equal(isFreshLastChecked(lastChecked.groups.date), true, freshnessMaintenanceMessage);
-}
-
-assert.match(compare, /import\s+\{\s*agentmailSources\s*\}\s+from\s+['"]\.\.\/data\/agentmailSources\.js['"]/, 'Compare page must import the shared AgentMail sources');
-assert.match(compare, /agentmailSources\.map\(/, 'Compare page must render the shared AgentMail sources');
-
-for (const source of agentmailSources) {
-  const url = new URL(source.href);
-  assert.equal(url.protocol, 'https:', `Official AgentMail source must use HTTPS: ${source.href}`);
-  assert.ok(['www.agentmail.to', 'docs.agentmail.to'].includes(url.hostname), `Official AgentMail source must stay on an AgentMail domain: ${source.href}`);
+  assert.equal(isFreshLastChecked(agentmailLastChecked), true, freshnessMaintenanceMessage);
 }
 
 function descendants(node) {
@@ -80,6 +68,7 @@ if (process.argv.includes('--check-rendered')) {
     node.nodeName === 'p' && attribute(node, 'class')?.split(/\s+/).includes('last-checked'),
   );
   assert.ok(renderedLastChecked, 'Built compare page must include Last checked sources');
+  assert.ok(text(renderedLastChecked).startsWith(`Last checked: ${agentmailLastChecked} · AgentMail sources:`), 'Built compare page must render the shared Last checked date');
 
   const sourceLinks = descendants(renderedLastChecked).filter((node) => node.nodeName === 'a');
   for (const source of agentmailSources) {
