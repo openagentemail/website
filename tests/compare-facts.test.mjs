@@ -18,7 +18,7 @@ function sourceDigest(sources) {
   return createHash('sha256').update(canonicalSources).digest('hex');
 }
 
-assert.equal(sourceDigest(agentmailSources), requiredAgentmailSourcesDigest, 'Shared AgentMail sources must retain the required official source set');
+assert.equal(sourceDigest(agentmailSources), requiredAgentmailSourcesDigest, 'Shared AgentMail sources must retain the required official source set. After rechecking official sources, intentionally update requiredAgentmailSourcesDigest with the approved source change.');
 
 for (const fact of [
   'Official MCP and plugin ecosystem',
