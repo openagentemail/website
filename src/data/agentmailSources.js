@@ -9,9 +9,13 @@ export const agentmailSources = [
   { href: 'https://www.agentmail.to/blog/give-grok-bot-email-address', label: 'Grok Bot email / Cursor plugin' },
 ];
 
-for (const source of agentmailSources) {
-  const url = new URL(source.href);
-  if (url.protocol !== 'https:' || !approvedAgentmailHosts.has(url.hostname)) {
-    throw new Error(`AgentMail source must use HTTPS on an approved AgentMail host: ${source.href}`);
+export function assertOfficialAgentmailSources(sources) {
+  for (const source of sources) {
+    const url = new URL(source.href);
+    if (url.protocol !== 'https:' || !approvedAgentmailHosts.has(url.hostname)) {
+      throw new Error(`AgentMail source must use HTTPS on an approved AgentMail host: ${source.href}`);
+    }
   }
 }
+
+assertOfficialAgentmailSources(agentmailSources);

@@ -17,6 +17,6 @@ npm run preview
 
 ## Compare freshness gate
 
-`npm run build` intentionally fails closed when `/compare`'s `Last checked` date is more than 90 days old, using the build host's UTC clock (which must be synchronized). When it fails, recheck the official AgentMail sources, update the comparison facts, and refresh `Last checked`. Use `npm run test:compare-freshness` to run that gate directly; it is a deliberate deployment safeguard, not an optional warning.
+`npm run build` intentionally fails closed when `/compare`'s `Last checked` date is more than 90 days old, using the build host's UTC clock (which must be synchronized). Within 14 days of expiry it prints a proactive maintenance warning; after 90 days it fails closed. Recheck the official AgentMail sources, update the comparison facts, and refresh `Last checked`. Use `npm run test:compare-freshness` to run that gate directly; it is a deliberate deployment safeguard, not an optional warning.
 
 Do not commit `.env`. Copy on the homepage feature cards **and** the homepage FAQ (`const faq` in `src/pages/index.astro`) is owner-approved — do not rephrase it. FAQPage JSON-LD is generated from that same `faq` array.

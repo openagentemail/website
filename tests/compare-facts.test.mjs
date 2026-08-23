@@ -1,17 +1,13 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { parse } from 'parse5';
-import { agentmailLastChecked, agentmailSources } from '../src/data/agentmailSources.js';
+import { agentmailLastChecked, agentmailSources, assertOfficialAgentmailSources } from '../src/data/agentmailSources.js';
 
 const compare = await readFile(new URL('../src/pages/compare.astro', import.meta.url), 'utf8');
-const requiredAgentmailSources = [
-  { href: 'https://www.agentmail.to/pricing', label: 'pricing' },
-  { href: 'https://docs.agentmail.to/integrations/mcp', label: 'official MCP docs' },
-  { href: 'https://www.agentmail.to/blog/agentmail-official-openclaw-plugin', label: 'official OpenClaw plugin' },
-  { href: 'https://www.agentmail.to/blog/give-grok-bot-email-address', label: 'Grok Bot email / Cursor plugin' },
-];
 
-assert.deepEqual(agentmailSources, requiredAgentmailSources, 'Shared AgentMail sources must retain the independently required official URLs and labels');
+assert.doesNotThrow(() => assertOfficialAgentmailSources(agentmailSources), 'Shared AgentMail sources must satisfy the module validation');
+assert.throws(() => assertOfficialAgentmailSources([{ href: 'http://www.agentmail.to/pricing', label: 'pricing' }]), /must use HTTPS on an approved AgentMail host/, 'Module validation must reject a non-HTTPS source');
+assert.throws(() => assertOfficialAgentmailSources([{ href: 'https://example.invalid/pricing', label: 'pricing' }]), /must use HTTPS on an approved AgentMail host/, 'Module validation must reject a third-party host');
 
 for (const fact of [
   'Official MCP and plugin ecosystem',
@@ -44,6 +40,20 @@ function isFreshLastChecked(date, now = new Date()) {
     && nowAtStartOfDay - checkedAt.valueOf() <= 90 * 24 * 60 * 60 * 1000;
 }
 
+function freshnessWarning(date, now = new Date()) {
+  const parts = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
+  if (!parts) return undefined;
+
+  const [, year, month, day] = parts.map(Number);
+  const checkedAt = new Date(Date.UTC(year, month - 1, day));
+  const nowAtStartOfDay = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  const daysOld = (nowAtStartOfDay - checkedAt.valueOf()) / (24 * 60 * 60 * 1000);
+
+  return isFreshLastChecked(date, now) && daysOld >= 76
+    ? `Last checked expires in ${90 - daysOld} day(s): recheck the comparison facts and refresh Last checked before the 90-day fail-closed gate.`
+    : undefined;
+}
+
 const fixedNow = new Date('2026-08-22T00:00:00.000Z');
 const freshnessMaintenanceMessage = 'Last checked is stale: refresh the comparison facts and Last checked date. This guard intentionally fails closed after the 90-day freshness window.';
 assert.equal(isFreshLastChecked('2026-08-22', fixedNow), true, 'Current Last checked date must pass with a fixed clock');
@@ -52,8 +62,13 @@ assert.equal(isFreshLastChecked('2026-05-24', new Date('2026-08-22T12:00:00.000Z
 assert.equal(isFreshLastChecked('2026-05-23', fixedNow), false, 'A date 91 days old must fail freshness');
 assert.equal(isFreshLastChecked('2026-08-24', fixedNow), false, 'A future date must fail freshness');
 assert.equal(isFreshLastChecked('2026-02-30', fixedNow), false, 'An impossible calendar date must fail freshness');
+assert.equal(freshnessWarning('2026-08-22', new Date('2026-11-05T00:00:00.000Z')), undefined, 'A date 15 days from expiry must not warn yet');
+assert.match(freshnessWarning('2026-08-22', new Date('2026-11-06T00:00:00.000Z')), /expires in 14 day\(s\)/, 'A date 14 days from expiry must warn proactively');
+assert.equal(isFreshLastChecked('2026-08-22', new Date('2026-11-21T00:00:00.000Z')), false, 'A date 91 days old must block freshness');
 
 if (process.argv.includes('--check-freshness')) {
+  const warning = freshnessWarning(agentmailLastChecked);
+  if (warning) console.warn(warning);
   assert.equal(isFreshLastChecked(agentmailLastChecked), true, freshnessMaintenanceMessage);
 }
 
@@ -79,7 +94,8 @@ if (process.argv.includes('--check-rendered')) {
   assert.ok(text(renderedLastChecked).startsWith(`Last checked: ${agentmailLastChecked} · AgentMail sources:`), 'Built compare page must render the shared Last checked date');
 
   const sourceLinks = descendants(renderedLastChecked).filter((node) => node.nodeName === 'a');
-  for (const source of requiredAgentmailSources) {
+  assert.equal(sourceLinks.length, agentmailSources.length, 'Built compare page must render exactly the shared AgentMail sources');
+  for (const source of agentmailSources) {
     const link = sourceLinks.find((node) => attribute(node, 'href') === source.href);
     assert.ok(link, `Built compare page is missing primary AgentMail source: ${source.href}`);
     assert.equal(attribute(link, 'rel'), 'noopener noreferrer', `Built compare page is missing rel protection: ${source.href}`);
