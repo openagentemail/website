@@ -11,7 +11,12 @@ export const agentmailSources = [
 
 export function assertOfficialAgentmailSources(sources) {
   for (const source of sources) {
-    const url = new URL(source.href);
+    let url;
+    try {
+      url = new URL(source.href);
+    } catch {
+      throw new Error(`AgentMail source must use HTTPS on an approved AgentMail host: ${source.href}`);
+    }
     if (url.protocol !== 'https:' || !approvedAgentmailHosts.has(url.hostname)) {
       throw new Error(`AgentMail source must use HTTPS on an approved AgentMail host: ${source.href}`);
     }

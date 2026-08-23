@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { parse } from 'parse5';
 import { agentmailLastChecked, agentmailSources, assertOfficialAgentmailSources } from '../src/data/agentmailSources.js';
@@ -8,6 +9,16 @@ const compare = await readFile(new URL('../src/pages/compare.astro', import.meta
 assert.doesNotThrow(() => assertOfficialAgentmailSources(agentmailSources), 'Shared AgentMail sources must satisfy the module validation');
 assert.throws(() => assertOfficialAgentmailSources([{ href: 'http://www.agentmail.to/pricing', label: 'pricing' }]), /must use HTTPS on an approved AgentMail host/, 'Module validation must reject a non-HTTPS source');
 assert.throws(() => assertOfficialAgentmailSources([{ href: 'https://example.invalid/pricing', label: 'pricing' }]), /must use HTTPS on an approved AgentMail host/, 'Module validation must reject a third-party host');
+assert.throws(() => assertOfficialAgentmailSources([{ href: 'not a URL', label: 'pricing' }]), /must use HTTPS on an approved AgentMail host/, 'Module validation must reject a malformed source URL with its semantic error');
+
+const requiredAgentmailSourcesDigest = 'b60b5ee65e77a90c7d956dfd3770346020bcf71c46eb5a5e99fe92d0df46d874';
+
+function sourceDigest(sources) {
+  const canonicalSources = sources.map(({ href, label }) => `${href}\t${label}`).toSorted().join('\n');
+  return createHash('sha256').update(canonicalSources).digest('hex');
+}
+
+assert.equal(sourceDigest(agentmailSources), requiredAgentmailSourcesDigest, 'Shared AgentMail sources must retain the required official source set');
 
 for (const fact of [
   'Official MCP and plugin ecosystem',
@@ -54,6 +65,17 @@ function freshnessWarning(date, now = new Date()) {
     : undefined;
 }
 
+function freshnessDiagnostics(date, now = new Date()) {
+  const buildUtc = now.toISOString().slice(0, 10);
+  const parts = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
+  if (!parts) return `buildUtc=${buildUtc} checked=${date} ageDays=invalid`;
+
+  const [, year, month, day] = parts.map(Number);
+  const checkedAt = new Date(Date.UTC(year, month - 1, day));
+  const nowAtStartOfDay = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  return `buildUtc=${buildUtc} checked=${date} ageDays=${(nowAtStartOfDay - checkedAt.valueOf()) / (24 * 60 * 60 * 1000)}`;
+}
+
 const fixedNow = new Date('2026-08-22T00:00:00.000Z');
 const freshnessMaintenanceMessage = 'Last checked is stale: refresh the comparison facts and Last checked date. This guard intentionally fails closed after the 90-day freshness window.';
 assert.equal(isFreshLastChecked('2026-08-22', fixedNow), true, 'Current Last checked date must pass with a fixed clock');
@@ -65,11 +87,14 @@ assert.equal(isFreshLastChecked('2026-02-30', fixedNow), false, 'An impossible c
 assert.equal(freshnessWarning('2026-08-22', new Date('2026-11-05T00:00:00.000Z')), undefined, 'A date 15 days from expiry must not warn yet');
 assert.match(freshnessWarning('2026-08-22', new Date('2026-11-06T00:00:00.000Z')), /expires in 14 day\(s\)/, 'A date 14 days from expiry must warn proactively');
 assert.equal(isFreshLastChecked('2026-08-22', new Date('2026-11-21T00:00:00.000Z')), false, 'A date 91 days old must block freshness');
+assert.equal(freshnessDiagnostics('2026-08-22', fixedNow), 'buildUtc=2026-08-22 checked=2026-08-22 ageDays=0', 'Freshness diagnostics must report the UTC build date, checked date, and age');
 
 if (process.argv.includes('--check-freshness')) {
+  const diagnostics = freshnessDiagnostics(agentmailLastChecked);
+  console.warn(`Compare freshness: ${diagnostics}`);
   const warning = freshnessWarning(agentmailLastChecked);
   if (warning) console.warn(warning);
-  assert.equal(isFreshLastChecked(agentmailLastChecked), true, freshnessMaintenanceMessage);
+  assert.equal(isFreshLastChecked(agentmailLastChecked), true, `${freshnessMaintenanceMessage} Check the synchronized UTC build clock. ${diagnostics}`);
 }
 
 function descendants(node) {
@@ -84,8 +109,19 @@ function text(node) {
   return (node.childNodes ?? []).map((child) => child.nodeName === '#text' ? child.value : text(child)).join('');
 }
 
+async function readRenderedCompare() {
+  try {
+    return await readFile(new URL('../dist/compare/index.html', import.meta.url), 'utf8');
+  } catch (error) {
+    if (error?.code === 'ENOENT') {
+      throw new Error('Built compare page is missing: run npm run build first.');
+    }
+    throw error;
+  }
+}
+
 if (process.argv.includes('--check-rendered')) {
-  const renderedCompare = await readFile(new URL('../dist/compare/index.html', import.meta.url), 'utf8');
+  const renderedCompare = await readRenderedCompare();
   const document = parse(renderedCompare);
   const renderedLastChecked = descendants(document).find((node) =>
     node.nodeName === 'p' && attribute(node, 'class')?.split(/\s+/).includes('last-checked'),
@@ -95,6 +131,7 @@ if (process.argv.includes('--check-rendered')) {
 
   const sourceLinks = descendants(renderedLastChecked).filter((node) => node.nodeName === 'a');
   assert.equal(sourceLinks.length, agentmailSources.length, 'Built compare page must render exactly the shared AgentMail sources');
+  assert.equal(sourceDigest(sourceLinks.map((link) => ({ href: attribute(link, 'href'), label: text(link) }))), requiredAgentmailSourcesDigest, 'Built compare page must render the required official source set');
   for (const source of agentmailSources) {
     const link = sourceLinks.find((node) => attribute(node, 'href') === source.href);
     assert.ok(link, `Built compare page is missing primary AgentMail source: ${source.href}`);
