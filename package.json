@@ -11,7 +11,7 @@
     "test:hosted-checkout": "node --test tests/hosted-checkout.test.mjs",
     "test:compare-freshness": "node tests/compare-facts.test.mjs --check-freshness",
     "test:compare-rendered": "node tests/compare-facts.test.mjs --check-rendered",
-    "prebuild": "npm run test:compare-freshness",
+    "prebuild": "npm run test:compare-freshness && npm run test:hosted-checkout",
     "postbuild": "npm run test:compare-rendered"
   },
   "dependencies": {
