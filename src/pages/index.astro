@@ -35,9 +35,9 @@ const jsonOut = `{
 const faq = [
   {
     q: 'Is it really free?',
-    a: 'Yes — self-hosting is free and unlimited under the Apache-2.0 license: no paid tier, no usage limits, no per-inbox pricing. The only thing you pay for is the server you run it on, and a $5/mo VPS is enough. If you would rather not run a server, Hosted Pro starts at $5/month with a 3-day free trial — see our pricing.',
+    a: 'Yes — self-hosting is free and unlimited under the Apache-2.0 license: no paid tier, no usage limits, no per-inbox pricing. The only thing you pay for is the server you run it on, and a $5/mo VPS is enough. If you would rather not run a server, Hosted Pro is available as a one-time purchase — see our pricing.',
     // Rendered as raw HTML: build-time static content only; never use dynamic data (stored-XSS guard).
-    aHtml: 'Yes — self-hosting is free and unlimited under the Apache-2.0 license: no paid tier, no usage limits, no per-inbox pricing. The only thing you pay for is the server you run it on, and a $5/mo VPS is enough. If you would rather not run a server, Hosted Pro starts at $5/month with a 3-day free trial — <a href="/pricing">see our <strong>pricing</strong></a>.',
+    aHtml: 'Yes — self-hosting is free and unlimited under the Apache-2.0 license: no paid tier, no usage limits, no per-inbox pricing. The only thing you pay for is the server you run it on, and a $5/mo VPS is enough. If you would rather not run a server, Hosted Pro is available as a one-time purchase — <a href="/pricing">see our <strong>pricing</strong></a>.',
   },
   {
     q: 'How is it different from AgentMail?',
@@ -199,7 +199,7 @@ const faqJsonLd = {
           </a>
         </div>
         <p class="manual-row stagger stagger-5">
-          <a class="manual-link" href="/pricing">No VPS? No domain? Skip the setup — join the early-bird plan →</a>
+          <a class="manual-link" href="/pricing">No VPS? No domain? Skip the setup — buy Hosted Pro →</a>
         </p>
       </div>
     </header>
