@@ -9,15 +9,25 @@ const contact = await readFile(new URL('../src/pages/contact.astro', import.meta
 const terms = await readFile(new URL('../src/pages/terms-of-service.astro', import.meta.url), 'utf8');
 const privacy = await readFile(new URL('../src/pages/privacy-policy.astro', import.meta.url), 'utf8');
 const normalizeWhitespace = (text) => text.replace(/\s+/g, ' ').trim();
+const externalCtaHrefs = Array.from(
+  pricing.matchAll(/<a\b(?=[^>]*\bclass="[^"]*\bbtn\b[^"]*")[^>]*\bhref="(https?:\/\/[^"\s]+)"/gi),
+  ([, href]) => href,
+);
+const staticPaymentPathOrToken = /(?:^|[/?#&=_.-])(?:checkout|payment|pay|token)(?:$|[/?#&=_.-])/i;
+const isStaticPaymentCtaHref = (href) => {
+  const { pathname, search, hash } = new URL(href);
+  return staticPaymentPathOrToken.test(`${pathname}${search}${hash}`);
+};
 
-const checkoutMatch = pricing.match(/href="(https:\/\/[^"\s]+\/checkout\/one-time\?product_id=prod_[^"\s]+)"/);
-assert.ok(checkoutMatch, 'Hosted CTA must have an absolute checkout link');
-const checkout = new URL(checkoutMatch[1]);
-assert.equal(checkout.hostname, 'hosted.openagent.email', 'Hosted CTA must collect identity on the hosted checkout endpoint');
-assert.equal(checkout.pathname, '/checkout/one-time', 'Hosted CTA must target the fixed one-time checkout endpoint');
-assert.equal(checkout.searchParams.get('product_id'), 'prod_2MmEOwu9ph2BJA9JYpLjaB', 'Hosted CTA must bind the approved one-time product');
+assert.match(pricing, /<a class="btn btn-gold" href="mailto:support@openagent\.email\?subject=Hosted%20Pro%20waitlist">Join the Hosted Pro waitlist →<\/a>/, 'Hosted CTA must target the waitlist');
+assert.doesNotMatch(pricing, /https:\/\/hosted\.openagent\.email\/checkout\/one-time\?product_id=prod_2MmEOwu9ph2BJA9JYpLjaB/, 'Pricing must not contain the dead static checkout URL');
 assert.doesNotMatch(pricing, /creem\.io\/payment\//, 'A static payment link cannot collect verified customer identity metadata');
-assert.doesNotMatch(pricing, /waitlist/i, 'Hosted CTA must not be a waitlist');
+assert.equal(isStaticPaymentCtaHref('https://billing.example/checkout/one-time'), true, 'Generic guard must reject an external checkout path');
+assert.equal(isStaticPaymentCtaHref('https://billing.example/start?token=static-payment-token'), true, 'Generic guard must reject an external payment token');
+assert.equal(isStaticPaymentCtaHref('https://pay.example/docs/quickstart/'), false, 'Generic guard must not reject a non-payment path because of its hostname');
+assert.ok(externalCtaHrefs.every((href) => !isStaticPaymentCtaHref(href)), 'CTA must not use an external static checkout or payment link');
+assert.match(pricing, /<h2>Self-hosted<\/h2>/, 'Self-hosted pricing content must remain unchanged');
+assert.match(pricing, /<a class="btn btn-ghost" href="\/docs\/quickstart\/">Get started →<\/a>/, 'Self-host CTA must remain unchanged');
 assert.match(pricing, /Alipay is currently the available payment method/i, 'Hosted checkout copy must state the available method');
 assert.doesNotMatch(pricing, /Apple Pay|credit card/i, 'Hosted checkout copy must not promise unavailable payment methods');
 assert.match(layout, /href="\/refund-policy"/, 'Legal navigation must link the approved refund policy');
