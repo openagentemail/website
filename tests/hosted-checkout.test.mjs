@@ -12,6 +12,7 @@ const normalizeWhitespace = (text) => text.replace(/\s+/g, ' ').trim();
 
 assert.match(pricing, /<a class="btn btn-gold" href="mailto:support@openagent\.email\?subject=Hosted%20Pro%20waitlist">Buy Hosted Pro with Alipay →<\/a>/, 'Hosted CTA must target the waitlist');
 assert.doesNotMatch(pricing, /https:\/\/hosted\.openagent\.email\/checkout\/one-time\?product_id=prod_2MmEOwu9ph2BJA9JYpLjaB/, 'Pricing must not contain the dead static checkout URL');
+assert.doesNotMatch(pricing, /creem\.io\/payment\//, 'A static payment link cannot collect verified customer identity metadata');
 assert.match(pricing, /<h2>Self-hosted<\/h2>/, 'Self-hosted pricing content must remain unchanged');
 assert.match(pricing, /<a class="btn btn-ghost" href="\/docs\/quickstart\/">Get started →<\/a>/, 'Self-host CTA must remain unchanged');
 assert.match(pricing, /Alipay is currently the available payment method/i, 'Hosted checkout copy must state the available method');
