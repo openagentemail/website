@@ -19,7 +19,7 @@ const isStaticPaymentCtaHref = (href) => {
   return staticPaymentPathOrToken.test(`${pathname}${search}${hash}`);
 };
 
-assert.match(pricing, /<a class="btn btn-gold" href="mailto:support@openagent\.email\?subject=Hosted%20Pro%20waitlist">Buy Hosted Pro with Alipay →<\/a>/, 'Hosted CTA must target the waitlist');
+assert.match(pricing, /<a class="btn btn-gold" href="mailto:support@openagent\.email\?subject=Hosted%20Pro%20waitlist">Join the Hosted Pro waitlist →<\/a>/, 'Hosted CTA must target the waitlist');
 assert.doesNotMatch(pricing, /https:\/\/hosted\.openagent\.email\/checkout\/one-time\?product_id=prod_2MmEOwu9ph2BJA9JYpLjaB/, 'Pricing must not contain the dead static checkout URL');
 assert.doesNotMatch(pricing, /creem\.io\/payment\//, 'A static payment link cannot collect verified customer identity metadata');
 assert.equal(isStaticPaymentCtaHref('https://billing.example/checkout/one-time'), true, 'Generic guard must reject an external checkout path');
