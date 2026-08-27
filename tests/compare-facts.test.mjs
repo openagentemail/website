@@ -5,6 +5,7 @@ import { parse } from 'parse5';
 import { agentmailLastChecked, agentmailSources, assertOfficialAgentmailSources } from '../src/data/agentmailSources.js';
 
 const compare = await readFile(new URL('../src/pages/compare.astro', import.meta.url), 'utf8');
+const homepage = await readFile(new URL('../src/pages/index.astro', import.meta.url), 'utf8');
 
 assert.doesNotThrow(() => assertOfficialAgentmailSources(agentmailSources), 'Shared AgentMail sources must satisfy the module validation');
 assert.throws(() => assertOfficialAgentmailSources([{ href: 'http://www.agentmail.to/pricing', label: 'pricing' }]), /must use HTTPS on an approved AgentMail host/, 'Module validation must reject a non-HTTPS source');
@@ -34,6 +35,32 @@ for (const fact of [
 assert.doesNotMatch(compare, /Not independently verified<\/td><td>REST\/SDKs/, 'AgentMail MCP must not be described as unverified');
 assert.doesNotMatch(compare, /Per-inbox subscription/, 'Price must not imply a subscription cliff');
 assert.doesNotMatch(compare, /The openagent\.email difference is clear/, 'Comparison copy must remain neutral');
+
+function homepageAgentmailSummaryCell(document, rowLabel) {
+  const homepageSummary = descendants(document).find((node) =>
+    node.nodeName === 'div'
+      && attribute(node, 'class')?.split(/\s+/).includes('cmp')
+      && attribute(node, 'class')?.split(/\s+/).includes('reveal'),
+  );
+  assert.ok(homepageSummary, 'Built homepage must retain its comparison summary table');
+
+  const table = descendants(homepageSummary).find((node) => node.nodeName === 'table');
+  assert.ok(table, 'Built homepage comparison summary must retain its table');
+
+  const row = descendants(table).find((node) =>
+    node.nodeName === 'tr'
+      && node.childNodes?.find((child) => child.nodeName === 'td')
+      && text(node.childNodes.find((child) => child.nodeName === 'td')).trim() === rowLabel,
+  );
+  assert.ok(row, `Homepage comparison summary must retain the ${rowLabel} row`);
+
+  const cells = row.childNodes.filter((child) => child.nodeName === 'td');
+  assert.equal(cells.length, 4, `Homepage comparison summary ${rowLabel} row must retain its four columns`);
+  return text(cells[2]).trim();
+}
+
+assert.match(homepage, /How is it different from AgentMail\?[\s\S]*?usage-based pricing/, 'Homepage FAQ must retain its internally consistent usage-based pricing wording');
+assert.equal(agentmailLastChecked, '2026-08-26', 'Shared AgentMail Last checked date must use the 2026-08-26 factcheck snapshot date for this work session. When refreshing agentmailLastChecked, update this exact assertion too.');
 
 function isFreshLastChecked(date, now = new Date()) {
   const parts = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
@@ -120,6 +147,17 @@ async function readRenderedCompare() {
   }
 }
 
+async function readRenderedHomepage() {
+  try {
+    return await readFile(new URL('../dist/index.html', import.meta.url), 'utf8');
+  } catch (error) {
+    if (error?.code === 'ENOENT') {
+      throw new Error('Built homepage is missing: run npm run build first.');
+    }
+    throw error;
+  }
+}
+
 if (process.argv.includes('--check-rendered')) {
   const renderedCompare = await readRenderedCompare();
   const document = parse(renderedCompare);
@@ -138,4 +176,8 @@ if (process.argv.includes('--check-rendered')) {
     assert.equal(attribute(link, 'rel'), 'noopener noreferrer', `Built compare page is missing rel protection: ${source.href}`);
     assert.equal(text(link), source.label, `Built compare page has the wrong source label: ${source.href}`);
   }
+
+  const renderedHomepage = parse(await readRenderedHomepage());
+  assert.equal(homepageAgentmailSummaryCell(renderedHomepage, 'Price'), 'Developer/Startup: PAYG +$2 per inbox, domain, or 1k sends; annual plans save 20%', 'Built homepage AgentMail Price cell must exactly match the approved /compare PAYG fact');
+  assert.equal(homepageAgentmailSummaryCell(renderedHomepage, 'OTP / link extraction'), 'Not independently verified', 'Built homepage AgentMail OTP/link-extraction cell must exactly match the approved /compare wording');
 }

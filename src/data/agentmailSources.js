@@ -1,6 +1,6 @@
 const approvedAgentmailHosts = new Set(['www.agentmail.to', 'docs.agentmail.to']);
 
-export const agentmailLastChecked = '2026-08-22';
+export const agentmailLastChecked = '2026-08-26';
 
 export const agentmailSources = [
   { href: 'https://www.agentmail.to/pricing', label: 'pricing' },
