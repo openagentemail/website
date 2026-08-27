@@ -61,6 +61,8 @@ server-side ntfy verification endpoint. It does not log in over IMAP/SMTP or
 send a round-trip message. Fix whatever it flags before your agents depend on
 this box.
 
+Before launch, verify the mail-security trio SPF, DKIM, and DMARC with `./deploy/doctor.sh`.
+
 ## Optional: public TLS with Let's Encrypt
 
 The default stack remains self-signed: a normal `docker compose up -d` does

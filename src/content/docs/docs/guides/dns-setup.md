@@ -92,8 +92,7 @@ _dmarc.example.com.   TXT   "v=DMARC1; p=quarantine; rua=mailto:postmaster@examp
 ```
 
 Tells receivers what to do when SPF *and* DKIM both fail, and where to send
-aggregate reports. Start with `p=quarantine` (or `p=none` for the first week if you
-want pure observation), move to `p=reject` once `doctor.sh` is green.
+aggregate reports. Start with `p=quarantine`. For the first observation week, you may use `p=none`. After `doctor.sh` is green, move to `p=reject`.
 
 **Common mistakes:**
 
