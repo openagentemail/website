@@ -55,6 +55,7 @@ export default defineConfig({
             'docs/guides/agent-signup',
             'docs/guides/notifications',
             'docs/guides/phone-notifications',
+            'docs/guides/iphone-mail',
             'docs/guides/tasks',
             'docs/guides/external-mailserver',
             'docs/guides/security',
