@@ -140,6 +140,42 @@ limitation. If your agents only do signups, `RETENTION_DAYS=7` is plenty.
 container uses it; agents never see it. Keep it out of agent-facing env vars
 and prompts.
 
+If the password is ever exposed — for example a phone that had it is lost —
+rotate it. These steps are for the bundled stack; if you run an external mail
+server (see [Using an external mail server](/docs/guides/external-mailserver/)),
+rotate the credential with your provider instead, update `IMAP_PASS` /
+`SMTP_PASS` in `.env`, and redeploy the same way you deployed — via Portainer,
+or `docker compose -f compose.api-only.yaml up -d`.
+
+1. Generate a new value (`openssl rand -hex 24`) and set it as
+   `MAIL_PASSWORD` in `.env`.
+2. Update the existing account inside docker-mailserver — changing `.env`
+   alone does not re-write the account. Omit the password argument and the
+   command prompts for it interactively, so nothing lands in your shell
+   history or the process list:
+
+   ```sh
+   docker compose exec mailserver setup email update agent@your-domain
+   ```
+
+   Use your `MAIL_ACCOUNT` localpart if you changed the default `agent`.
+   An inline form (`... update agent@your-domain 'new-password'`) also works,
+   but the value then sits in shell history and `ps` output while it runs —
+   if you use it, clear the history entry afterwards.
+3. Keep `TASK_SIGNING_SECRET` unchanged; rotating it would make existing
+   email-backed task threads fail their history check.
+4. Drop any sessions that authenticated with the old password — a lost phone
+   with an open IMAP connection keeps receiving mail until disconnected:
+
+   ```sh
+   docker compose restart mailserver
+   ```
+
+5. Run `docker compose up -d` so the API container picks up the new password,
+   and re-enter it on any phone you intentionally granted access. Between
+   step 2 and this step the API's mailbox logins fail briefly — expected, not
+   a fault.
+
 ## 6. Harden the host
 
 The usual VPS hygiene applies doubly to a mail server: SSH key-only login,

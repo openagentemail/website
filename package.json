@@ -10,9 +10,10 @@
     "test:compare-facts": "node --test tests/compare-facts.test.mjs",
     "test:hosted-checkout": "node --test tests/hosted-checkout.test.mjs",
     "test:mail-security-docs": "node --test tests/mail-security-docs.test.mjs",
+    "test:iphone-mail-guide": "node --test tests/iphone-mail-guide.test.mjs",
     "test:compare-freshness": "node tests/compare-facts.test.mjs --check-freshness",
     "test:compare-rendered": "node tests/compare-facts.test.mjs --check-rendered",
-    "prebuild": "npm run test:compare-freshness && npm run test:hosted-checkout && npm run test:mail-security-docs",
+    "prebuild": "npm run test:compare-freshness && npm run test:hosted-checkout && npm run test:mail-security-docs && npm run test:iphone-mail-guide",
     "postbuild": "npm run test:compare-rendered"
   },
   "dependencies": {
