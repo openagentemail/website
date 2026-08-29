@@ -10,8 +10,15 @@ account, all of your agents' mail in one inbox, and the `To` field tells you
 which identity each message was for.
 
 This is for humans who want to check in on their agents from a phone; agents
-themselves keep using MCP or the REST API. (On a hosted instance, the claim
-page shows you this same password once.)
+themselves keep using MCP or the REST API.
+
+## Prerequisite: a publicly trusted certificate
+
+iOS Mail refuses self-signed certificates. The default stack boots with a
+self-signed one so that IMAPS/465 work out of the box locally, but a phone
+will not connect to it. Finish the Let's Encrypt setup in the
+[Quickstart](/docs/quickstart/) first, and confirm `./deploy/doctor.sh` is
+green on its TLS checks (ports `465`/`993`) before continuing here.
 
 ## Before you start: this is the master mailbox password
 
@@ -20,12 +27,17 @@ The account you are adding is the catch-all account, protected by
 [security guide](/docs/guides/security/) notes, only the API container normally
 uses it. Putting it on a phone means the phone can read **every** identity's
 mail and send as the catch-all address — add it only to a device you control,
-and rotate `MAIL_PASSWORD` if the phone is lost. Keep the password out of
+and if the phone is lost, rotate `MAIL_PASSWORD` as described in the
+[security guide](/docs/guides/security/). Keep the password out of
 agent-facing env vars and prompts as usual.
 
+If you would rather not put the master password on a phone at all, skip this
+guide and open the dashboard `/ui` in the phone's browser instead — that needs
+only a dashboard login session, with nothing stored in the Mail app.
+
 You need: the catch-all address (default `agent@your-domain`, or your
-`MAIL_ACCOUNT` value if you changed it), the `MAIL_PASSWORD`, and the hostname
-your TLS certificate covers for ports `993`/`465` (usually
+`MAIL_ACCOUNT` value in `.env` if you changed it), the `MAIL_PASSWORD`, and
+the hostname your Let's Encrypt certificate covers (usually
 `mail.example.com`).
 
 ## Settings
@@ -37,6 +49,10 @@ your TLS certificate covers for ports `993`/`465` (usually
 | Security | SSL/TLS | SSL/TLS |
 | Username | the full email address, e.g. `agent@example.com` | same as incoming |
 | Password | the `MAIL_PASSWORD` from your server `.env` | same as incoming |
+
+iOS Mail talks straight to the shared mailbox: deleting, archiving, or marking
+messages read on the phone changes what your agents see through the API.
+Treat the phone as read-mostly.
 
 ## Add the account
 
@@ -50,8 +66,7 @@ your TLS certificate covers for ports `993`/`465` (usually
 
 ## Three iOS pitfalls
 
-These three bite almost everyone on first setup. All three were hit and
-confirmed on a real iPhone during our own acceptance run.
+Check these three first — they account for most "it does not work" reports.
 
 1. **iOS guesses wrong field values.** It copies your "Name" into the incoming
    Host Name field, and strips the `@domain` part from the username. Fix each
@@ -71,10 +86,6 @@ confirmed on a real iPhone during our own acceptance run.
 
 - An immediate password prompt means the username or password is wrong —
   remember the username is the full email address.
-- Cannot connect at all means the hostname, port, or certificate is wrong.
+- Cannot connect at all means the hostname, port, or certificate is wrong —
+  see the certificate prerequisite above.
 - Connects but the mailbox stays empty means the path-prefix pitfall above.
-
-On the server side, admins can verify the TLS certificates on ports `465` and
-`993` with `./deploy/doctor.sh` (run from your openagent.email server
-checkout; it checks certificates, DNS, and blocklists — it does not log in over
-IMAP/SMTP).

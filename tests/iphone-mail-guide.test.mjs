@@ -11,7 +11,12 @@ test('iPhone guide documents the real catch-all login model', () => {
   assert.match(guide, /`465`/);
 });
 
-test('iPhone guide documents the three confirmed iOS pitfalls', () => {
+test('iPhone guide requires a publicly trusted certificate first', () => {
+  assert.match(guide, /self-signed/i);
+  assert.match(guide, /Let's Encrypt/);
+});
+
+test('iPhone guide documents the three iOS pitfalls', () => {
   assert.match(guide, /full email address/);
   assert.match(guide, /IMAP Path Prefix/);
   assert.match(guide, /Force-quit Mail/);
