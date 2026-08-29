@@ -146,16 +146,18 @@ rotate it:
 1. Generate a new value (`openssl rand -hex 24`) and set it as
    `MAIL_PASSWORD` in `.env`.
 2. Update the existing account inside docker-mailserver — changing `.env`
-   alone does not re-write the account:
+   alone does not re-write the account. Omit the password argument and the
+   command prompts for it interactively, so nothing lands in your shell
+   history or the process list:
 
    ```sh
-   docker compose exec mailserver setup email update agent@your-domain 'new-password'
+   docker compose exec mailserver setup email update agent@your-domain
    ```
 
    Use your `MAIL_ACCOUNT` localpart if you changed the default `agent`.
-   Passing the password as an argument lands it in your shell history and the
-   process list while the command runs — omit it to be prompted interactively
-   instead, or clear the history entry afterwards.
+   An inline form (`... update agent@your-domain 'new-password'`) also works,
+   but the value then sits in shell history and `ps` output while it runs —
+   if you use it, clear the history entry afterwards.
 3. Keep `TASK_SIGNING_SECRET` unchanged; rotating it would make existing
    email-backed task threads fail their history check.
 4. Run `docker compose up -d` so the API container picks up the new password,
