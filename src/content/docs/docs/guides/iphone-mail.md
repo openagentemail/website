@@ -26,19 +26,20 @@ The account you are adding is the catch-all account, protected by
 `MAIL_PASSWORD` from your server's `.env`. As the
 [security guide](/docs/guides/security/) notes, only the API container normally
 uses it. Putting it on a phone means the phone can read **every** identity's
-mail and send as the catch-all address — add it only to a device you control,
-and if the phone is lost, rotate `MAIL_PASSWORD` as described in the
-[security guide](/docs/guides/security/). Keep the password out of
-agent-facing env vars and prompts as usual.
+mail and send as the catch-all address **or any of your agents' addresses**
+(the default mail server permits that sender rewrite) — add it only to a
+device you control, and if the phone is lost, rotate `MAIL_PASSWORD` as
+described in the [security guide](/docs/guides/security/). Keep the password
+out of agent-facing env vars and prompts as usual.
 
 If you would rather not put the master password on a phone at all, skip this
 guide and open the dashboard `/ui` in the phone's browser instead — that needs
 only a dashboard login session, with nothing stored in the Mail app.
 
 You need: the catch-all address (default `agent@your-domain`, or your
-`MAIL_ACCOUNT` value in `.env` if you changed it), the `MAIL_PASSWORD`, and
-the hostname your Let's Encrypt certificate covers (usually
-`mail.example.com`).
+[`MAIL_ACCOUNT`](https://github.com/openagentemail/openagentemail/blob/main/.env.example)
+value in `.env` if you changed it), the `MAIL_PASSWORD`, and the hostname your
+Let's Encrypt certificate covers (usually `mail.example.com`).
 
 ## Settings
 
