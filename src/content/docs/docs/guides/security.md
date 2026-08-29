@@ -141,7 +141,10 @@ container uses it; agents never see it. Keep it out of agent-facing env vars
 and prompts.
 
 If the password is ever exposed — for example a phone that had it is lost —
-rotate it:
+rotate it. These steps are for the bundled stack; if you run an external mail
+server (see [Using an external mail server](/docs/guides/external-mailserver/)),
+rotate the credential with your provider instead, update `IMAP_PASS` /
+`SMTP_PASS` in `.env`, and run `docker compose up -d`.
 
 1. Generate a new value (`openssl rand -hex 24`) and set it as
    `MAIL_PASSWORD` in `.env`.
@@ -160,7 +163,14 @@ rotate it:
    if you use it, clear the history entry afterwards.
 3. Keep `TASK_SIGNING_SECRET` unchanged; rotating it would make existing
    email-backed task threads fail their history check.
-4. Run `docker compose up -d` so the API container picks up the new password,
+4. Drop any sessions that authenticated with the old password — a lost phone
+   with an open IMAP connection keeps receiving mail until disconnected:
+
+   ```sh
+   docker compose restart mailserver
+   ```
+
+5. Run `docker compose up -d` so the API container picks up the new password,
    and re-enter it on any phone you intentionally granted access. Between
    step 2 and this step the API's mailbox logins fail briefly — expected, not
    a fault.
