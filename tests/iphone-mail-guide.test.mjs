@@ -4,7 +4,9 @@ import test from 'node:test';
 
 const guide = await readFile(new URL('../src/content/docs/docs/guides/iphone-mail.md', import.meta.url), 'utf8');
 
-test('iPhone guide pins the TLS port pair 993/465', () => {
+test('iPhone guide documents the real catch-all login model', () => {
+  assert.match(guide, /catch-all mailbox/);
+  assert.match(guide, /MAIL_PASSWORD/);
   assert.match(guide, /`993`/);
   assert.match(guide, /`465`/);
 });
