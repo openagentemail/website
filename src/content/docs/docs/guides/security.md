@@ -153,10 +153,15 @@ rotate it:
    ```
 
    Use your `MAIL_ACCOUNT` localpart if you changed the default `agent`.
+   Passing the password as an argument lands it in your shell history and the
+   process list while the command runs — omit it to be prompted interactively
+   instead, or clear the history entry afterwards.
 3. Keep `TASK_SIGNING_SECRET` unchanged; rotating it would make existing
    email-backed task threads fail their history check.
 4. Run `docker compose up -d` so the API container picks up the new password,
-   and re-enter it on any phone you intentionally granted access.
+   and re-enter it on any phone you intentionally granted access. Between
+   step 2 and this step the API's mailbox logins fail briefly — expected, not
+   a fault.
 
 ## 6. Harden the host
 
