@@ -144,7 +144,8 @@ If the password is ever exposed — for example a phone that had it is lost —
 rotate it. These steps are for the bundled stack; if you run an external mail
 server (see [Using an external mail server](/docs/guides/external-mailserver/)),
 rotate the credential with your provider instead, update `IMAP_PASS` /
-`SMTP_PASS` in `.env`, and run `docker compose up -d`.
+`SMTP_PASS` in `.env`, and redeploy the same way you deployed — via Portainer,
+or `docker compose -f compose.api-only.yaml up -d`.
 
 1. Generate a new value (`openssl rand -hex 24`) and set it as
    `MAIL_PASSWORD` in `.env`.
