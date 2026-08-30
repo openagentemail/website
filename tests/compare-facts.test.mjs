@@ -12,7 +12,7 @@ assert.throws(() => assertOfficialAgentmailSources([{ href: 'http://www.agentmai
 assert.throws(() => assertOfficialAgentmailSources([{ href: 'https://example.invalid/pricing', label: 'pricing' }]), /must use HTTPS on an approved AgentMail host/, 'Module validation must reject a third-party host');
 assert.throws(() => assertOfficialAgentmailSources([{ href: 'not a URL', label: 'pricing' }]), /must use HTTPS on an approved AgentMail host/, 'Module validation must reject a malformed source URL with its semantic error');
 
-const requiredAgentmailSourcesDigest = 'b60b5ee65e77a90c7d956dfd3770346020bcf71c46eb5a5e99fe92d0df46d874';
+const requiredAgentmailSourcesDigest = 'd15e8535f3afcc624399104447ef679abacdabdb39e47c426bd0c1e18b25c414';
 
 function sourceDigest(sources) {
   const canonicalSources = sources.map(({ href, label }) => `${href}\t${label}`).sort().join('\n');
@@ -26,8 +26,9 @@ for (const fact of [
   'The deployment and control-plane distinction is that openagent.email is Apache-2.0 software you self-host on any VPS or cloud, with no vendor control plane and unlimited identities on your own domains',
   'Developer/Startup: PAYG +$2 per inbox, domain, or 1k sends; annual plans save 20%',
   'no per-inbox fee',
-  'Official OpenClaw plugin + Grok Bot Cursor plugin',
+  'Official OpenClaw plugin + Grok Bot Cursor plugin + official Codex plugin',
   'Universal MCP: connect directly from Claude, ChatGPT, Grok, or Cursor; official connection guide',
+  'outbound sending was disrupted for about eight hours after AWS paused sending on shared email infrastructure',
 ]) {
   assert.match(compare, new RegExp(fact.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')), `Missing comparison fact: ${fact}`);
 }
@@ -35,6 +36,8 @@ for (const fact of [
 assert.doesNotMatch(compare, /Not independently verified<\/td><td>REST\/SDKs/, 'AgentMail MCP must not be described as unverified');
 assert.doesNotMatch(compare, /Per-inbox subscription/, 'Price must not imply a subscription cliff');
 assert.doesNotMatch(compare, /The openagent\.email difference is clear/, 'Comparison copy must remain neutral');
+assert.doesNotMatch(compare, /7 MCP tools/, 'Compare page must not keep the outdated 7 MCP tools count');
+assert.doesNotMatch(compare, /shut down|gone out of business|已倒闭/i, 'Incident footnote must not extrapolate beyond the official account');
 
 function homepageAgentmailSummaryCell(document, rowLabel) {
   const homepageSummary = descendants(document).find((node) =>
@@ -60,7 +63,7 @@ function homepageAgentmailSummaryCell(document, rowLabel) {
 }
 
 assert.match(homepage, /How is it different from AgentMail\?[\s\S]*?usage-based pricing/, 'Homepage FAQ must retain its internally consistent usage-based pricing wording');
-assert.equal(agentmailLastChecked, '2026-08-26', 'Shared AgentMail Last checked date must use the 2026-08-26 factcheck snapshot date for this work session. When refreshing agentmailLastChecked, update this exact assertion too.');
+assert.equal(agentmailLastChecked, '2026-08-30', 'Shared AgentMail Last checked date must use the 2026-08-30 Codex/incident recheck date. When refreshing agentmailLastChecked, update this exact assertion too.');
 
 function isFreshLastChecked(date, now = new Date()) {
   const parts = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
