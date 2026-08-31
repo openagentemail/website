@@ -31,7 +31,7 @@ assert.match(layout, /href="\/refund-policy"/, 'Legal navigation must link the a
 assert.match(layout, /href="\/contact"/, 'Legal navigation must link the approved contact page');
 assert.match(refundPolicy, /Hosted Pro Early Bird is a one-time \$30\.00 payment for one year\./, 'Refund policy must state the public offer');
 assert.match(refundPolicy, /You may request a full refund within 30 days of purchase\./, 'Refund policy must provide the approved 30-day full refund');
-assert.match(refundPolicy, /After 30 days, any refund is calculated by deducting \$5\.00 for each month of service used from\s+the \$30\.00 purchase price\./, 'Refund policy must use the approved monthly calculation');
+assert.match(refundPolicy, /After 30 days, any refund is the remaining balance after deducting \$5\.00 for each month of\s+service used from the \$30\.00 purchase price, to a minimum of \$0\.00\./, 'Refund policy must use the approved monthly calculation with a zero floor');
 assert.match(refundPolicy, /To request help after a purchase, include the email used on the order\./, 'Refund help request must ask for the order email');
 assert.match(refundPolicy, /Payment: Secure checkout via Creem — Alipay supported\./, 'Refund payment copy must use the approved Creem wording');
 assert.match(contact, /support@openagent\.email/, 'Approved contact page must exist with approved support address');
