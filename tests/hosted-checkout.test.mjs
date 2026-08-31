@@ -30,6 +30,7 @@ assert.doesNotMatch(pricing, /Apple Pay|credit card/i, 'Hosted checkout copy mus
 assert.match(layout, /href="\/refund-policy"/, 'Legal navigation must link the approved refund policy');
 assert.match(layout, /href="\/contact"/, 'Legal navigation must link the approved contact page');
 assert.match(refundPolicy, /Hosted Pro Early Bird is a one-time \$30\.00 payment for one year\./, 'Refund policy must state the public offer');
+assert.match(refundPolicy, /Last updated: August 31, 2026/, 'Refund policy must show the publication date of the new terms');
 assert.match(refundPolicy, /You may request a full refund within 30 days of purchase\./, 'Refund policy must provide the approved 30-day full refund');
 assert.match(refundPolicy, /After 30 days, any refund is the remaining balance after deducting \$5\.00 for each month of\s+service used from the \$30\.00 purchase price, to a minimum of \$0\.00\./, 'Refund policy must use the approved monthly calculation with a zero floor');
 assert.match(refundPolicy, /To request help after a purchase, include the email used on the order\./, 'Refund help request must ask for the order email');
@@ -47,6 +48,7 @@ assert.match(terms, /Refund Policy/, 'Terms must direct refund requests to the r
 
 // Hosted Pro customer data and support disclosures must match the public offer.
 const privacyCopy = normalizeWhitespace(privacy);
+assert.match(privacyCopy, /Effective August 31, 2026/, 'Privacy policy must show the publication date of the new disclosure');
 assert.doesNotMatch(privacyCopy, /collects no personal data|No accounts, no sign-ups, no forms that collect personal information|If you\s+subscribe/i, 'Privacy policy must not deny contact data or describe a subscription');
 assert.match(privacyCopy, /<p class="lede"> The short version: when you self-host openagent\.email, your mail data stays on your server\. For Hosted Pro, we use customer and order information only to provide and support the service\. This website uses no tracking cookies\. <\/p>/, 'Privacy lede must state the Hosted Pro customer-data purpose');
 assert.match(privacyCopy, /<h2>This website<\/h2> <ul> <li> Hosted Pro customers can contact <a href="mailto:support@openagent\.email">support@openagent\.email<\/a>\. We use the address only to provide support and reply to the request\. <\/li>/, 'Privacy website disclosure must route support to the approved address');
