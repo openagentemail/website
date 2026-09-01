@@ -128,13 +128,17 @@ export OAE_URL='https://mcp.example.com'
 read -rsp 'OpenAgentEmail admin token: ' OAE_ADMIN_TOKEN; echo
 read -rp 'Cloudflare service-token client ID: ' CF_ACCESS_CLIENT_ID
 read -rsp 'Cloudflare service-token client secret: ' CF_ACCESS_CLIENT_SECRET; echo
-export OAE_ADMIN_TOKEN CF_ACCESS_CLIENT_ID CF_ACCESS_CLIENT_SECRET
 
 # GET /v1/identities is admin-only, so this positive example uses an admin token.
-curl --fail-with-body -i "$OAE_URL/v1/identities" \
-  -H "CF-Access-Client-Id: $CF_ACCESS_CLIENT_ID" \
-  -H "CF-Access-Client-Secret: $CF_ACCESS_CLIENT_SECRET" \
-  -H "Authorization: Bearer $OAE_ADMIN_TOKEN"
+# Feed curl's protected configuration on stdin: secrets are not in curl argv.
+{
+  printf '%s\n' 'fail-with-body' 'include'
+  printf 'url = "%s/v1/identities"\n' "$OAE_URL"
+  printf 'header = "CF-Access-Client-Id: %s"\n' "$CF_ACCESS_CLIENT_ID"
+  printf 'header = "CF-Access-Client-Secret: %s"\n' "$CF_ACCESS_CLIENT_SECRET"
+  printf 'header = "Authorization: Bearer %s"\n' "$OAE_ADMIN_TOKEN"
+} | curl --config -
+unset OAE_ADMIN_TOKEN CF_ACCESS_CLIENT_ID CF_ACCESS_CLIENT_SECRET
 ```
 
 These are independent credential layers. Cloudflare service tokens require the
@@ -144,7 +148,10 @@ and Cloudflare's [agent authentication instructions](https://developers.cloudfla
 Do **not** use Cloudflare's single-header service-token mode on
 `Authorization`: it collides with OpenAgentEmail's required Bearer header. If
 a client cannot send both CF headers, use the recommended outside-Access (or
-narrow Bypass) layout instead.
+narrow Bypass) layout instead. The stdin config above keeps the CF secret and
+OpenAgentEmail token out of the `curl` argument list; do not type real values
+into an inline command or shell history. A secret manager may inject the same
+config on stdin instead.
 
 Keep `/authorize` browser-reachable outside Service Auth (or behind the UI's
 human Allow flow): its owner-browser redirect cannot rely on the machine
