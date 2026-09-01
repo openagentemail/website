@@ -44,6 +44,12 @@ Do not create an Access application or Allow policy for the entire hostname.
 | `/mcp`, `/v1/*` | Outside Access (or narrowly scoped Bypass if account default-deny requires it) | OpenAgentEmail Bearer token |
 | `/.well-known/*`, `/authorize`, `/oauth/*` | Outside Access (or narrowly scoped Bypass if account default-deny requires it) | Public discovery / OAuth protocol flow; owner consent remains in `/ui` |
 
+**Exposure boundary:** leaving `/v1/*` outside Access makes every REST route
+internet-reachable behind its OpenAgentEmail Bearer check. Do this only when
+public REST is intended. If only MCP/OAuth is needed, narrow public paths at a
+trusted origin proxy as in [Exposing MCP publicly](/docs/guides/public-mcp/),
+rather than relying on Access or a browser login to restrict REST.
+
 When a separate, more-specific Access application/rule exists, it takes
 precedence and does not inherit the parent rule; otherwise, a child path
 inherits the parent-path rule. Also, `https://host.example/ui/*` does **not**
@@ -231,7 +237,8 @@ the OpenAgentEmail Bearer header.
 Troubleshooting clue: the UI can work because the browser has an Access
 session while MCP receives an Access login/block response before
 OpenAgentEmail. That is a likely explanation for an unobserved deployment
-such as dslovin's, not proof of its exact policy or rules.
+reported by a community member, not proof of that deployment's exact policy or
+rules.
 
 ## Not yet tested
 
@@ -239,6 +246,7 @@ such as dslovin's, not proof of its exact policy or rules.
 - No exact Cloudflare-account end-to-end test, including the optional trusted
   local-normalizer chain, was performed for this guide.
 - Client-specific support for arbitrary Cloudflare headers must be verified.
-- dslovin's exact Access policies and rules are unknown.
+- The exact Access policies and rules in an unobserved community deployment are
+  unknown.
 
 The documented Cloudflare behavior cited above is not itself marked untested.
