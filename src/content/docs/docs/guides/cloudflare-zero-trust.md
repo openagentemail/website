@@ -59,7 +59,16 @@ OpenAgentEmail origin as already required by the [public MCP guide](/docs/guides
 ```bash
 MCP_PUBLIC_URL=https://mcp.example.com
 OAE_PUBLIC_EDGE=true
+# Keep this false for cloudflared -> API directly; see the optional normalizer below.
+TRUST_PROXY_HEADERS=false
 ```
+
+With `TRUST_PROXY_HEADERS=false`, the API safely treats its `cloudflared`
+peer as the source. The tradeoff is that public pre-auth, UI, and OAuth rate
+buckets share that proxy IP instead of separating visitors. This is the safe
+base configuration: as the [security guide](/docs/guides/security/) explains,
+enabling trusted proxy headers is safe only when a trusted proxy overwrites or
+strips client-supplied `X-Forwarded-For`.
 
 Configure the DNS hostname in Cloudflare to route to the Tunnel. Cloudflare's
 [published-application guide](https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/routing-to-tunnel/)
@@ -80,6 +89,33 @@ ingress:
 Do not invent credentials or paste secrets into this file. Ingress rules match
 top to bottom, and locally managed configurations need a final catch-all; see
 Cloudflare's [configuration-file reference](https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/do-more-with-tunnels/local-management/configuration-file/).
+
+### Optional: per-client-IP rate limits need a trusted local normalizer
+
+Do **not** set `TRUST_PROXY_HEADERS=true` directly behind `cloudflared`.
+Cloudflare documents that it appends to an existing `X-Forwarded-For` header,
+and recommends `CF-Connecting-IP` for the visitor address
+([HTTP headers reference](https://developers.cloudflare.com/fundamentals/reference/http-headers/)).
+That means a Tunnel alone is not evidence that the API receives a safely
+overwritten XFF value.
+
+If per-client-IP pre-auth/UI/OAuth buckets are needed, put a trusted loopback
+normalizer (Caddy, HAProxy, or equivalent) between `cloudflared` and the API:
+
+1. Change the Tunnel ingress service to the normalizer's loopback listener,
+   not directly to the API, and restrict that listener to the local Tunnel
+   path.
+2. Restrict the API's loopback listener so only that normalizer reaches it.
+3. At the normalizer, discard any inbound `X-Forwarded-For` and overwrite it
+   with the `CF-Connecting-IP` value supplied by Cloudflare; do not append.
+   Cloudflare's [visitor-IP restoration guidance](https://developers.cloudflare.com/support/troubleshooting/restoring-visitor-ips/restoring-original-visitor-ips/)
+   describes using Cloudflare-provided visitor-IP headers at the origin.
+4. Only after verifying that boundary, set `TRUST_PROXY_HEADERS=true` on the
+   API.
+
+This guide did not run an exact Cloudflare-account end-to-end test of that
+normalizer chain. Verify the deployed listener restrictions and header rewrite
+with your own account before enabling trusted proxy headers.
 
 ## 2. Put Access on the UI only
 
@@ -200,7 +236,8 @@ such as dslovin's, not proof of its exact policy or rules.
 ## Not yet tested
 
 - Exact Cloudflare dashboard clicks and labels can drift.
-- No live Cloudflare-account end-to-end test was performed for this guide.
+- No exact Cloudflare-account end-to-end test, including the optional trusted
+  local-normalizer chain, was performed for this guide.
 - Client-specific support for arbitrary Cloudflare headers must be verified.
 - dslovin's exact Access policies and rules are unknown.
 
