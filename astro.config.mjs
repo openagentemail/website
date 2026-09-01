@@ -60,6 +60,7 @@ export default defineConfig({
             'docs/guides/external-mailserver',
             'docs/guides/security',
             'docs/guides/public-mcp',
+            'docs/guides/cloudflare-zero-trust',
           ],
         },
         {
