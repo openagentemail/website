@@ -13,8 +13,10 @@
     "test:iphone-mail-guide": "node --test tests/iphone-mail-guide.test.mjs",
     "test:compare-freshness": "node tests/compare-facts.test.mjs --check-freshness",
     "test:compare-rendered": "node tests/compare-facts.test.mjs --check-rendered",
-    "prebuild": "npm run test:compare-freshness && npm run test:hosted-checkout && npm run test:mail-security-docs && npm run test:iphone-mail-guide",
-    "postbuild": "npm run test:compare-rendered"
+    "test:jsonld": "node --test tests/jsonld-escaping.test.mjs",
+    "test:jsonld-rendered": "node tests/jsonld-escaping.test.mjs --check-rendered",
+    "prebuild": "npm run test:compare-freshness && npm run test:hosted-checkout && npm run test:mail-security-docs && npm run test:iphone-mail-guide && npm run test:jsonld",
+    "postbuild": "npm run test:compare-rendered && npm run test:jsonld-rendered"
   },
   "dependencies": {
     "@astrojs/starlight": "^0.37.7",
