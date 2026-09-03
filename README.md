@@ -15,6 +15,22 @@ npm run build
 npm run preview
 ```
 
+## Continuous integration
+
+`.github/workflows/ci.yml` provides the repository-side check that used to exist only on a
+developer machine. The required check is the **`build`** job of the **`ci`** workflow. It runs
+on every pull request, on pushes to `main`, weekly (Monday 06:17 UTC) and on demand, and it
+does two things: `npm ci` to install exactly the pinned dependency tree, then `npm run build`,
+which is the canonical build and therefore also runs the `prebuild` and `postbuild` gate
+scripts through the npm lifecycle. Generated `dist/` and `.astro/` output stays out of git via
+`.gitignore`; the workflow does not upload or commit it.
+
+To make it enforced rather than advisory: Settings → Branches → add a rule for `main` →
+"Require status checks to pass" → search for and select `build`.
+
+The weekly run exists because of the freshness gate below, which fails closed against the real
+UTC clock rather than only when someone happens to open a pull request.
+
 ## Compare freshness gate
 
 `npm run build` intentionally fails closed when `/compare`'s `Last checked` date is more than 90 days old, using the build host's UTC clock (which must be synchronized). Within 14 days of expiry it prints a proactive maintenance warning; after 90 days it fails closed. Recheck the official AgentMail sources, update the comparison facts, and refresh `Last checked`. Use `npm run test:compare-freshness` to run that gate directly; it is a deliberate deployment safeguard, not an optional warning. Its postbuild step parses `dist/compare/index.html` to verify the rendered date and official source links. When a recheck intentionally changes the official source set, update the golden `requiredAgentmailSourcesDigest` in `tests/compare-facts.test.mjs` with that reviewed change.
