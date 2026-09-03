@@ -4,6 +4,7 @@ import StampWall from '../components/StampWall.astro';
 import EnvelopeOrbit from '../components/EnvelopeOrbit.astro';
 import FeatureViz from '../components/FeatureViz.astro';
 import PaperPlane from '../components/PaperPlane.astro';
+import { jsonLd } from '../data/jsonld.js';
 
 const rawMail = `From: noreply@github.com
 To: fox-k7d2@yourdomain
@@ -130,8 +131,8 @@ const faqJsonLd = {
     <meta property="og:image" content="https://openagent.email/og.png" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:image" content="https://openagent.email/og.png" />
-    <script type="application/ld+json" set:html={JSON.stringify(softwareJsonLd)} />
-    <script type="application/ld+json" set:html={JSON.stringify(faqJsonLd)} />
+    <script type="application/ld+json" set:html={jsonLd(softwareJsonLd)} />
+    <script type="application/ld+json" set:html={jsonLd(faqJsonLd)} />
     <script defer src="https://stats.openagent.email/script.js" data-website-id="86e6eaf7-473c-4c8d-a9bf-ea48c13742c5"></script>
     {/* 无 JS：html.no-js 留着，upgrade.css 全局规则让子组件里的 .reveal 也可见。
         is:global 防止 Astro 把选择器编进 index.astro 的 scope（StampWall 吃不到）。 */}
