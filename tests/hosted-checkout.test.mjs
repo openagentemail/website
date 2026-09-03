@@ -15,7 +15,8 @@ const externalCtaHrefs = Array.from(
 );
 
 const hostedCheckoutUrl = 'https://hosted.openagent.email/checkout/one-time?product_id=prod_2MmEOwu9ph2BJA9JYpLjaB';
-assert.match(pricing, new RegExp(`<a class="btn btn-gold" href="${hostedCheckoutUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}">Buy Hosted Pro — \\$30/year →<\\/a>`), 'Hosted CTA must target the exact live checkout URL');
+// The one-time CTA wording was approved for this button only; the homepage "$30/year" strings asserted below stay as approved.
+assert.match(pricing, new RegExp(`<a class="btn btn-gold" href="${hostedCheckoutUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}">Buy Hosted Pro — \\$30 one-time →<\\/a>`), 'Hosted CTA must target the exact live checkout URL and use the approved one-time wording');
 assert.doesNotMatch(pricing, /creem\.io\/payment(?:[/?#]|$)/, 'A static payment link cannot collect verified customer identity metadata');
 assert.deepEqual(externalCtaHrefs, [hostedCheckoutUrl], 'Hosted Pro must expose only the approved external checkout CTA');
 assert.match(pricing, /<h2>Self-hosted<\/h2>/, 'Self-hosted pricing content must remain unchanged');

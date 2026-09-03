@@ -3,6 +3,7 @@ import Legal from '../layouts/Legal.astro';
 import EnvelopeOrbit from '../components/EnvelopeOrbit.astro';
 import PaperPlane from '../components/PaperPlane.astro';
 import { agentmailLastChecked, agentmailSources } from '../data/agentmailSources.js';
+import { mailslurpLastChecked, mailslurpSources } from '../data/mailslurpSources.js';
 ---
 
 <Legal title="Compare agent email options" description="An honest comparison of openagent.email, AgentMail, and MailSlurp for AI-agent email." wide>
@@ -13,9 +14,9 @@ import { agentmailLastChecked, agentmailSources } from '../data/agentmailSources
     <p class="lede">Different products make different trade-offs: openagent.email is open-source software you run; AgentMail is a managed agent-email product with enterprise BYOC; MailSlurp is a hosted testing platform for email and SMS.</p>
   </header>
   <div class="table-wrap"><table class="compare"><thead><tr><th></th><th>openagent.email</th><th>AgentMail</th><th>MailSlurp</th></tr></thead><tbody>
-    <tr><td>Open source</td><td>Apache-2.0</td><td>Closed source</td><td>Closed source</td></tr><tr><td>Deployment</td><td>Any VPS or cloud</td><td>SaaS or AWS Outposts BYOC</td><td>SaaS only</td></tr><tr><td>Price</td><td>Free software + your server; no per-inbox fee</td><td>Developer/Startup: PAYG +$2 per inbox, domain, or 1k sends; annual plans save 20%</td><td>Metered usage</td></tr><tr><td>Unlimited inboxes</td><td>Yes, on your domain</td><td>Paid-tier limits</td><td>Metered, often disposable</td></tr><tr><td>MCP-native</td><td>Yes</td><td>Official MCP and plugin ecosystem</td><td>REST/SDKs</td></tr><tr><td>Plugins/ecosystem</td><td>Universal MCP: connect directly from Claude, ChatGPT, Grok, or Cursor; official connection guide</td><td>Official OpenClaw plugin + Grok Bot Cursor plugin + official Codex plugin</td><td>REST/SDKs</td></tr><tr><td>OTP/link extraction</td><td>Built in</td><td>Not independently verified</td><td>Testing workflows</td></tr><tr><td>Mail data residency</td><td>Your box</td><td>SaaS: theirs; Outposts: your AWS</td><td>Their infrastructure</td></tr><tr><td>Vendor control plane</td><td>None</td><td>Yes, including Outposts</td><td>Yes</td></tr><tr><td>You run a server</td><td>Yes</td><td>No, unless enterprise BYOC</td><td>No</td></tr>
+    <tr><td>Open source</td><td>Apache-2.0</td><td>Closed source</td><td>Closed source</td></tr><tr><td>Deployment</td><td>Any VPS or cloud</td><td>SaaS or AWS Outposts BYOC</td><td>SaaS only</td></tr><tr><td>Price</td><td>Free software + your server; no per-inbox fee</td><td>Developer/Startup: PAYG +$2 per inbox, domain, or 1k sends; annual plans save 20%</td><td>Capped plans + metered overages</td></tr><tr><td>Unlimited inboxes</td><td>Yes, on your domain</td><td>Paid-tier limits</td><td>Paid-tier limits</td></tr><tr><td>MCP-native</td><td>Yes</td><td>Official MCP and plugin ecosystem</td><td>REST/SDKs</td></tr><tr><td>Plugins/ecosystem</td><td>Universal MCP: connect directly from Claude, ChatGPT, Grok, or Cursor; official connection guide</td><td>Official OpenClaw plugin + Grok Bot Cursor plugin + official Codex plugin</td><td>REST/SDKs</td></tr><tr><td>OTP/link extraction</td><td>Built in</td><td>Not independently verified</td><td>Testing workflows</td></tr><tr><td>Mail data residency</td><td>Your box</td><td>SaaS: theirs; Outposts: your AWS</td><td>Their infrastructure</td></tr><tr><td>Vendor control plane</td><td>None</td><td>Yes, including Outposts</td><td>Yes</td></tr><tr><td>You run a server</td><td>Yes</td><td>No, unless enterprise BYOC</td><td>No</td></tr>
   </tbody></table></div>
-  <p class="last-checked">Last checked: {agentmailLastChecked} · AgentMail sources: {agentmailSources.map((source, index) => <Fragment><a href={source.href} rel="noopener noreferrer">{source.label}</a>{index < agentmailSources.length - 1 ? ', ' : ''}</Fragment>)}.</p>
+  <p class="last-checked">Last checked: AgentMail {agentmailLastChecked} · MailSlurp {mailslurpLastChecked}. <span data-vendor="agentmail">AgentMail sources: {agentmailSources.map((source, index) => <Fragment><a href={source.href} rel="noopener noreferrer">{source.label}</a>{index < agentmailSources.length - 1 ? ', ' : ''}</Fragment>)}.</span> <span data-vendor="mailslurp">MailSlurp sources: {mailslurpSources.map((source, index) => <Fragment><a href={source.href} rel="noopener noreferrer">{source.label}</a>{index < mailslurpSources.length - 1 ? ', ' : ''}</Fragment>)}.</span></p>
   {/* 8-19 脚注：只复述官方 incident 页，不写超出该页的结论 */}
   <p class="note compare-footnote">AgentMail's 19 August 2026 incident page states that outbound sending was disrupted for about eight hours after AWS paused sending on shared email infrastructure. That is AgentMail's own account; no further claim is made here.</p>
 
@@ -37,7 +38,7 @@ import { agentmailLastChecked, agentmailSources } from '../data/agentmailSources
 
     <article class="dim-card">
       <h2>Unlimited inboxes</h2>
-      <p>One openagent.email domain can hold unlimited persistent <code>anything@yourdomain</code> identities without provisioning or per-inbox cost. AgentMail's capacity depends on its paid tier. MailSlurp's inboxes are metered and are often disposable by design. Persistent production mailboxes for agents and throwaway test inboxes are useful for different jobs.</p>
+      <p>One openagent.email domain can hold unlimited persistent <code>anything@yourdomain</code> identities without provisioning or per-inbox cost. AgentMail's capacity depends on its paid tier, and so does MailSlurp's. Persistent production mailboxes for agents and inboxes used to test an application are useful for different jobs.</p>
     </article>
 
     <article class="dim-card">
