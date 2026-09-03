@@ -1,6 +1,5 @@
-// 以冻结数组导出供测试精确钉住；校验用的 Set 保持模块私有，导入方无法在运行时放宽白名单。
+// 以冻结数组导出供测试精确钉住；freeze + ESM 只读导入绑定，导入方无法在运行时放宽白名单。
 export const approvedMailslurpHosts = Object.freeze(['app.mailslurp.com', 'www.mailslurp.com']);
-const approvedMailslurpHostSet = new Set(approvedMailslurpHosts);
 
 // 用 UTC 日期，不是本地日期：新鲜度闸门按构建机的 UTC 时钟判定，未来日期同样 fail closed。
 export const mailslurpLastChecked = '2026-09-03';
@@ -20,7 +19,7 @@ export function assertOfficialMailslurpSources(sources) {
     } catch {
       throw new Error(`MailSlurp source must use HTTPS on an approved MailSlurp host: ${source.href}`);
     }
-    if (url.protocol !== 'https:' || !approvedMailslurpHostSet.has(url.hostname)) {
+    if (url.protocol !== 'https:' || !approvedMailslurpHosts.includes(url.hostname)) {
       throw new Error(`MailSlurp source must use HTTPS on an approved MailSlurp host: ${source.href}`);
     }
   }
