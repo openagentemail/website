@@ -1,0 +1,58 @@
+name: ci
+
+# Repository-side gate for the website build (issue #23).
+#
+# Until now the fact-consistency, freshness, hosted-checkout and rendered-output gates
+# only ran through the local npm prebuild/postbuild hooks, so a pull request could merge
+# with no required check at all. `npm run build` already invokes both hooks as part of the
+# npm lifecycle, so one command is the canonical build plus every gate; the individual
+# test scripts are deliberately not repeated here, which would let the two lists drift.
+#
+# Why there is a schedule: tests/compare-facts.test.mjs --check-freshness compares
+# /compare's `Last checked` date against the build host's real UTC clock and fails closed
+# after 90 days (README, "Compare freshness gate"). With agentmailLastChecked at
+# 2026-08-30 that guard warns from 2026-11-14 and fails from 2026-11-29. Without a
+# scheduled run the first red would land on whichever unrelated pull request happened to
+# be opened next, and would look like that author's fault. The weekly run surfaces it on
+# the day the guard trips. Refreshing the comparison facts is a content task, not a CI
+# change, and nothing here weakens the guard.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    # Weekly, off-peak, and not on the minute the other workflows in this org use.
+    - cron: "17 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    # The build itself takes under a minute; the cap exists so a hung runner cannot sit
+    # for the 6-hour default.
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          # Matches the Node the site is developed on. There is no engines field or
+          # .nvmrc in package.json to pin against; adding one is a separate change.
+          node-version: "22"
+          cache: npm
+
+      - name: Install pinned dependencies
+        # npm ci, not npm install: the lockfile is the pin, and ci refuses to proceed if
+        # package.json and package-lock.json disagree rather than silently resolving.
+        run: npm ci
+
+      - name: Build (runs the prebuild and postbuild gates)
+        run: npm run build
