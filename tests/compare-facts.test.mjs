@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { parse } from 'parse5';
 import { agentmailLastChecked, agentmailSources, assertOfficialAgentmailSources } from '../src/data/agentmailSources.js';
-import { mailslurpLastChecked, mailslurpSources, assertOfficialMailslurpSources } from '../src/data/mailslurpSources.js';
+import { approvedMailslurpHosts, mailslurpLastChecked, mailslurpSources, assertOfficialMailslurpSources } from '../src/data/mailslurpSources.js';
 
 const compare = await readFile(new URL('../src/pages/compare.astro', import.meta.url), 'utf8');
 const homepage = await readFile(new URL('../src/pages/index.astro', import.meta.url), 'utf8');
@@ -17,6 +17,9 @@ assert.doesNotThrow(() => assertOfficialMailslurpSources(mailslurpSources), 'Sha
 assert.throws(() => assertOfficialMailslurpSources([{ href: 'http://app.mailslurp.com/pricing/', label: 'pricing' }]), /must use HTTPS on an approved MailSlurp host/, 'MailSlurp module validation must reject a non-HTTPS source');
 assert.throws(() => assertOfficialMailslurpSources([{ href: 'https://example.invalid/pricing', label: 'pricing' }]), /must use HTTPS on an approved MailSlurp host/, 'MailSlurp module validation must reject a third-party host');
 assert.throws(() => assertOfficialMailslurpSources([{ href: 'not a URL', label: 'pricing' }]), /must use HTTPS on an approved MailSlurp host/, 'MailSlurp module validation must reject a malformed source URL with its semantic error');
+// The digest pins which sources are cited but not which hosts are trusted, so a single commit could widen
+// the allowlist and update the digest together. This pin makes that a deliberate two-place change.
+assert.deepEqual([...approvedMailslurpHosts].sort(), ['app.mailslurp.com', 'www.mailslurp.com'], 'The approved MailSlurp host set is policy: widen it only as a reviewed change, and update this pin in the same commit.');
 
 const requiredAgentmailSourcesDigest = 'd15e8535f3afcc624399104447ef679abacdabdb39e47c426bd0c1e18b25c414';
 const requiredMailslurpSourcesDigest = '8562194fb55e7187bd4b13c21d8924dd5fc45cdad73db13722df5fe6f655076d';
@@ -150,13 +153,18 @@ assert.equal(isFreshLastChecked('2026-08-22', new Date('2026-11-21T00:00:00.000Z
 assert.equal(freshnessDiagnostics('2026-08-22', fixedNow), 'buildUtc=2026-08-22 checked=2026-08-22 ageDays=0', 'Freshness diagnostics must report the UTC build date, checked date, and age');
 
 if (process.argv.includes('--check-freshness')) {
+  const stale = [];
   for (const [vendor, lastChecked] of [['AgentMail', agentmailLastChecked], ['MailSlurp', mailslurpLastChecked]]) {
     const diagnostics = freshnessDiagnostics(lastChecked);
     console.warn(`Compare freshness (${vendor}): ${diagnostics}`);
     const warning = freshnessWarning(lastChecked);
     if (warning) console.warn(`${vendor}: ${warning}`);
-    assert.equal(isFreshLastChecked(lastChecked), true, `${vendor}: ${freshnessMaintenanceMessage} Check the synchronized UTC build clock. ${diagnostics}`);
+    if (!isFreshLastChecked(lastChecked)) {
+      stale.push(`${vendor}: ${freshnessMaintenanceMessage} Check the synchronized UTC build clock. ${diagnostics}`);
+    }
   }
+  // Reported for every vendor before failing: the two dates are days apart, so both can go stale at once.
+  assert.deepEqual(stale, [], 'Compare freshness gate failed closed');
 }
 
 function descendants(node) {

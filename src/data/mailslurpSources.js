@@ -1,4 +1,4 @@
-const approvedMailslurpHosts = new Set(['www.mailslurp.com', 'app.mailslurp.com']);
+export const approvedMailslurpHosts = new Set(['www.mailslurp.com', 'app.mailslurp.com']);
 
 // 用 UTC 日期，不是本地日期：新鲜度闸门按构建机的 UTC 时钟判定，未来日期同样 fail closed。
 export const mailslurpLastChecked = '2026-09-03';
