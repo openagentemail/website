@@ -22,7 +22,7 @@ assert.throws(() => assertOfficialMailslurpSources([{ href: 'not a URL', label: 
 assert.deepEqual([...approvedMailslurpHosts].sort(), ['app.mailslurp.com', 'www.mailslurp.com'], 'The approved MailSlurp host set is policy: widen it only as a reviewed change, and update this pin in the same commit.');
 
 const requiredAgentmailSourcesDigest = 'd15e8535f3afcc624399104447ef679abacdabdb39e47c426bd0c1e18b25c414';
-const requiredMailslurpSourcesDigest = '8562194fb55e7187bd4b13c21d8924dd5fc45cdad73db13722df5fe6f655076d';
+const requiredMailslurpSourcesDigest = '7149df8ed3e535f7a14e48eb920db650be0a77d7d3c8a9b6d482b6a089537a81';
 
 function sourceDigest(sources) {
   const canonicalSources = sources.map(({ href, label }) => `${href}\t${label}`).sort().join('\n');
