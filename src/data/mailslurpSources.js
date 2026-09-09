@@ -9,6 +9,9 @@ export const mailslurpSources = [
   // 超出额度后按量计费（$3.00 / 1,000 inboxes、$0.99 / 1,000 emails）。
   // www.mailslurp.com/pricing/ 会 301 到 app.mailslurp.com/pricing/，这里引用最终地址，两个 host 都在白名单内。
   { href: 'https://app.mailslurp.com/pricing/', label: 'pricing' },
+  // 2026-09-10 一手事实：官方 MCP 文档页自述托管端点 https://api.mailslurp.com/mcp（stateless Streamable HTTP），
+  // OAuth 或按 inbox 收窄的最小权限 agent key 认证；只链官方自述，不连接、不建凭证、不演绎。
+  { href: 'https://www.mailslurp.com/docs/mcp/', label: 'official MCP docs' },
 ];
 
 export function assertOfficialMailslurpSources(sources) {
