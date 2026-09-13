@@ -113,18 +113,18 @@ const faqJsonLd = {
     <meta charset="utf-8" />
     <script is:inline>document.documentElement.classList.remove('no-js');</script>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>openagent.email — Self-hosted email for AI agents</title>
+    <title>openagent.email — Self-hosted Email for AI Agents (MCP + OTP)</title>
     <meta
       name="description"
-      content="The open-source, self-hosted alternative to AgentMail. Unlimited agent mailboxes on your own domain — OTP extraction, agent-to-agent tasks, and phone push, over REST and MCP."
+      content="Apache-2.0 agent mailboxes on your domain. MCP and REST, OTP and link extraction, no per-inbox fees. Open-source AgentMail alternative you run on a $5 VPS."
     />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="preload" href="/fonts/Satoshi-Regular.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" href="/fonts/Satoshi-Bold.woff2" as="font" type="font/woff2" crossorigin />
-    <meta property="og:title" content="openagent.email — Self-hosted email for AI agents" />
+    <meta property="og:title" content="openagent.email — Self-hosted Email for AI Agents (MCP + OTP)" />
     <meta
       property="og:description"
-      content="Unlimited agent mailboxes on your own domain. REST + MCP. OTP extraction, agent-to-agent tasks, and push notifications. Apache-2.0."
+      content="Apache-2.0 agent mailboxes on your domain. MCP and REST, OTP and link extraction, no per-inbox fees. Open-source AgentMail alternative you run on a $5 VPS."
     />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://openagent.email" />
@@ -182,6 +182,10 @@ const faqJsonLd = {
           <li>Apache-2.0</li>
           <li>Self-hosted first</li>
         </ul>
+        <p class="hero-docs stagger stagger-3">
+          <a class="manual-link" href="/docs/quickstart/">Quickstart</a>
+          <a class="manual-link" href="/docs/guides/connect-your-agent/">Connect your agent</a>
+        </p>
         <div class="cta-row stagger stagger-4">
           <a class="btn btn-gold" href="https://github.com/openagentemail/openagentemail">Get started on GitHub</a>
           <a class="btn btn-ghost" href="#demo">See it work ↓</a>
@@ -204,6 +208,20 @@ const faqJsonLd = {
         </p>
       </div>
     </header>
+
+    <!-- 1.5 ── WHAT IS (quotable AEO definition; visible text, not metadata) -->
+    <section class="what-is" aria-labelledby="what-is-heading">
+      <div class="wrap">
+        <h2 id="what-is-heading" class="reveal">What is openagent.email?</h2>
+        <p class="reveal">
+          openagent.email is Apache-2.0 software you run yourself: agent mailboxes on your own
+          domain, over MCP and REST, with OTP and link extraction and no per-inbox fees. A $5 VPS
+          is enough; a hosted service is optional if you would rather not run a server. Mail stays
+          on a machine you own unless you opt into push tiers 2/3, which relay subject/from or
+          body/OTP via ntfy.
+        </p>
+      </div>
+    </section>
 
     <!-- 2 ── WORKS WITH (marquee) ──────────────────────────────────────── -->
     <div class="logos">
@@ -922,6 +940,41 @@ const faqJsonLd = {
     </script>
 
     <style>
+      .hero-docs {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.45rem 1.15rem;
+        align-items: center;
+        margin: 0.85rem 0 0;
+      }
+      .hero .cta-row {
+        margin-top: 1.35rem;
+      }
+      .what-is {
+        padding: 2.4rem 0 2.6rem;
+      }
+      .what-is h2 {
+        font-size: clamp(1.15rem, 2.4vw, 1.45rem);
+        letter-spacing: -0.015em;
+      }
+      .what-is p {
+        color: var(--ink-dim);
+        font-size: 1.05rem;
+        max-width: 44rem;
+        margin: 0.7rem 0 0;
+        line-height: 1.7;
+      }
+      @media (max-width: 34rem) {
+        .hero {
+          padding: 4.5rem 0 3.2rem;
+        }
+        .what-is {
+          padding: 1.8rem 0 2rem;
+        }
+        .what-is p {
+          font-size: 0.98rem;
+        }
+      }
       .faq {
         margin-top: 2.5rem;
         display: grid;
