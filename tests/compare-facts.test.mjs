@@ -7,6 +7,9 @@ import { approvedMailslurpHosts, mailslurpLastChecked, mailslurpSources, assertO
 
 const compare = await readFile(new URL('../src/pages/compare.astro', import.meta.url), 'utf8');
 const homepage = await readFile(new URL('../src/pages/index.astro', import.meta.url), 'utf8');
+const privacyPage = await readFile(new URL('../src/pages/privacy.astro', import.meta.url), 'utf8');
+const termsPage = await readFile(new URL('../src/pages/terms.astro', import.meta.url), 'utf8');
+const agentmailPage = await readFile(new URL('../src/pages/alternatives/agentmail.astro', import.meta.url), 'utf8');
 
 assert.doesNotThrow(() => assertOfficialAgentmailSources(agentmailSources), 'Shared AgentMail sources must satisfy the module validation');
 assert.throws(() => assertOfficialAgentmailSources([{ href: 'http://www.agentmail.to/pricing', label: 'pricing' }]), /must use HTTPS on an approved AgentMail host/, 'Module validation must reject a non-HTTPS source');
@@ -98,6 +101,18 @@ assert.match(homepage, /How is it different from AgentMail\?[\s\S]*?usage-based 
 assert.equal(agentmailLastChecked, '2026-08-30', 'Shared AgentMail Last checked date must use the 2026-08-30 Codex/incident recheck date. When refreshing agentmailLastChecked, update this exact assertion too.');
 assert.equal(mailslurpLastChecked, '2026-09-03', 'Shared MailSlurp Last checked date must use the 2026-09-03 (UTC) pricing-page recheck date. When refreshing mailslurpLastChecked, update this exact assertion too.');
 
+const requiredManualCanonicals = [
+  { label: 'legacy privacy', markup: privacyPage },
+  { label: 'legacy terms', markup: termsPage },
+  { label: 'AgentMail alternative', markup: agentmailPage },
+];
+
+for (const page of requiredManualCanonicals) {
+  const matches = [...page.markup.matchAll(/rel="canonical" href="([^"]+)"/g)];
+  assert.equal(matches.length, 1, `${page.label} must declare exactly one manual same-origin canonical`);
+  assert.ok(matches[0][1].endsWith('/'), `${page.label} canonical must end in /`);
+}
+
 function isFreshLastChecked(date, now = new Date()) {
   const parts = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
   if (!parts) return false;
@@ -179,26 +194,49 @@ function text(node) {
   return (node.childNodes ?? []).map((child) => child.nodeName === '#text' ? child.value : text(child)).join('');
 }
 
-async function readRenderedCompare() {
+async function readRenderedPage(relativePath, label) {
   try {
-    return await readFile(new URL('../dist/compare/index.html', import.meta.url), 'utf8');
+    return await readFile(new URL(`../${relativePath}`, import.meta.url), 'utf8');
   } catch (error) {
     if (error?.code === 'ENOENT') {
-      throw new Error('Built compare page is missing: run npm run build first.');
+      throw new Error(`Built ${label} is missing: run npm run build first.`);
     }
     throw error;
   }
 }
 
-async function readRenderedHomepage() {
-  try {
-    return await readFile(new URL('../dist/index.html', import.meta.url), 'utf8');
-  } catch (error) {
-    if (error?.code === 'ENOENT') {
-      throw new Error('Built homepage is missing: run npm run build first.');
-    }
-    throw error;
+function renderedCanonicalHref(document, label) {
+  const links = descendants(document).filter((node) =>
+    node.nodeName === 'link' && attribute(node, 'rel') === 'canonical',
+  );
+  assert.equal(links.length, 1, `Built ${label} must include exactly one canonical link`);
+  return attribute(links[0], 'href');
+}
+
+function assertRenderedSourceGroup(parent, surface, vendor) {
+  const group = descendants(parent).find((node) =>
+    node.nodeName === 'span' && attribute(node, 'data-vendor') === vendor.key,
+  );
+  assert.ok(group, `Built ${surface} must render a ${vendor.name} source group`);
+  assert.ok(text(group).trim().startsWith(`${vendor.name} sources:`), `Built ${surface} must label the ${vendor.name} source group`);
+
+  const sourceLinks = descendants(group).filter((node) => node.nodeName === 'a');
+  assert.equal(sourceLinks.length, vendor.sources.length, `Built ${surface} must render exactly the shared ${vendor.name} sources`);
+  assert.equal(sourceDigest(sourceLinks.map((link) => ({ href: attribute(link, 'href'), label: text(link) }))), vendor.digest, `Built ${surface} must render the required official ${vendor.name} source set`);
+  for (const source of vendor.sources) {
+    const link = sourceLinks.find((node) => attribute(node, 'href') === source.href);
+    assert.ok(link, `Built ${surface} is missing primary ${vendor.name} source: ${source.href}`);
+    assert.equal(attribute(link, 'rel'), 'noopener noreferrer', `Built ${surface} is missing rel protection: ${source.href}`);
+    assert.equal(text(link), source.label, `Built ${surface} has the wrong ${vendor.name} source label: ${source.href}`);
   }
+}
+
+async function readRenderedCompare() {
+  return readRenderedPage('dist/compare/index.html', 'compare page');
+}
+
+async function readRenderedHomepage() {
+  return readRenderedPage('dist/index.html', 'homepage');
 }
 
 if (process.argv.includes('--check-rendered')) {
@@ -217,21 +255,7 @@ if (process.argv.includes('--check-rendered')) {
     { key: 'agentmail', name: 'AgentMail', sources: agentmailSources, digest: requiredAgentmailSourcesDigest },
     { key: 'mailslurp', name: 'MailSlurp', sources: mailslurpSources, digest: requiredMailslurpSourcesDigest },
   ]) {
-    const group = descendants(renderedLastChecked).find((node) =>
-      node.nodeName === 'span' && attribute(node, 'data-vendor') === vendor.key,
-    );
-    assert.ok(group, `Built compare page must render a ${vendor.name} source group`);
-    assert.ok(text(group).startsWith(`${vendor.name} sources:`), `Built compare page must label the ${vendor.name} source group`);
-
-    const sourceLinks = descendants(group).filter((node) => node.nodeName === 'a');
-    assert.equal(sourceLinks.length, vendor.sources.length, `Built compare page must render exactly the shared ${vendor.name} sources`);
-    assert.equal(sourceDigest(sourceLinks.map((link) => ({ href: attribute(link, 'href'), label: text(link) }))), vendor.digest, `Built compare page must render the required official ${vendor.name} source set`);
-    for (const source of vendor.sources) {
-      const link = sourceLinks.find((node) => attribute(node, 'href') === source.href);
-      assert.ok(link, `Built compare page is missing primary ${vendor.name} source: ${source.href}`);
-      assert.equal(attribute(link, 'rel'), 'noopener noreferrer', `Built compare page is missing rel protection: ${source.href}`);
-      assert.equal(text(link), source.label, `Built compare page has the wrong ${vendor.name} source label: ${source.href}`);
-    }
+    assertRenderedSourceGroup(renderedLastChecked, 'compare page', vendor);
   }
 
   assert.equal(comparePageCell(document, 'Price', 3), 'Capped plans + metered overages', 'Built /compare MailSlurp Price cell must state the sourced pricing model');
@@ -246,4 +270,32 @@ if (process.argv.includes('--check-rendered')) {
   assert.equal(homepageSummaryCell(renderedHomepage, 'Unlimited inboxes', 3), 'Paid-tier limits', 'Built homepage MailSlurp inbox cell must exactly match the approved /compare wording');
   assert.equal(homepageSummaryCell(renderedHomepage, 'Price', 1), 'Flat VPS cost (~$5/mo)', 'Built homepage openagent.email Price cell must keep its approved short form');
   assert.equal(homepageSummaryCell(renderedHomepage, 'Unlimited inboxes', 1), '✓ catch-all', 'Built homepage openagent.email inbox cell must keep its approved short form');
+
+  const renderedAgentmailAlternative = parse(await readRenderedPage('dist/alternatives/agentmail/index.html', 'AgentMail alternative'));
+  const agentmailLastCheckedBlocks = descendants(renderedAgentmailAlternative).filter((node) =>
+    node.nodeName === 'p' && attribute(node, 'class')?.split(/\s+/).includes('last-checked'),
+  );
+  assert.equal(agentmailLastCheckedBlocks.length, 1, 'Built AgentMail alternative must include exactly one Last checked block');
+  assert.ok(
+    text(agentmailLastCheckedBlocks[0]).trim().startsWith(`Last checked: AgentMail ${agentmailLastChecked}.`),
+    'Built AgentMail alternative Last checked must begin with the shared AgentMail date',
+  );
+  assertRenderedSourceGroup(agentmailLastCheckedBlocks[0], 'AgentMail alternative', {
+    key: 'agentmail',
+    name: 'AgentMail',
+    sources: agentmailSources,
+    digest: requiredAgentmailSourcesDigest,
+  });
+
+  const requiredRenderedCanonicals = [
+    { label: 'AgentMail alternative', document: renderedAgentmailAlternative, href: 'https://openagent.email/alternatives/agentmail/' },
+    { label: 'legacy privacy page', relativePath: 'dist/privacy/index.html', href: 'https://openagent.email/privacy-policy/' },
+    { label: 'legacy terms page', relativePath: 'dist/terms/index.html', href: 'https://openagent.email/terms-of-service/' },
+  ];
+  for (const page of requiredRenderedCanonicals) {
+    const document = page.document ?? parse(await readRenderedPage(page.relativePath, page.label));
+    const href = renderedCanonicalHref(document, page.label);
+    assert.ok(href.endsWith('/'), `Built ${page.label} canonical must end in /`);
+    assert.equal(href, page.href, `Built ${page.label} canonical must pin ${page.href}`);
+  }
 }
