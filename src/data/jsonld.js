@@ -2,7 +2,7 @@
  * Safe JSON-LD serialization for `set:html` script payloads (#22).
  *
  * Astro's `set:html` writes the string verbatim inside
- * `<script type="application/ld+json">`, and `JSON.stringify` does not escape the
+ * structured-data script element, and `JSON.stringify` does not escape the
  * less-than character. Every value serialized through here is repository-owned static
  * text today, so there is no present exploit path - but the sink would carry a
  * script-closing sequence the moment a data source changed, and nothing at the call site
@@ -17,4 +17,19 @@
  */
 export function jsonLd(value) {
   return JSON.stringify(value).replace(/</g, '\\u003c');
+}
+
+export function validateJsonLd(serialized) {
+  if (typeof serialized !== 'string') {
+    throw new TypeError('JSON-LD serialization must produce a string');
+  }
+  if (serialized.includes('<')) {
+    throw new TypeError('JSON-LD serialization must not contain a raw less-than character');
+  }
+  try {
+    JSON.parse(serialized);
+  } catch (error) {
+    throw new TypeError('JSON-LD serialization must be valid JSON', { cause: error });
+  }
+  return serialized;
 }
