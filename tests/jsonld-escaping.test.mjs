@@ -30,31 +30,32 @@ const sourcesRoot = new URL('../src/', import.meta.url);
 const serializerFile = fileURLToPath(new URL('../src/data/jsonld.js', import.meta.url));
 const sourceFiles = await recursiveFiles(sourcesRoot, '.astro', 'source');
 assert.ok(sourceFiles.length > 0, 'The JSON-LD guard must discover renderable Astro sources');
+assert.equal(normalizeRelativePath('compare\\index.html'), 'compare/index.html', 'Guarded route paths must use portable forward slashes');
 
 for (const file of sourceFiles) {
-  const surface = relative(fileURLToPath(sourcesRoot), fileURLToPath(file));
+  const surface = portableRelative(sourcesRoot, file);
   const source = await readFile(file, 'utf8');
-  const tags = [...source.matchAll(/<([A-Za-z][\w:.-]*)\b[^>]*>/g)];
-  for (const match of tags) {
-    const tag = match[0];
+  const tags = astroTags(source);
+  for (const { name, text: tag } of tags) {
     assert.equal(
-      /\bslot\s*=\s*\{/.test(tag),
+      /\bslot\s*=\s*\{/i.test(tag),
       false,
       `Slot assignments on ${surface} must use direct static quoted values; found: ${tag}`,
     );
-    if (match[1].toLowerCase() === 'script') {
+    if (name.toLowerCase() === 'script') {
       assert.equal(
-        /\btype\s*=\s*\{/.test(tag),
+        /\btype\s*=\s*\{/i.test(tag),
         false,
         `Script type attributes on ${surface} must use direct static quoted values; found: ${tag}`,
       );
     }
   }
 
-  const scriptTags = tags.filter((match) => match[1].toLowerCase() === 'script').map((match) => match[0]);
-  const sinks = scriptTags.filter((tag) => /\btype\s*=\s*(["'])application\/ld\+json\1/.test(tag));
+  const scriptTags = tags.filter(({ name }) => name.toLowerCase() === 'script').map(({ text }) => text);
+  const sinks = scriptTags.filter((tag) => /\btype\s*=\s*(["'])application\/ld\+json\1/i.test(tag));
   if (sinks.length > 0) {
     assertApprovedJsonLdImport(source, file, surface);
+    assertNoJsonLdShadowing(source, surface);
   }
   for (const tag of sinks) {
     assertSafeJsonLdSink(tag, surface);
@@ -65,14 +66,13 @@ for (const file of sourceFiles) {
     `No set:html sink on ${surface} may serialize with bare JSON.stringify()`,
   );
 
-  const headSlotAssignments = [...source.matchAll(/<([A-Za-z][\w:.-]*)\b[^>]*slot\s*=\s*["']head["'][^>]*>/g)];
-  for (const assignment of headSlotAssignments) {
-    const tag = assignment[0];
-    const element = assignment[1].toLowerCase();
+  const headSlotAssignments = tags.filter(({ text }) => /\bslot\s*=\s*(["'])head\1/i.test(text));
+  for (const { name, text: tag } of headSlotAssignments) {
+    const element = name.toLowerCase();
     if (element === 'script') {
       assert.match(
         tag,
-        /type\s*=\s*(["'])application\/ld\+json\1/,
+        /type\s*=\s*(["'])application\/ld\+json\1/i,
         `A script passed through the Legal head slot must be JSON-LD on ${surface}; found: ${tag}`,
       );
       assertSafeJsonLdSink(tag, surface);
@@ -98,13 +98,19 @@ assert.match(
 );
 
 const homepageSource = await readFile(new URL('../src/pages/index.astro', import.meta.url), 'utf8');
+const homepageFrontmatter = maskComments(frontmatter(homepageSource, 'pages/index.astro'));
 for (const binding of ['rawMail', 'jsonOut']) {
-  assertStaticTemplateBinding(homepageSource, binding);
+  assertStaticTemplateBinding(homepageFrontmatter, binding);
   assert.match(homepageSource, new RegExp(`set:html\\s*=\\s*\\{\\s*${binding}\\s*\\}`), `Homepage must keep ${binding} wired directly to its static sink`);
 }
 
 const faqBlock = homepageSource.match(/const\s+faq\s*=\s*\[([\s\S]*?)\n\];/);
 assert.ok(faqBlock, 'Homepage FAQ must remain a static array');
+assert.equal(
+  /(?:^|[{,])\s*\.\.\./m.test(faqBlock[1]),
+  false,
+  'Homepage FAQ entries must not use object spreads that can introduce dynamic aHtml values',
+);
 const rawHtmlProperties = [...faqBlock[1].matchAll(/(?:^|[{,])\s*(?:aHtml\b|["']aHtml["']|\[\s*["']aHtml["']\s*\])\s*(?=[:,}])/gm)];
 const literalRawHtmlValues = [...faqBlock[1].matchAll(/^\s*(?:aHtml|["']aHtml["'])\s*:\s*(?:'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"|`(?:[^`\\]|\\.)*`),?\s*$/gm)];
 assert.ok(rawHtmlProperties.length > 0, 'Homepage FAQ must retain the guarded static aHtml case');
@@ -114,6 +120,8 @@ for (const literal of literalRawHtmlValues) {
     assertStaticTemplateLiteral(literal[0], literal[0].indexOf('`'), 'Homepage FAQ aHtml', ',');
   }
 }
+const faqRawHtmlSinks = [...homepageSource.matchAll(/\bset:html\s*=\s*\{\s*item\.aHtml\s*\}/g)];
+assert.equal(faqRawHtmlSinks.length, 1, 'Homepage FAQ raw HTML must have exactly one direct set:html={item.aHtml} sink');
 
 async function recursiveFiles(directory, extension, treeLabel) {
   const entries = await readdir(directory, { withFileTypes: true });
@@ -146,6 +154,24 @@ function assertApprovedJsonLdImport(source, file, surface) {
   );
 }
 
+function assertNoJsonLdShadowing(source, surface) {
+  const codeRegions = [frontmatter(source, surface), ...astroExpressions(astroMarkup(source))]
+    .map((region) => maskJsLiteralsAndComments(region));
+  const shadowPatterns = [
+    /\b(?:const|let|var|class)\s+jsonLd\b/,
+    /\bfunction\s*\*?\s+jsonLd\b/,
+    /\bfunction\s*\*?\s*[A-Za-z_$][\w$]*\s*\([^)]*\bjsonLd\b[^)]*\)/,
+    /\bcatch\s*\([^)]*\bjsonLd\b[^)]*\)/,
+    /\([^()]*\bjsonLd\b[^()]*\)\s*=>/,
+    /\bjsonLd\s*=>/,
+  ];
+  for (const code of codeRegions) {
+    for (const pattern of shadowPatterns) {
+      assert.equal(pattern.test(code), false, `JSON-LD sinks on ${surface} must not shadow the imported jsonLd binding`);
+    }
+  }
+}
+
 function assertSafeJsonLdSink(tag, surface) {
   const bindings = [...tag.matchAll(/\bset:html\s*=/g)];
   assert.equal(bindings.length, 1, `Every JSON-LD sink on ${surface} must have exactly one set:html binding; found: ${tag}`);
@@ -162,6 +188,181 @@ function frontmatter(source, surface) {
   const block = source.match(/^---\s*\r?\n([\s\S]*?)\r?\n---/);
   assert.ok(block, `JSON-LD source ${surface} must have inspectable Astro frontmatter`);
   return block[1];
+}
+
+function astroMarkup(source) {
+  return source.replace(/^---\s*\r?\n[\s\S]*?\r?\n---\s*\r?\n/, '');
+}
+
+function portableRelative(root, file) {
+  return normalizeRelativePath(relative(fileURLToPath(root), fileURLToPath(file)));
+}
+
+function normalizeRelativePath(path) {
+  return path.replaceAll('\\', '/');
+}
+
+function astroTags(source) {
+  const markup = astroMarkup(source);
+  const tags = [];
+
+  for (let start = 0; start < markup.length; start += 1) {
+    if (markup[start] !== '<' || !/[A-Za-z]/.test(markup[start + 1] ?? '')) continue;
+    let nameEnd = start + 1;
+    while (/[\w:.-]/.test(markup[nameEnd] ?? '')) nameEnd += 1;
+    const name = markup.slice(start + 1, nameEnd);
+    let quote = '';
+    let braceDepth = 0;
+
+    for (let index = nameEnd; index < markup.length; index += 1) {
+      const current = markup[index];
+      if (quote) {
+        if (current === '\\') {
+          index += 1;
+        } else if (current === quote) {
+          quote = '';
+        }
+      } else if (current === '"' || current === "'" || current === '`') {
+        quote = current;
+      } else if (current === '{') {
+        braceDepth += 1;
+      } else if (current === '}') {
+        braceDepth = Math.max(0, braceDepth - 1);
+      } else if (current === '>' && braceDepth === 0) {
+        tags.push({ name, text: markup.slice(start, index + 1) });
+        start = index;
+        break;
+      }
+    }
+  }
+
+  return tags;
+}
+
+function astroExpressions(markup) {
+  const expressions = [];
+  for (let start = 0; start < markup.length; start += 1) {
+    if (markup[start] !== '{') continue;
+    let quote = '';
+    let depth = 1;
+    for (let index = start + 1; index < markup.length; index += 1) {
+      const current = markup[index];
+      if (quote) {
+        if (current === '\\') {
+          index += 1;
+        } else if (current === quote) {
+          quote = '';
+        }
+      } else if (current === '"' || current === "'" || current === '`') {
+        quote = current;
+      } else if (current === '{') {
+        depth += 1;
+      } else if (current === '}') {
+        depth -= 1;
+        if (depth === 0) {
+          expressions.push(markup.slice(start + 1, index));
+          start = index;
+          break;
+        }
+      }
+    }
+  }
+  return expressions;
+}
+
+function maskComments(source) {
+  let output = '';
+  let state = 'code';
+
+  for (let index = 0; index < source.length; index += 1) {
+    const current = source[index];
+    const next = source[index + 1];
+    if (state === 'code') {
+      if (current === '/' && next === '/') {
+        output += '  ';
+        index += 1;
+        state = 'line-comment';
+      } else if (current === '/' && next === '*') {
+        output += '  ';
+        index += 1;
+        state = 'block-comment';
+      } else {
+        output += current;
+        if (current === "'") state = 'single-quote';
+        if (current === '"') state = 'double-quote';
+        if (current === '`') state = 'template';
+      }
+    } else if (state === 'single-quote' || state === 'double-quote' || state === 'template') {
+      output += current;
+      if (current === '\\') {
+        output += next ?? '';
+        index += 1;
+      } else if (
+        (state === 'single-quote' && current === "'")
+        || (state === 'double-quote' && current === '"')
+        || (state === 'template' && current === '`')
+      ) {
+        state = 'code';
+      }
+    } else {
+      output += current === '\n' ? '\n' : ' ';
+      if (state === 'line-comment' && current === '\n') {
+        state = 'code';
+      } else if (state === 'block-comment' && current === '*' && next === '/') {
+        output += ' ';
+        index += 1;
+        state = 'code';
+      }
+    }
+  }
+
+  return output;
+}
+
+function maskJsLiteralsAndComments(source) {
+  let output = '';
+  let state = 'code';
+
+  for (let index = 0; index < source.length; index += 1) {
+    const current = source[index];
+    const next = source[index + 1];
+    if (state === 'code') {
+      if (current === '/' && next === '/') {
+        output += '  ';
+        index += 1;
+        state = 'line-comment';
+      } else if (current === '/' && next === '*') {
+        output += '  ';
+        index += 1;
+        state = 'block-comment';
+      } else if (current === "'" || current === '"' || current === '`') {
+        output += ' ';
+        state = current === "'" ? 'single-quote' : current === '"' ? 'double-quote' : 'template';
+      } else {
+        output += current;
+      }
+    } else {
+      output += current === '\n' ? '\n' : ' ';
+      if (current === '\\' && ['single-quote', 'double-quote', 'template'].includes(state)) {
+        output += next === '\n' ? '\n' : ' ';
+        index += 1;
+      } else if (state === 'line-comment' && current === '\n') {
+        state = 'code';
+      } else if (state === 'block-comment' && current === '*' && next === '/') {
+        output += ' ';
+        index += 1;
+        state = 'code';
+      } else if (
+        (state === 'single-quote' && current === "'")
+        || (state === 'double-quote' && current === '"')
+        || (state === 'template' && current === '`')
+      ) {
+        state = 'code';
+      }
+    }
+  }
+
+  return output;
 }
 
 function maskCommentsAndTemplates(source) {
@@ -249,11 +450,11 @@ if (process.argv.includes('--check-rendered')) {
   assert.ok(renderedPages.length > 0, 'The rendered JSON-LD guard must discover built HTML pages');
   let totalBlocks = 0;
   for (const file of renderedPages) {
-    const surface = relative(fileURLToPath(renderedRoot), fileURLToPath(file));
+    const surface = portableRelative(renderedRoot, file);
     const rendered = await readFile(file, 'utf8');
     const document = parse(rendered);
     const blocks = descendants(document).filter(
-      (node) => node.nodeName === 'script' && attribute(node, 'type') === 'application/ld+json',
+      (node) => node.nodeName === 'script' && (attribute(node, 'type') ?? '').toLowerCase() === 'application/ld+json',
     );
     if (requiredBlocks.has(surface)) {
       const minimum = requiredBlocks.get(surface);
