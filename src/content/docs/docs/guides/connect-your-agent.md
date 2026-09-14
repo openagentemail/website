@@ -1,6 +1,6 @@
 ---
-title: Connect your agent
-description: Wire Claude, ChatGPT, Grok, Cursor, or REST into openagent.email — CLI, desktop, and web chat in one place.
+title: Connect Your Agent to openagent.email (MCP + REST)
+description: Wire Claude Desktop, Cursor, and REST into openagent.email — CLI, desktop, and web chat in one place.
 ---
 
 You already have an inbox. This page is how you **plug your agent into it** —
@@ -119,3 +119,5 @@ task endpoints your agent can call with `curl`, a script, or any HTTP client.
 
 Stuck on deploy or DNS? Start from [Quickstart](/docs/quickstart/).
 Stuck on local MCP JSON? Start from [MCP client setup](/docs/reference/mcp-clients/).
+Need the MCP routing hub? Start from [MCP overview](/mcp/).
+Waiting on a signup code? Start from [OTP extraction](/docs/guides/otp-extraction/).
