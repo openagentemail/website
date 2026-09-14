@@ -1,0 +1,12 @@
+---
+import { jsonLd, validateJsonLd } from '../data/jsonld.js';
+
+interface Props {
+  data: unknown;
+}
+
+const { data } = Astro.props;
+const serialized = validateJsonLd(jsonLd(data));
+---
+
+<script type="application/ld+json" data-jsonld-owner="JsonLd" set:html={serialized} />

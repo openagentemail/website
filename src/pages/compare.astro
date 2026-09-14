@@ -1,9 +1,9 @@
 ---
 import Legal from '../layouts/Legal.astro';
 import PaperPlane from '../components/PaperPlane.astro';
+import JsonLd from '../components/JsonLd.astro';
 import { agentmailLastChecked, agentmailSources } from '../data/agentmailSources.js';
 import { mailslurpLastChecked, mailslurpSources } from '../data/mailslurpSources.js';
-import { jsonLd } from '../data/jsonld.js';
 
 const pageTitle = 'openagent.email vs AgentMail vs MailSlurp — Agent Email Comparison';
 const pageDescription =
@@ -44,7 +44,7 @@ const faqJsonLd = {
 ---
 
 <Legal title={pageTitle} documentTitle={pageTitle} description={pageDescription} wide>
-  <script slot="head" type="application/ld+json" set:html={jsonLd(faqJsonLd)} />
+  <JsonLd slot="head" data={faqJsonLd} />
   <div class="compare-shell">
   <header class="compare-hero">
     <h1>openagent.email vs AgentMail vs MailSlurp</h1>

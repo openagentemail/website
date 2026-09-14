@@ -1,9 +1,21 @@
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import { readFile, readdir } from 'node:fs/promises';
+import { relative } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { parse } from 'parse5';
-import { jsonLd } from '../src/data/jsonld.js';
+import { jsonLd, validateJsonLd } from '../src/data/jsonld.js';
 
-// --- the serializer closes the sink (#22) ---
+const ownerSource = 'components/JsonLd.astro';
+const ownerMarker = 'JsonLd';
+const expectedBlocks = new Map([['index.html', 2], ['compare/index.html', 1]]);
+const expectedTotalBlocks = 3;
+const baselinePayloadDigest = '818928a42d5b1b9f181c2c864ac7676114379cede6d6b8290d4de44af584df34';
+
+// The owner marker and source rule guard regressions and accidental misuse. They do not
+// defend against a malicious contributor, who could forge the marker and edit this test.
+
+// --- the serializer and owner validation close the sink (#22) ---
 
 const scriptClosing = {
   '@type': 'FAQPage',
@@ -13,68 +25,230 @@ const scriptClosing = {
 };
 
 const serialized = jsonLd(scriptClosing);
-
 assert.equal(serialized.includes('<'), false, 'Serialized JSON-LD must not contain a raw less-than character');
 assert.match(serialized, /\\u003c/, 'A less-than character must be written as a JSON Unicode escape');
 assert.deepEqual(JSON.parse(serialized), scriptClosing, 'Escaping must not change the decoded structured data');
 assert.equal(/<\/script/i.test(serialized), false, 'No script-closing sequence may survive, in any case');
+assert.equal(validateJsonLd(serialized), serialized, 'Owner validation must return an accepted serialization unchanged');
 
-// --- every JSON-LD sink must actually go through the serializer ---
+assert.throws(() => validateJsonLd(undefined), /must produce a string/, 'Non-string serialization must fail closed');
+assert.throws(() => validateJsonLd('{broken'), /must be valid JSON/, 'Unparseable serialization must fail closed');
+for (const hostile of [
+  JSON.stringify({ value: '</script>' }),
+  JSON.stringify({ value: '</SCRIPT>' }),
+  JSON.stringify({ value: '<!--' }),
+]) {
+  assert.throws(() => validateJsonLd(hostile), /raw less-than/, 'Every raw less-than form must fail closed');
+}
 
-// The rendered page cannot prove the escaping is wired up while the shipped data contains
-// no less-than character, so assert it at the call sites instead. Without this, reverting a
-// sink to bare JSON.stringify() would keep every other assertion in this file green.
-const pageSources = [
-  ['homepage', new URL('../src/pages/index.astro', import.meta.url), 2],
-  ['/compare', new URL('../src/pages/compare.astro', import.meta.url), 1],
-];
-for (const [surface, file, minSinks] of pageSources) {
-  const source = await readFile(file, 'utf8');
-  const sinks = [...source.matchAll(/<script\b[^>]*type="application\/ld\+json"[^>]*>/g)]
-    .map((match) => match[0]);
-  assert.ok(sinks.length >= minSinks, `Expected at least ${minSinks} JSON-LD sink(s) on ${surface} (found ${sinks.length})`);
-  for (const tag of sinks) {
-    assert.match(
-      tag,
-      /set:html=\{jsonLd\(/,
-      `Every JSON-LD set:html sink on ${surface} must serialize through jsonLd(); found: ${tag}`,
-    );
-  }
-  assert.equal(
-    /set:html=\{JSON\.stringify\(/.test(source),
-    false,
-    `No set:html sink on ${surface} may serialize with bare JSON.stringify()`,
+// --- zero-dependency sole-owner source backstop ---
+
+const sourcesRoot = new URL('../src/', import.meta.url);
+const sourceFiles = await recursiveFiles(sourcesRoot, 'source');
+assert.ok(sourceFiles.length > 0, 'The JSON-LD guard must discover the complete source tree');
+for (const file of sourceFiles) {
+  const surface = portableRelative(sourcesRoot, file);
+  assertSoleOwnerSource(surface, await readFile(file, 'utf8'));
+}
+
+assert.throws(
+  () => assertSoleOwnerSource('pages/mutation.astro', '<script type="application/ld+json">'),
+  /Only components\/JsonLd\.astro/,
+  'Any page containing the reserved substring must fail',
+);
+assert.doesNotThrow(
+  () => assertSoleOwnerSource('pages/data-slot.astro', '<Widget data-slot="head" />'),
+  'A data-slot attribute must remain green',
+);
+assert.doesNotThrow(
+  () => assertSoleOwnerSource(ownerSource, '<script type="application/ld+json">'),
+  'Only the owner component may contain the reserved substring',
+);
+
+for (const mutation of [
+  '<Fragment slot="head"><script type="application/ld+json">{}</script></Fragment>',
+  '<script type="application/ld+json" set:html={unsafe(data)} />',
+  '<script type={"application/ld+json"} set:html={unsafe(data)} />',
+  '<script type="application/ld+json" set:html={jsonLd(data) + dynamic} />',
+  '<script slot={"head"} type="application/ld+json">{}</script>',
+  'const raw = `<script type="application/ld+json">`; <main set:html={raw} />',
+]) {
+  assert.throws(
+    () => assertSoleOwnerSource('pages/prior-mutation.astro', mutation),
+    /Only components\/JsonLd\.astro/,
+    'Prior literal sink mutations must fail the sole-owner source rule',
   );
 }
+
+const ownerComponent = await readFile(new URL('../src/components/JsonLd.astro', import.meta.url), 'utf8');
+assert.match(ownerComponent, /data-jsonld-owner="JsonLd"/, 'The owner component must emit its provenance marker');
+assert.match(ownerComponent, /validateJsonLd\(jsonLd\(data\)\)/, 'The owner must validate immediately before its set:html sink');
 
 // --- rendered output, after the build ---
 
 if (process.argv.includes('--check-rendered')) {
-  const renderedPages = [
-    ['homepage', new URL('../dist/index.html', import.meta.url), 2],
-    ['/compare', new URL('../dist/compare/index.html', import.meta.url), 1],
-  ];
-  for (const [surface, file, minBlocks] of renderedPages) {
-    const rendered = await readFile(file, 'utf8');
+  const renderedRoot = new URL('../dist/', import.meta.url);
+  const renderedPages = await recursiveFiles(renderedRoot, 'rendered', '.html');
+  assert.ok(renderedPages.length > 0, 'The rendered JSON-LD guard must discover built HTML pages');
+
+  const renderedBySurface = new Map();
+  for (const file of renderedPages) {
+    renderedBySurface.set(portableRelative(renderedRoot, file), await readFile(file, 'utf8'));
+  }
+
+  const payloadRows = assertRenderedOwnership(renderedBySurface);
+  const digest = createHash('sha256').update(JSON.stringify(payloadRows)).digest('hex');
+  assert.equal(digest, baselinePayloadDigest, 'The three parsed JSON-LD payloads must remain semantically equal to the 11d636a baseline');
+
+  const compareDocument = parse(renderedBySurface.get('compare/index.html'));
+  const compareHead = descendants(compareDocument).find((node) => node.nodeName === 'head');
+  assert.ok(compareHead, 'Built compare page must have a document head');
+  assert.equal(jsonLdBlocks(compareHead).length, 1, 'The compare JsonLd component must still render into the Legal head slot');
+}
+
+// Deleting the owner marker from a rendered artifact must turn the provenance gate red.
+assert.throws(
+  () => assertRenderedOwnership(new Map([
+    ['index.html', '<html><head><script type="application/ld+json" data-jsonld-owner="JsonLd">{}</script><script type="application/ld+json" data-jsonld-owner="JsonLd">{}</script></head></html>'],
+    ['compare/index.html', '<html><head><script type="application/ld+json">{}</script></head></html>'],
+  ])),
+  /must carry data-jsonld-owner/,
+  'Removing an owner marker must fail the rendered provenance assertion',
+);
+
+for (const [label, site, message] of [
+  [
+    'uppercase unowned MIME',
+    renderedFixture({ compare: '<script type="APPLICATION/LD+JSON">{}</script>' }),
+    /must carry data-jsonld-owner/,
+  ],
+  [
+    'uppercase unowned MIME inside template content',
+    renderedFixture({ compare: `${ownedBlock()}<template><script type="APPLICATION/LD+JSON">{}</script></template>` }),
+    /must carry data-jsonld-owner/,
+  ],
+  [
+    'missing required owner block',
+    renderedFixture({ compare: '' }),
+    /exactly 1 JSON-LD block/,
+  ],
+  [
+    'extra owner block',
+    renderedFixture({ compare: `${ownedBlock()}${ownedBlock()}` }),
+    /exactly 1 JSON-LD block/,
+  ],
+  [
+    'raw less-than through owner marker',
+    renderedFixture({ compare: ownedBlock('{"value":"<!--"}') }),
+    /must not contain a raw less-than/,
+  ],
+  [
+    'unparseable payload through owner marker',
+    renderedFixture({ compare: ownedBlock('{broken') }),
+    /must parse as JSON/,
+  ],
+]) {
+  assert.throws(
+    () => assertRenderedOwnership(site),
+    message,
+    `${label} must fail at the rendered artifact boundary`,
+  );
+}
+
+function assertSoleOwnerSource(surface, source) {
+  if (surface === ownerSource) return;
+  assert.equal(
+    source.includes('ld+json'),
+    false,
+    `Only ${ownerSource} may contain the reserved JSON-LD MIME substring; found it in ${surface}`,
+  );
+}
+
+function assertRenderedOwnership(renderedBySurface) {
+  const blocksBySurface = new Map();
+  let totalBlocks = 0;
+
+  for (const [surface, rendered] of renderedBySurface) {
     const document = parse(rendered);
-    const blocks = descendants(document).filter(
-      (node) => node.nodeName === 'script' && attribute(node, 'type') === 'application/ld+json',
-    );
-    assert.ok(blocks.length >= minBlocks, `Built ${surface} must include at least ${minBlocks} JSON-LD block(s) (found ${blocks.length})`);
+    const blocks = jsonLdBlocks(document);
+    blocksBySurface.set(surface, blocks);
+    totalBlocks += blocks.length;
+
     for (const block of blocks) {
+      assert.equal(
+        attribute(block, 'data-jsonld-owner'),
+        ownerMarker,
+        `Rendered ${surface} JSON-LD must carry data-jsonld-owner="${ownerMarker}"`,
+      );
       const text = (block.childNodes ?? []).map((child) => child.value ?? '').join('');
       assert.ok(text.length > 0, `A rendered ${surface} JSON-LD block must not be empty`);
       assert.equal(text.includes('<'), false, `Rendered ${surface} JSON-LD must not contain a raw less-than character`);
-      assert.equal(/<\/script/i.test(text), false, `Rendered ${surface} JSON-LD must not contain a script-closing sequence`);
-      assert.doesNotThrow(() => JSON.parse(text), `Rendered ${surface} JSON-LD must still parse as JSON`);
+      assert.doesNotThrow(() => JSON.parse(text), `Rendered ${surface} JSON-LD must parse as JSON`);
     }
   }
+
+  for (const [surface, expected] of expectedBlocks) {
+    assert.ok(blocksBySurface.has(surface), `Rendered output must include ${surface}`);
+    assert.equal(blocksBySurface.get(surface).length, expected, `Built ${surface} must contain exactly ${expected} JSON-LD block(s)`);
+  }
+  assert.equal(totalBlocks, expectedTotalBlocks, `The rendered site must contain exactly ${expectedTotalBlocks} JSON-LD blocks`);
+
+  const payloadRows = [];
+  for (const surface of ['index.html', 'compare/index.html']) {
+    for (const [index, block] of blocksBySurface.get(surface).entries()) {
+      const text = (block.childNodes ?? []).map((child) => child.value ?? '').join('');
+      payloadRows.push({ file: surface, index, payload: JSON.parse(text) });
+    }
+  }
+  return payloadRows;
+}
+
+function renderedFixture({ compare = ownedBlock() } = {}) {
+  return new Map([
+    ['index.html', `<html><head>${ownedBlock()}${ownedBlock()}</head></html>`],
+    ['compare/index.html', `<html><head>${compare}</head></html>`],
+  ]);
+}
+
+function ownedBlock(payload = '{}') {
+  return `<script type="application/ld+json" data-jsonld-owner="JsonLd">${payload}</script>`;
+}
+
+async function recursiveFiles(directory, treeLabel, extension = '') {
+  const entries = await readdir(directory, { withFileTypes: true });
+  const files = [];
+
+  for (const entry of entries.sort((left, right) => left.name.localeCompare(right.name))) {
+    assert.equal(entry.isSymbolicLink(), false, `Symlinks are not allowed in the guarded ${treeLabel} tree: ${new URL(entry.name, directory)}`);
+    const url = new URL(entry.name + (entry.isDirectory() ? '/' : ''), directory);
+    if (entry.isDirectory()) {
+      files.push(...await recursiveFiles(url, treeLabel, extension));
+    } else if (entry.isFile() && (!extension || entry.name.endsWith(extension))) {
+      files.push(url);
+    }
+  }
+  return files;
+}
+
+function jsonLdBlocks(node) {
+  return descendants(node).filter(
+    (descendant) => descendant.nodeName === 'script'
+      && (attribute(descendant, 'type') ?? '').toLowerCase() === 'application/ld+json',
+  );
 }
 
 function descendants(node) {
-  return (node.childNodes ?? []).flatMap((child) => [child, ...descendants(child)]);
+  const children = [
+    ...(node.childNodes ?? []),
+    ...(node.content?.childNodes ?? []),
+  ];
+  return children.flatMap((child) => [child, ...descendants(child)]);
 }
 
 function attribute(node, name) {
   return (node.attrs ?? []).find((attr) => attr.name === name)?.value;
+}
+
+function portableRelative(root, file) {
+  return relative(fileURLToPath(root), fileURLToPath(file)).replaceAll('\\', '/');
 }
