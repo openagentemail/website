@@ -4,15 +4,76 @@ import EnvelopeOrbit from '../components/EnvelopeOrbit.astro';
 import PaperPlane from '../components/PaperPlane.astro';
 import { agentmailLastChecked, agentmailSources } from '../data/agentmailSources.js';
 import { mailslurpLastChecked, mailslurpSources } from '../data/mailslurpSources.js';
+import { jsonLd } from '../data/jsonld.js';
+
+const pageTitle = 'openagent.email vs AgentMail vs MailSlurp — Agent Email Comparison';
+const pageDescription =
+  'openagent.email is Apache-2.0 self-hosted agent email; AgentMail is SaaS with enterprise AWS Outposts BYOC; MailSlurp is hosted email and SMS testing.';
+
+const faq = [
+  {
+    q: 'What is the core difference?',
+    a: 'openagent.email is Apache-2.0 software you run on any VPS or cloud. AgentMail is a managed agent-email product: SaaS by default, with enterprise AWS Outposts BYOC. MailSlurp is a hosted platform for testing application email and SMS.',
+  },
+  {
+    q: 'Is openagent.email free and open source?',
+    a: 'Yes. It is Apache-2.0 software with no per-inbox fee. You pay for your own server and domain; a small VPS of about $5/month plus a domain covers the infrastructure.',
+  },
+  {
+    q: 'Does AgentMail have BYOC?',
+    a: 'Yes. AgentMail\'s enterprise Outposts BYOC option runs send, receive, storage, and search in your AWS account. AgentMail Cloud still operates the dashboard, authentication, billing, upgrades, and product control plane.',
+  },
+  {
+    q: 'When is MailSlurp the better fit?',
+    a: 'When you primarily need to test application email and SMS flows without operating mail infrastructure. MailSlurp is SaaS only and offers SMS testing, which openagent.email does not.',
+  },
+  {
+    q: 'Can an agent connect by MCP or API?',
+    a: 'Yes. openagent.email includes a REST API and an MCP server. AgentMail has an official MCP and plugin ecosystem. MailSlurp offers an official hosted MCP, REST, language SDKs, and a dashboard.',
+  },
+];
+
+const faqJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: faq.map((item) => ({
+    '@type': 'Question',
+    name: item.q,
+    acceptedAnswer: { '@type': 'Answer', text: item.a },
+  })),
+};
 ---
 
-<Legal title="Compare agent email options" description="An honest comparison of openagent.email, AgentMail, and MailSlurp for AI-agent email." wide>
+<Legal title={pageTitle} documentTitle={pageTitle} description={pageDescription} wide>
+  <script slot="head" type="application/ld+json" set:html={jsonLd(faqJsonLd)} />
   <div class="compare-shell">
   <header class="compare-hero" data-envelope-root>
     <EnvelopeOrbit compact />
-    <h1>Compare agent email options</h1>
-    <p class="lede">Different products make different trade-offs: openagent.email is open-source software you run; AgentMail is a managed agent-email product with enterprise BYOC; MailSlurp is a hosted testing platform for email and SMS.</p>
+    <h1>openagent.email vs AgentMail vs MailSlurp</h1>
+    <p class="lede">This page compares three ways to give agents email: openagent.email is Apache-2.0 software you run yourself; AgentMail is a managed agent-email product with enterprise AWS Outposts BYOC; MailSlurp is a hosted platform for testing email and SMS.</p>
+    <p class="hero-docs">
+      <a href="/docs/quickstart/">Deploy / get started</a>
+      <a href="/docs/guides/connect-your-agent/">Connect an agent</a>
+    </p>
   </header>
+  <section class="picks" aria-labelledby="picks-heading">
+    <h2 id="picks-heading">Who should pick which?</h2>
+    <p class="picks-note">Fit notes from the facts on this page, not universal recommendations.</p>
+    <div class="pick-grid">
+      <article class="pick-card">
+        <h3>openagent.email</h3>
+        <p>A fit when you want open-source control, your own domain and infrastructure, and persistent agent mailboxes.</p>
+      </article>
+      <article class="pick-card">
+        <h3>AgentMail</h3>
+        <p>A fit when you prefer managed agent email. Enterprise AWS Outposts BYOC is the existing option when mail content must stay in your AWS account; the vendor still runs the product control plane.</p>
+      </article>
+      <article class="pick-card">
+        <h3>MailSlurp</h3>
+        <p>A fit when you primarily test application email and SMS flows and do not want to operate mail infrastructure.</p>
+      </article>
+    </div>
+  </section>
   <div class="table-wrap"><table class="compare"><thead><tr><th></th><th>openagent.email</th><th>AgentMail</th><th>MailSlurp</th></tr></thead><tbody>
     <tr><td>Open source</td><td>Apache-2.0</td><td>Closed source</td><td>Closed source</td></tr><tr><td>Deployment</td><td>Any VPS or cloud</td><td>SaaS or AWS Outposts BYOC</td><td>SaaS only</td></tr><tr><td>Price</td><td>Free software + your server; no per-inbox fee</td><td>Developer/Startup: PAYG +$2 per inbox, domain, or 1k sends; annual plans save 20%</td><td>Capped plans + metered overages</td></tr><tr><td>Unlimited inboxes</td><td>Yes, on your domain</td><td>Paid-tier limits</td><td>Paid-tier limits</td></tr><tr><td>MCP-native</td><td>Yes</td><td>Official MCP and plugin ecosystem</td><td>Official hosted MCP</td></tr><tr><td>Plugins/ecosystem</td><td>Universal MCP: connect directly from Claude, ChatGPT, Grok, or Cursor; official connection guide</td><td>Official OpenClaw plugin + Grok Bot Cursor plugin + official Codex plugin</td><td>Official MCP setup guides for Claude Code, Cursor, Codex, and Gemini CLI</td></tr><tr><td>OTP/link extraction</td><td>Built in</td><td>Not independently verified</td><td>Testing workflows</td></tr><tr><td>Mail data residency</td><td>Your box</td><td>SaaS: theirs; Outposts: your AWS</td><td>Their infrastructure</td></tr><tr><td>Vendor control plane</td><td>None</td><td>Yes, including Outposts</td><td>Yes</td></tr><tr><td>You run a server</td><td>Yes</td><td>No, unless enterprise BYOC</td><td>No</td></tr>
   </tbody></table></div>
@@ -76,17 +137,51 @@ import { mailslurpLastChecked, mailslurpSources } from '../data/mailslurpSources
     <p>openagent.email includes a REST API, MCP server, and a human dashboard. AgentMail offers REST, websockets, webhooks, and SDKs; MailSlurp offers an official hosted MCP, REST, language SDKs, and a dashboard. openagent.email automatically extracts OTP codes and verification links while keeping raw text and HTML available. It also has email-backed agent-to-agent task threads with server-stamped states, receiving-agent wake-ups, a dashboard work-order view, an A2A-vocabulary Agent Card, and per-identity ntfy push tiers: interrupt only, sender + subject, or body + OTP, set by an admin. Equivalent task and push features were not verified for the other products, so no claim is made.</p>
   </div>
 
+  <section class="faq" aria-labelledby="faq-heading">
+    <h2 id="faq-heading">FAQ</h2>
+    {
+      faq.map((item) => (
+        <article>
+          <h3>{item.q}</h3>
+          <p>{item.a}</p>
+        </article>
+      ))
+    }
+  </section>
+
   <div class="cta-final">
     <PaperPlane lottie />
-    <div class="cta-row"><a class="btn btn-gold" href="/pricing">See hosted and self-hosted pricing →</a></div>
+    <div class="cta-row">
+      <a class="btn btn-gold" href="/docs/quickstart/">Deploy / get started →</a>
+      <a class="btn btn-ghost" href="/docs/guides/connect-your-agent/">Connect an agent →</a>
+      <a class="btn btn-ghost" href="/pricing">See hosted and self-hosted pricing →</a>
+    </div>
   </div>
   </div>
 </Legal>
 
 <style>
   .compare-shell { width: 100%; max-width: var(--max); margin-inline: auto; }
-  .compare-hero { position: relative; padding-bottom: 2.5rem; border-bottom: 1px solid var(--line); }
+  .compare-hero {
+    position: relative;
+    padding-bottom: 2.5rem;
+    border-bottom: 1px solid var(--line);
+    overflow-x: clip;
+  }
+  .compare-hero h1 {
+    font-size: clamp(1.5rem, 7vw, 2.8rem);
+    overflow-wrap: break-word;
+    max-width: 100%;
+  }
   .compare-hero .lede { max-width: 48rem; margin-bottom: 0; }
+  .hero-docs { display: flex; flex-wrap: wrap; gap: 0.85rem 1.4rem; margin: 1.1rem 0 0; font-size: 0.92rem; }
+  .picks { margin: 2rem 0 0; }
+  .picks > h2 { font-size: 1.18rem; margin: 0 0 0.45rem; }
+  .picks-note { margin: 0 0 1rem; font-size: 0.92rem; }
+  .pick-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.2rem; }
+  .pick-card { min-width: 0; padding: 1.25rem 1.4rem; border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg-card); }
+  .pick-card h3 { font-size: 1rem; margin: 0 0 0.5rem; color: var(--gold); }
+  .pick-card p { margin: 0; }
   .table-wrap { width: 100%; overflow-x:auto; margin:2rem 0 3.5rem; border: 1px solid var(--line); border-radius: 14px; background: var(--bg-card); box-shadow: 0 24px 70px rgba(0,0,0,.24); }
   .compare { width:100%; min-width:42rem; border-collapse:collapse; }
   .compare th,.compare td { border-bottom:1px solid var(--line); padding:.82rem 1rem; text-align:left; vertical-align:top; line-height:1.5; }
@@ -131,12 +226,24 @@ import { mailslurpLastChecked, mailslurpSources } from '../data/mailslurpSources
   .dims.detail > h2 { color: var(--gold); font-size: 1.05rem; }
   .note { color: var(--ink-dim); line-height: 1.7; }
 
+  .faq { max-width: 75ch; margin: 0 auto 3.5rem; }
+  .faq > h2 { font-size: 1.18rem; margin: 0 0 1.1rem; }
+  .faq article { padding: 1.05rem 0; border-bottom: 1px solid var(--line); }
+  .faq article:last-child { border-bottom: 0; padding-bottom: 0; }
+  .faq h3 { font-size: 1.02rem; margin: 0 0 0.45rem; }
+  .faq p { margin: 0; }
+
   .cta-final { margin-top: 2.6rem; text-align: center; border-top: 1px solid var(--line); padding-top: 1.5rem; }
   .cta-final .lottie-final { margin-bottom: 0.4rem; }
-  .cta-row { margin-top: 1.2rem; }
+  .cta-row { margin-top: 1.2rem; display: flex; flex-wrap: wrap; gap: 0.9rem; justify-content: center; }
+  .cta-row .btn-gold { color: #111; }
+  .cta-row .btn-ghost { color: var(--ink); }
+  .cta-row .btn:hover { text-decoration: none; }
 
   @media (max-width: 48rem) {
     .compare-hero { padding-bottom: 2rem; }
+    .compare-hero :global([data-envelope-orbit]) { display: none; }
+    .pick-grid { grid-template-columns: 1fr; }
     .dims:not(.detail) { grid-template-columns: 1fr; }
     .dim-card { padding: 1.25rem; }
   }

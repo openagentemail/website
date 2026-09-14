@@ -5,9 +5,11 @@ interface Props {
   title: string;
   description: string;
   wide?: boolean;
+  /** When set, used as <title> instead of `${title} — openagent.email`. */
+  documentTitle?: string;
 }
 
-const { title, description, wide = false } = Astro.props;
+const { title, description, wide = false, documentTitle = `${title} — openagent.email` } = Astro.props;
 ---
 
 <!doctype html>
@@ -15,12 +17,13 @@ const { title, description, wide = false } = Astro.props;
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{title} — openagent.email</title>
+    <title>{documentTitle}</title>
     <meta name="description" content={description} />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="preload" href="/fonts/Satoshi-Regular.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" href="/fonts/Satoshi-Bold.woff2" as="font" type="font/woff2" crossorigin />
     <script defer src="https://stats.openagent.email/script.js" data-website-id="86e6eaf7-473c-4c8d-a9bf-ea48c13742c5"></script>
+    <slot name="head" />
   </head>
   <body>
     <nav>
