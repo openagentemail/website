@@ -1,6 +1,5 @@
 ---
 import Legal from '../layouts/Legal.astro';
-import EnvelopeOrbit from '../components/EnvelopeOrbit.astro';
 import PaperPlane from '../components/PaperPlane.astro';
 import { agentmailLastChecked, agentmailSources } from '../data/agentmailSources.js';
 import { mailslurpLastChecked, mailslurpSources } from '../data/mailslurpSources.js';
@@ -47,8 +46,7 @@ const faqJsonLd = {
 <Legal title={pageTitle} documentTitle={pageTitle} description={pageDescription} wide>
   <script slot="head" type="application/ld+json" set:html={jsonLd(faqJsonLd)} />
   <div class="compare-shell">
-  <header class="compare-hero" data-envelope-root>
-    <EnvelopeOrbit compact />
+  <header class="compare-hero">
     <h1>openagent.email vs AgentMail vs MailSlurp</h1>
     <p class="lede">This page compares three ways to give agents email: openagent.email is Apache-2.0 software you run yourself; AgentMail is a managed agent-email product with enterprise AWS Outposts BYOC; MailSlurp is a hosted platform for testing email and SMS.</p>
     <p class="hero-docs">
@@ -242,7 +240,6 @@ const faqJsonLd = {
 
   @media (max-width: 48rem) {
     .compare-hero { padding-bottom: 2rem; }
-    .compare-hero :global([data-envelope-orbit]) { display: none; }
     .pick-grid { grid-template-columns: 1fr; }
     .dims:not(.detail) { grid-template-columns: 1fr; }
     .dim-card { padding: 1.25rem; }
