@@ -8,7 +8,6 @@ export default defineConfig({
   site: 'https://openagent.email',
   output: 'static',
   redirects: {
-    '/alternatives/agentmail': '/compare#agentmail',
     '/alternatives/mailslurp': '/compare#mailslurp',
   },
   integrations: [
