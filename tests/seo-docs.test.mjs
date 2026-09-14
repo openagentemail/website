@@ -16,9 +16,9 @@ const QUICKSTART_DESCRIPTION =
 const CONNECT_TITLE = 'Connect Your Agent to openagent.email (MCP + REST)';
 const CONNECT_DESCRIPTION =
   'Wire Claude Desktop, Cursor, and REST into openagent.email — CLI, desktop, and web chat in one place.';
-const OTP_TITLE = 'Extract OTP codes and verification links';
+const OTP_TITLE = 'Agent email verification: extract OTP codes and links';
 const OTP_DESCRIPTION =
-  'Wait for signup mail over MCP or REST, then read otp.codes, otp.links, or the raw body fallback before the code expires.';
+  'Wait for an agent verification email over MCP or REST, then read otp.codes, otp.links, or the raw-body fallback before expiry.';
 const MCP_DOCUMENT_TITLE = 'openagent.email MCP Server — Claude, Cursor, and Agents';
 const MCP_DESCRIPTION =
   'Route Claude, Cursor, and other agents to the openagent.email MCP server: local stdio, self-hosted remote HTTP/OAuth, or the hosted connector.';
@@ -86,6 +86,28 @@ assert.match(otp, /untrusted/, 'OTP guide must require untrusted-body handling')
 assert.match(otp, /5–10 minutes|5-10 minutes/, 'OTP guide must explain short OTP expiry');
 assert.match(otp, /Captcha, KYC/, 'OTP guide must keep captcha/KYC boundaries');
 assert.match(otp, /Don't bulk-register/, 'OTP guide must keep the bulk-registration boundary');
+assert.match(
+  otp,
+  /^export API=http:\/\/localhost:3100$/m,
+  'OTP guide is missing API setup: export API=http://localhost:3100',
+);
+assert.match(
+  otp,
+  /^export KEY=your-admin-key$/m,
+  'OTP guide is missing KEY setup: export KEY=your-admin-key',
+);
+assert.match(otp, /`html` is optional/, 'OTP guide must describe html as optional, not always present');
+assert.doesNotMatch(
+  otp,
+  /`html` are always there|`html` is always present|html is always present/i,
+  'OTP guide must not say html is always present',
+);
+assert.match(otp, /expected\s+sender/, 'OTP guide is missing expected-sender validation');
+assert.match(
+  otp,
+  /HTTPS URL on the expected signup destination host/,
+  'OTP guide is missing HTTPS expected-host/destination validation',
+);
 
 assert.match(mcp, /import Legal from '\.\.\/layouts\/Legal\.astro'/, 'MCP hub must use Legal.astro');
 assert.equal(
@@ -194,7 +216,7 @@ if (process.argv.includes('--check-rendered')) {
   assertPinnedRenderedMetadata(renderedByRoute.quickstart, 'Quickstart', QUICKSTART_TITLE, QUICKSTART_DESCRIPTION);
   assertPinnedRenderedMetadata(renderedByRoute.connect, 'Connect', CONNECT_TITLE, CONNECT_DESCRIPTION);
   assertPinnedRenderedMetadata(renderedByRoute.otp, 'OTP extraction', OTP_TITLE, OTP_DESCRIPTION);
-  assertPinnedRenderedMetadata(renderedByRoute.mcp, '/mcp/', MCP_DOCUMENT_TITLE, MCP_DESCRIPTION);
+  assertPinnedRenderedMetadata(renderedByRoute.mcp, '/mcp/', MCP_DOCUMENT_TITLE, MCP_DESCRIPTION, { exactTitle: true });
 
   const mcpCanonicalHrefs = canonicalHrefs(renderedByRoute.mcp);
   assert.equal(
@@ -280,7 +302,7 @@ function assertHasHref(markup, href, source) {
   assert.ok(linked, `missing required link: ${source} → ${href}`);
 }
 
-function assertPinnedRenderedMetadata(document, label, title, description) {
+function assertPinnedRenderedMetadata(document, label, title, description, options = {}) {
   const renderedTitle = textOf(descendants(document).find((node) => node.nodeName === 'title')).trim();
   const renderedDescription = attribute(
     descendants(document).find((node) => node.nodeName === 'meta' && attribute(node, 'name') === 'description'),
@@ -288,10 +310,18 @@ function assertPinnedRenderedMetadata(document, label, title, description) {
   ) ?? '';
   assert.ok(renderedTitle.length > 0, `Built ${label} title is empty`);
   assert.ok(renderedDescription.length > 0, `Built ${label} description is empty`);
-  assert.ok(
-    renderedTitle.includes(title),
-    `Built ${label} title must include ${JSON.stringify(title)}; actual ${JSON.stringify(renderedTitle)}`,
-  );
+  if (options.exactTitle) {
+    assert.equal(
+      renderedTitle,
+      title,
+      `Built ${label} title must be ${JSON.stringify(title)}; actual ${JSON.stringify(renderedTitle)}`,
+    );
+  } else {
+    assert.ok(
+      renderedTitle.includes(title),
+      `Built ${label} title must include ${JSON.stringify(title)}; actual ${JSON.stringify(renderedTitle)}`,
+    );
+  }
   assert.equal(
     renderedDescription,
     description,
