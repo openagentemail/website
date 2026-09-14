@@ -44,6 +44,7 @@ const REQUIRED_LINKS = [
   { source: 'OTP extraction', markup: otp, href: '/docs/reference/api/' },
   { source: 'OTP extraction', markup: otp, href: '/docs/guides/security/' },
   { source: 'OTP extraction', markup: otp, href: '/docs/guides/agent-signup/' },
+  { source: 'OTP extraction', markup: otp, href: '/docs/reference/mcp-clients/#external-mail-fence-expected-not-a-bug' },
   { source: 'MCP hub', markup: mcp, href: '/docs/quickstart/' },
   { source: 'MCP hub', markup: mcp, href: '/docs/guides/connect-your-agent/' },
   { source: 'MCP hub', markup: mcp, href: '/docs/reference/mcp-clients/' },
@@ -93,8 +94,18 @@ assert.match(
 );
 assert.match(
   otp,
-  /^export KEY=your-admin-key$/m,
-  'OTP guide is missing KEY setup: export KEY=your-admin-key',
+  /^export KEY=oa_your-identity-token$/m,
+  'OTP guide is missing identity-token setup: export KEY=oa_your-identity-token',
+);
+assert.doesNotMatch(
+  otp,
+  /your-admin-key/,
+  'OTP guide must not use the admin-key placeholder',
+);
+assert.match(
+  otp,
+  /must belong to the mailbox/,
+  'OTP guide must say the identity token belongs to the target mailbox',
 );
 assert.match(otp, /`html` is optional/, 'OTP guide must describe html as optional, not always present');
 assert.doesNotMatch(
@@ -107,6 +118,63 @@ assert.match(
   otp,
   /HTTPS URL on the expected signup destination host/,
   'OTP guide is missing HTTPS expected-host/destination validation',
+);
+assert.match(
+  otp,
+  /mail_wait_for\([^\n]*fromContains/,
+  'OTP MCP wait is missing fromContains',
+);
+assert.match(otp, /"fromContains"/, 'OTP REST wait is missing fromContains');
+assert.match(
+  otp,
+  /Before using `otp\.codes\[0\]` or `otp\.links\[0\]`, match the expected\s+sender/,
+  'OTP guide must validate expected sender before codes and links',
+);
+assert.match(
+  otp,
+  /REST exposes the raw body/,
+  'OTP guide must state that REST exposes the raw body',
+);
+assert.match(otp, /nonce fence/, 'OTP guide must mention the MCP nonce fence');
+assert.match(
+  otp,
+  /external or missing-source|external\/missing-source/,
+  'OTP guide must distinguish MCP fencing for external/missing-source bodies',
+);
+assert.match(
+  otp,
+  /\/docs\/reference\/mcp-clients\/#external-mail-fence-expected-not-a-bug/,
+  'OTP guide is missing the MCP fencing contract link',
+);
+assert.match(
+  otp,
+  /MCP does not return a raw external body/,
+  'OTP guide must not call the MCP external body raw',
+);
+assert.match(
+  otp,
+  /\$MESSAGE_ID/,
+  'OTP REST read is missing $MESSAGE_ID',
+);
+assert.match(
+  otp,
+  /^export MESSAGE_ID=REPLACE_WITH_WAIT_RESPONSE_ID$/m,
+  'OTP guide is missing a valid MESSAGE_ID assignment: export MESSAGE_ID=REPLACE_WITH_WAIT_RESPONSE_ID',
+);
+assert.doesNotMatch(
+  otp,
+  /^export MESSAGE_ID=</m,
+  'OTP guide must not use an invalid export MESSAGE_ID=< assignment',
+);
+assert.doesNotMatch(
+  otp,
+  /\/v1\/messages\/42/,
+  'OTP guide must not hardcode /v1/messages/42',
+);
+assert.match(
+  otp,
+  /`MESSAGE_ID` is the `id` returned by the successful wait response/,
+  'OTP guide must say MESSAGE_ID comes from the successful wait id',
 );
 
 assert.match(mcp, /import Legal from '\.\.\/layouts\/Legal\.astro'/, 'MCP hub must use Legal.astro');
