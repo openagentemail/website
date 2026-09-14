@@ -1,0 +1,167 @@
+---
+import Legal from '../../layouts/Legal.astro';
+import { agentmailLastChecked, agentmailSources } from '../../data/agentmailSources.js';
+
+const pageTitle = 'AgentMail alternative';
+const pageDescription =
+  'openagent.email is the Apache-2.0, self-hosted AgentMail alternative for teams that want their own domain, infrastructure, and persistent agent mailboxes.';
+---
+
+<Legal title={pageTitle} documentTitle={pageTitle} description={pageDescription}>
+  <link slot="head" rel="canonical" href="https://openagent.email/alternatives/agentmail/" />
+
+  <h1>AgentMail alternative</h1>
+  <p class="lede">
+    openagent.email is an AgentMail alternative when you want open-source, self-hosted control.
+    AgentMail remains the managed SaaS fit, including its existing enterprise AWS Outposts BYOC option.
+  </p>
+  <p class="compare-link">
+    <a href="/compare">See the full comparison</a>
+  </p>
+
+  <h2 id="decide-heading">How to decide</h2>
+  <p class="note">Fit notes from the facts on this page, not universal recommendations.</p>
+  <div class="decision-grid">
+    <article>
+      <h3>Control and deployment</h3>
+      <p>
+        openagent.email is Apache-2.0 software you self-host on any VPS or cloud. AgentMail is
+        managed SaaS, with enterprise AWS Outposts BYOC.
+      </p>
+    </article>
+    <article>
+      <h3>Data and control plane</h3>
+      <p>
+        Your openagent.email mail stays on your own machine, with no vendor control plane.
+        AgentMail Cloud still operates the product control plane, including on Outposts.
+      </p>
+    </article>
+    <article>
+      <h3>Mailbox economics</h3>
+      <p>
+        openagent.email is Apache-2.0 software: you pay for your own server and domain, with no
+        per-inbox fee. AgentMail Developer/Startup: PAYG +$2 per inbox, domain, or 1k sends; annual
+        plans save 20%.
+      </p>
+    </article>
+    <article>
+      <h3>Integration</h3>
+      <p>
+        openagent.email includes a REST API and an MCP server. AgentMail has an official MCP and
+        plugin ecosystem.
+      </p>
+    </article>
+  </div>
+  <p class="last-checked">
+    Last checked: AgentMail {agentmailLastChecked}.
+    <span data-vendor="agentmail">
+      AgentMail sources: {
+        agentmailSources.map((source, index) => (
+          <Fragment>
+            <a href={source.href} rel="noopener noreferrer">{source.label}</a>
+            {index < agentmailSources.length - 1 ? ', ' : ''}
+          </Fragment>
+        ))
+      }.
+    </span>
+  </p>
+
+  <div class="cta-row">
+    <a class="btn btn-gold" href="/docs/quickstart/">Deploy / get started</a>
+    <a class="btn btn-ghost" href="/docs/guides/connect-your-agent/">Connect an agent</a>
+  </div>
+</Legal>
+
+<style>
+  :global(html),
+  :global(body) {
+    overflow-x: clip;
+    max-width: 100vw;
+  }
+  :global(nav .wrap) {
+    max-width: 100%;
+    min-width: 0;
+  }
+  h1 {
+    font-size: clamp(2rem, 5vw, 2.8rem);
+    margin-bottom: 0.4rem;
+  }
+  h2 {
+    font-size: 1.25rem;
+    margin: 2.2rem 0 0.6rem;
+  }
+  p {
+    color: var(--ink-dim);
+    line-height: 1.7;
+  }
+  .lede {
+    font-size: 1.08rem;
+    color: var(--ink);
+  }
+  a {
+    color: var(--gold);
+    text-decoration: none;
+  }
+  a:hover { text-decoration: underline; }
+  .compare-link {
+    margin: 0.85rem 0 0;
+    font-size: 1.02rem;
+    font-weight: 700;
+  }
+  .note {
+    margin: 0 0 1rem;
+    font-size: 0.92rem;
+  }
+  .decision-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.2rem;
+    margin: 0 0 1.4rem;
+  }
+  .decision-grid article {
+    min-width: 0;
+    padding: 1.25rem 1.4rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--bg-card);
+  }
+  .decision-grid h3 {
+    font-size: 1rem;
+    margin: 0 0 0.5rem;
+    color: var(--gold);
+  }
+  .decision-grid p {
+    margin: 0;
+    overflow-wrap: break-word;
+  }
+  .last-checked {
+    color: var(--ink-dim);
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    max-width: 100%;
+  }
+  .cta-row {
+    margin-top: 1.6rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.9rem;
+    max-width: 100%;
+  }
+  .cta-row .btn-gold { color: #111; }
+  .cta-row .btn-ghost { color: var(--ink); }
+  .cta-row .btn:hover { text-decoration: none; }
+
+  @media (max-width: 40rem) {
+    :global(nav .wrap) {
+      width: 100%;
+      flex-wrap: wrap;
+      height: auto;
+      min-height: 3.8rem;
+      row-gap: 0.3rem;
+    }
+    .decision-grid { grid-template-columns: 1fr; }
+    .decision-grid article { padding: 1.15rem 1.2rem; }
+  }
+</style>
