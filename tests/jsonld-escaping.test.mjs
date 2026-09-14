@@ -34,17 +34,30 @@ assert.ok(sourceFiles.length > 0, 'The JSON-LD guard must discover renderable As
 for (const file of sourceFiles) {
   const surface = relative(fileURLToPath(sourcesRoot), fileURLToPath(file));
   const source = await readFile(file, 'utf8');
-  const sinks = [...source.matchAll(/<script\b[^>]*type\s*=\s*["']application\/ld\+json["'][^>]*>/g)]
-    .map((match) => match[0]);
+  const tags = [...source.matchAll(/<([A-Za-z][\w:.-]*)\b[^>]*>/g)];
+  for (const match of tags) {
+    const tag = match[0];
+    assert.equal(
+      /\bslot\s*=\s*\{/.test(tag),
+      false,
+      `Slot assignments on ${surface} must use direct static quoted values; found: ${tag}`,
+    );
+    if (match[1].toLowerCase() === 'script') {
+      assert.equal(
+        /\btype\s*=\s*\{/.test(tag),
+        false,
+        `Script type attributes on ${surface} must use direct static quoted values; found: ${tag}`,
+      );
+    }
+  }
+
+  const scriptTags = tags.filter((match) => match[1].toLowerCase() === 'script').map((match) => match[0]);
+  const sinks = scriptTags.filter((tag) => /\btype\s*=\s*(["'])application\/ld\+json\1/.test(tag));
   if (sinks.length > 0) {
     assertApprovedJsonLdImport(source, file, surface);
   }
   for (const tag of sinks) {
-    assert.match(
-      tag,
-      /set:html\s*=\s*\{\s*jsonLd\s*\(/,
-      `Every JSON-LD set:html sink on ${surface} must serialize through jsonLd(); found: ${tag}`,
-    );
+    assertSafeJsonLdSink(tag, surface);
   }
   assert.equal(
     /set:html\s*=\s*\{\s*JSON\.stringify\s*\(/.test(source),
@@ -59,18 +72,19 @@ for (const file of sourceFiles) {
     if (element === 'script') {
       assert.match(
         tag,
-        /type\s*=\s*["']application\/ld\+json["']/,
+        /type\s*=\s*(["'])application\/ld\+json\1/,
         `A script passed through the Legal head slot must be JSON-LD on ${surface}; found: ${tag}`,
       );
-      assert.match(
-        tag,
-        /set:html\s*=\s*\{\s*jsonLd\s*\(/,
-        `A JSON-LD script passed through the Legal head slot must use jsonLd() on ${surface}; found: ${tag}`,
-      );
+      assertSafeJsonLdSink(tag, surface);
     } else {
       assert.ok(
         ['base', 'link', 'meta', 'title'].includes(element),
         `The Legal head slot accepts only native declarative metadata or direct safe JSON-LD scripts on ${surface}; found: ${tag}`,
+      );
+      assert.equal(
+        /\bset:html\s*=/.test(tag),
+        false,
+        `Declarative metadata in the Legal head slot must not use set:html on ${surface}; found: ${tag}`,
       );
     }
   }
@@ -91,12 +105,12 @@ for (const binding of ['rawMail', 'jsonOut']) {
 
 const faqBlock = homepageSource.match(/const\s+faq\s*=\s*\[([\s\S]*?)\n\];/);
 assert.ok(faqBlock, 'Homepage FAQ must remain a static array');
-const rawHtmlProperties = [...faqBlock[1].matchAll(/(?:^|[{,])\s*(?:aHtml\b|\[\s*["']aHtml["']\s*\])\s*(?=[:,}])/gm)];
-const literalRawHtmlValues = [...faqBlock[1].matchAll(/^\s*aHtml\s*:\s*(?:'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"|`(?:[^`\\]|\\.)*`),?\s*$/gm)];
+const rawHtmlProperties = [...faqBlock[1].matchAll(/(?:^|[{,])\s*(?:aHtml\b|["']aHtml["']|\[\s*["']aHtml["']\s*\])\s*(?=[:,}])/gm)];
+const literalRawHtmlValues = [...faqBlock[1].matchAll(/^\s*(?:aHtml|["']aHtml["'])\s*:\s*(?:'(?:[^'\\]|\\.)*'|"(?:[^"\\]|\\.)*"|`(?:[^`\\]|\\.)*`),?\s*$/gm)];
 assert.ok(rawHtmlProperties.length > 0, 'Homepage FAQ must retain the guarded static aHtml case');
 assert.equal(literalRawHtmlValues.length, rawHtmlProperties.length, 'Every homepage FAQ aHtml property, including shorthand and computed forms, must be an explicit direct source literal');
 for (const literal of literalRawHtmlValues) {
-  if (/aHtml\s*:\s*`/.test(literal[0])) {
+  if (literal[0].includes('`')) {
     assertStaticTemplateLiteral(literal[0], literal[0].indexOf('`'), 'Homepage FAQ aHtml', ',');
   }
 }
@@ -119,11 +133,87 @@ async function recursiveFiles(directory, extension, treeLabel) {
 }
 
 function assertApprovedJsonLdImport(source, file, surface) {
-  const approvedImports = [...source.matchAll(/import\s*\{([^}]*)\}\s*from\s*(["'])([^"']+)\2/g)]
+  const executableFrontmatter = maskCommentsAndTemplates(frontmatter(source, surface));
+  const approvedImports = [...executableFrontmatter.matchAll(/^\s*import\s*\{([^}]*)\}\s*from\s*(["'])([^"']+)\2\s*;?\s*$/gm)]
     .filter((match) => match[1].split(',').map((name) => name.trim()).includes('jsonLd'));
   assert.equal(approvedImports.length, 1, `JSON-LD sinks on ${surface} must have exactly one named jsonLd import`);
   const resolvedImport = fileURLToPath(new URL(approvedImports[0][3], file));
   assert.equal(resolvedImport, serializerFile, `JSON-LD sinks on ${surface} must bind jsonLd to src/data/jsonld.js`);
+  assert.equal(
+    /^\s*(?:const|let|var|function)\s+jsonLd\b/m.test(executableFrontmatter),
+    false,
+    `JSON-LD sinks on ${surface} must not redeclare the imported jsonLd binding`,
+  );
+}
+
+function assertSafeJsonLdSink(tag, surface) {
+  const bindings = [...tag.matchAll(/\bset:html\s*=/g)];
+  assert.equal(bindings.length, 1, `Every JSON-LD sink on ${surface} must have exactly one set:html binding; found: ${tag}`);
+  const expression = tag.match(/\bset:html\s*=\s*\{([^{}]*)\}/);
+  assert.ok(expression, `Every JSON-LD sink on ${surface} must have a simple inspectable set:html expression; found: ${tag}`);
+  assert.match(
+    expression[1],
+    /^\s*jsonLd\s*\((?:[^()]|\([^()]*\))*\)\s*$/,
+    `Every JSON-LD set:html sink on ${surface} must be exactly one jsonLd() call; found: ${tag}`,
+  );
+}
+
+function frontmatter(source, surface) {
+  const block = source.match(/^---\s*\r?\n([\s\S]*?)\r?\n---/);
+  assert.ok(block, `JSON-LD source ${surface} must have inspectable Astro frontmatter`);
+  return block[1];
+}
+
+function maskCommentsAndTemplates(source) {
+  let output = '';
+  let state = 'code';
+
+  for (let index = 0; index < source.length; index += 1) {
+    const current = source[index];
+    const next = source[index + 1];
+    if (state === 'code') {
+      if (current === '/' && next === '/') {
+        output += '  ';
+        index += 1;
+        state = 'line-comment';
+      } else if (current === '/' && next === '*') {
+        output += '  ';
+        index += 1;
+        state = 'block-comment';
+      } else if (current === '`') {
+        output += ' ';
+        state = 'template';
+      } else {
+        output += current;
+        if (current === "'") state = 'single-quote';
+        if (current === '"') state = 'double-quote';
+      }
+    } else if (state === 'single-quote' || state === 'double-quote') {
+      output += current;
+      if (current === '\\') {
+        output += next ?? '';
+        index += 1;
+      } else if ((state === 'single-quote' && current === "'") || (state === 'double-quote' && current === '"')) {
+        state = 'code';
+      }
+    } else {
+      output += current === '\n' ? '\n' : ' ';
+      if (current === '\\' && state === 'template') {
+        output += next === '\n' ? '\n' : ' ';
+        index += 1;
+      } else if (state === 'line-comment' && current === '\n') {
+        state = 'code';
+      } else if (state === 'block-comment' && current === '*' && next === '/') {
+        output += ' ';
+        index += 1;
+        state = 'code';
+      } else if (state === 'template' && current === '`') {
+        state = 'code';
+      }
+    }
+  }
+
+  return output;
 }
 
 function assertStaticTemplateBinding(source, binding) {
@@ -154,6 +244,8 @@ function assertStaticTemplateLiteral(source, start, label, terminator) {
 if (process.argv.includes('--check-rendered')) {
   const renderedRoot = new URL('../dist/', import.meta.url);
   const renderedPages = await recursiveFiles(renderedRoot, '.html', 'rendered');
+  const requiredBlocks = new Map([['index.html', 2], ['compare/index.html', 1]]);
+  const seenRequiredPages = new Set();
   assert.ok(renderedPages.length > 0, 'The rendered JSON-LD guard must discover built HTML pages');
   let totalBlocks = 0;
   for (const file of renderedPages) {
@@ -163,6 +255,11 @@ if (process.argv.includes('--check-rendered')) {
     const blocks = descendants(document).filter(
       (node) => node.nodeName === 'script' && attribute(node, 'type') === 'application/ld+json',
     );
+    if (requiredBlocks.has(surface)) {
+      const minimum = requiredBlocks.get(surface);
+      seenRequiredPages.add(surface);
+      assert.ok(blocks.length >= minimum, `Built ${surface} must include at least ${minimum} JSON-LD block(s) (found ${blocks.length})`);
+    }
     totalBlocks += blocks.length;
     for (const block of blocks) {
       const text = (block.childNodes ?? []).map((child) => child.value ?? '').join('');
@@ -172,6 +269,7 @@ if (process.argv.includes('--check-rendered')) {
       assert.doesNotThrow(() => JSON.parse(text), `Rendered ${surface} JSON-LD must still parse as JSON`);
     }
   }
+  assert.equal(seenRequiredPages.size, requiredBlocks.size, 'Every route with required JSON-LD must have a rendered HTML artifact');
   assert.ok(totalBlocks > 0, 'The rendered site must contain at least one guarded JSON-LD block');
 }
 
