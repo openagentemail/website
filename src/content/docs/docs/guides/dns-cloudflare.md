@@ -64,8 +64,11 @@ must send `"proxied":false`:
 ```bash
 # CF_TOKEN = Zone.DNS Edit token; CF_ZONE = this zone's ID.
 # Paste <VPS IP> and the DKIM/DMARC strings from ./deploy/dns-records.sh.
+# Feed the bearer header through curl config on stdin so the token stays off argv.
+printf 'header = "Authorization: Bearer %s"\n' "$CF_TOKEN" | \
 curl -sS -X POST "https://api.cloudflare.com/client/v4/zones/$CF_ZONE/dns_records" \
-  -H "Authorization: Bearer $CF_TOKEN" -H "Content-Type: application/json" \
+  -H "Content-Type: application/json" \
+  -K - \
   --data '{"type":"A","name":"mail","content":"<VPS IP>","proxied":false,"ttl":300}'
 ```
 

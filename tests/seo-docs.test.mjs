@@ -342,10 +342,53 @@ for (const [label, markup] of [
   assert.match(markup, /\.\/deploy\/dns-records\.sh/, `${label} must start from ./deploy/dns-records.sh`);
   assert.match(markup, /\.\/deploy\/doctor\.sh/, `${label} must end with ./deploy/doctor.sh`);
   assert.match(markup, /dig @1\.1\.1\.1/, `${label} must include public-resolver dig checks`);
-  assert.doesNotMatch(
-    markup,
-    /\b(?!1\.1\.1\.1)(?:\d{1,3}\.){3}\d{1,3}\b/,
-    `${label} must not hardcode VPS IPv4 addresses`,
+  assertExactResolverIpv4Allowlist(markup, label);
+}
+
+assertExactResolverIpv4Allowlist(dnsCloudflare, 'Cloudflare DNS');
+assert.doesNotThrow(
+  () => assertExactResolverIpv4Allowlist('dig @1.1.1.1 +short A mail.example.com', 'exact 1.1.1.1 fixture'),
+  'exact 1.1.1.1 must pass the IPv4 allowlist',
+);
+assert.throws(
+  () => assertExactResolverIpv4Allowlist('dig @1.1.1.10 +short A mail.example.com', '1.1.1.10 fixture'),
+  /1\.1\.1\.10|exact|1\.1\.1\.1/,
+  '1.1.1.10 must fail the exact IPv4 allowlist',
+);
+assert.throws(
+  () => assertExactResolverIpv4Allowlist('dig @1.1.1.19 +short A mail.example.com', '1.1.1.19 fixture'),
+  /1\.1\.1\.19|exact|1\.1\.1\.1/,
+  '1.1.1.19 must fail the exact IPv4 allowlist',
+);
+assert.throws(
+  () => assertExactResolverIpv4Allowlist('dig @203.0.113.10 +short A mail.example.com', 'arbitrary IPv4 fixture'),
+  /203\.0\.113\.10|exact|1\.1\.1\.1/,
+  'an arbitrary IPv4 literal must fail the exact IPv4 allowlist',
+);
+{
+  const withPrefixHole = dnsCloudflare.replaceAll('1.1.1.1', '1.1.1.10');
+  assert.throws(
+    () => assertExactResolverIpv4Allowlist(withPrefixHole, 'Cloudflare DNS'),
+    /1\.1\.1\.10|exact|1\.1\.1\.1/,
+    'mutating the guide to 1.1.1.10 must fail the exact IPv4 allowlist',
+  );
+}
+{
+  const weakenedLookahead = (markup, label) => {
+    assert.doesNotMatch(
+      markup,
+      /\b(?!1\.1\.1\.1)(?:\d{1,3}\.){3}\d{1,3}\b/,
+      `${label} must not hardcode VPS IPv4 addresses`,
+    );
+  };
+  assert.doesNotThrow(
+    () => weakenedLookahead('dig @1.1.1.10 +short A mail.example.com', 'prefix-hole fixture'),
+    'precondition: prefix-sensitive negative lookahead exempts 1.1.1.10',
+  );
+  assert.throws(
+    () => assertExactResolverIpv4Allowlist('dig @1.1.1.10 +short A mail.example.com', 'prefix-hole fixture'),
+    /1\.1\.1\.10|exact|1\.1\.1\.1/,
+    'restoring/using the prefix-sensitive negative lookahead must not pass the exact allowlist contract',
   );
 }
 
@@ -394,6 +437,43 @@ assertCloudflareEmailRoutingPrerequisite(dnsCloudflare);
     () => assertCloudflareEmailRoutingPrerequisite(withoutOfficialLink),
     /remove-a-domain-from-email-routing|Email Routing|official/,
     'replacing the Email Routing disable/cutover link must fail the source-contract validator',
+  );
+}
+
+assertCloudflareCurlBearerOffArgv(dnsCloudflare);
+{
+  const unsafeArgvExample = `curl -sS -X POST "https://api.cloudflare.com/client/v4/zones/$CF_ZONE/dns_records" \\
+  -H "Authorization: Bearer $CF_TOKEN" -H "Content-Type: application/json" \\
+  --data '{"type":"A","name":"mail","content":"<VPS IP>","proxied":false,"ttl":300}'`;
+  const withBearerOnArgv = dnsCloudflare.includes('-H "Authorization: Bearer $CF_TOKEN"')
+    ? dnsCloudflare
+    : dnsCloudflare.replace(
+      /printf 'header = "Authorization: Bearer %s"\\n' "\$CF_TOKEN" \| \\\ncurl -sS -X POST "https:\/\/api\.cloudflare\.com\/client\/v4\/zones\/\$CF_ZONE\/dns_records" \\\n  -H "Content-Type: application\/json" \\\n  -K - \\\n  --data '\{"type":"A","name":"mail","content":"<VPS IP>","proxied":false,"ttl":300\}'/,
+      unsafeArgvExample,
+    );
+  assert.match(
+    withBearerOnArgv,
+    /-H "Authorization: Bearer \$CF_TOKEN"/,
+    'precondition: bearer-on-argv mutation must restore Authorization Bearer on curl argv',
+  );
+  assert.throws(
+    () => assertCloudflareCurlBearerOffArgv(withBearerOnArgv),
+    /Authorization: Bearer|argv|CF_TOKEN|-H/,
+    'restoring -H "Authorization: Bearer $CF_TOKEN" on curl argv must fail the source-contract validator',
+  );
+}
+{
+  const withoutStdinConfig = dnsCloudflare
+    .replace(
+      /\nprintf 'header = "Authorization: Bearer %s"\\n' "\$CF_TOKEN" \| \\\n/,
+      '\n# $CF_TOKEN remains required in the environment.\n',
+    )
+    .replace(/\n\s*-K -\s*\\\n/, '\n')
+    .replace(/\n\s*--config -\s*\\\n/, '\n');
+  assert.throws(
+    () => assertCloudflareCurlBearerOffArgv(withoutStdinConfig),
+    /stdin|config|-K|Authorization|Bearer|argv|printf/,
+    'removing the curl stdin/config bearer channel must fail the source-contract validator',
   );
 }
 
@@ -455,33 +535,47 @@ assert.match(playwrightOtp, /APIRequestContext/, 'Playwright guide must name API
 assert.match(playwrightCode, /request\.post/, 'Playwright example must start POST /v1/messages/wait through request');
 assert.match(playwrightCode, /\/v1\/messages\/wait/, 'Playwright example must call POST /v1/messages/wait');
 assert.match(playwrightCode, /timeoutSec:\s*60/, 'Playwright wait must be bounded');
-assert.match(
+assert.doesNotMatch(
   playwrightCode,
   /test\.setTimeout\(90_000\)/,
-  'Playwright example must set enclosing test timeout with test.setTimeout(90_000)',
+  'Playwright example must not keep the old test.setTimeout(90_000) budget',
+);
+assert.match(
+  playwrightCode,
+  /test\.setTimeout\(180_000\)/,
+  'Playwright example must set enclosing test timeout with test.setTimeout(180_000)',
 );
 assertAppearsBefore(
   playwrightCode,
-  /test\.setTimeout\(90_000\)/,
+  /test\.setTimeout\(180_000\)/,
   /request\.post/,
   'Playwright example must call test.setTimeout before request.post',
 );
+assertPlaywrightTimeoutBudget(playwrightCode);
+assert.match(
+  playwrightOtp,
+  /140 seconds/,
+  'Playwright guide prose must state the cumulative maximum of 140 seconds',
+);
+assert.match(
+  playwrightOtp,
+  /40 seconds/,
+  'Playwright guide prose must state the remaining overhead of 40 seconds',
+);
 {
-  const enclosing = playwrightCode.match(/test\.setTimeout\((\d[\d_]*)\)/);
-  const requestTimeout = playwrightCode.match(/timeout:\s*(\d[\d_]*)/);
-  const serverWait = playwrightCode.match(/timeoutSec:\s*(\d+)/);
-  assert.ok(enclosing, 'Playwright example is missing test.setTimeout(<ms>)');
-  assert.ok(requestTimeout, 'Playwright example is missing request timeout: <ms>');
-  assert.ok(serverWait, 'Playwright example is missing timeoutSec: <seconds>');
-  const enclosingMs = Number(enclosing[1].replaceAll('_', ''));
-  const requestMs = Number(requestTimeout[1].replaceAll('_', ''));
-  const serverWaitMs = Number(serverWait[1]) * 1000;
-  assert.equal(enclosingMs, 90_000, 'Playwright enclosing test timeout must be 90_000');
-  assert.equal(requestMs, 70_000, 'Playwright request timeout must be 70_000');
-  assert.equal(Number(serverWait[1]), 60, 'Playwright timeoutSec must be 60');
-  assert.ok(
-    enclosingMs > requestMs && requestMs > serverWaitMs,
-    `Playwright example timeout ladder must be 90_000 > 70_000 > timeoutSec: 60; actual ${enclosingMs} > ${requestMs} > ${serverWaitMs}`,
+  const oldNinety = playwrightCode.replace(/test\.setTimeout\(180_000\)/, 'test.setTimeout(90_000)');
+  assert.throws(
+    () => assertPlaywrightTimeoutBudget(oldNinety),
+    /180_000|90_000|enclosing|budget|cumulative/,
+    'restoring test.setTimeout(90_000) must fail the cumulative timeout-budget validator',
+  );
+}
+{
+  const tooTight = playwrightCode.replace(/test\.setTimeout\(180_000\)/, 'test.setTimeout(140_000)');
+  assert.throws(
+    () => assertPlaywrightTimeoutBudget(tooTight),
+    /180_000|cumulative|budget|exceed|overhead/,
+    'lowering the enclosing timeout so it no longer exceeds all bounded phases must fail',
   );
 }
 assert.match(
@@ -534,54 +628,60 @@ assert.match(
 );
 assert.match(
   playwrightCode,
-  /link\.protocol !== 'https:'/,
+  /test\.use\(\{\s*serviceWorkers:\s*'block'\s*\}\)/,
+  "Playwright example must call test.use({ serviceWorkers: 'block' })",
+);
+assertPlaywrightOtpRedirectGuardSourceContract(playwrightCode);
+assert.match(
+  playwrightCode,
+  /link\.protocol !== 'https:'|assertTrustedOtpUrl/,
   'Playwright example must require HTTPS before opening otp.links',
 );
 assert.match(
   playwrightCode,
-  /link\.hostname !== expectedHost/,
+  /link\.hostname !== expectedHost|assertTrustedOtpUrl/,
   'Playwright example must require the exact expected host before opening otp.links',
 );
 assertAppearsBefore(
   playwrightCode,
-  /page\.goto\(signupUrl\)/,
-  /getByLabel\('Email'\)\.fill\(mailbox\)/,
+  /page\.goto\(signupUrl(?:,\s*\{[^}]*\})?\)/,
+  /getByLabel\('Email'\)\.fill\(mailbox(?:,\s*\{[^}]*\})?\)/,
   'Playwright example must page.goto(signupUrl) before filling the email field',
 );
 assertAppearsBefore(
   playwrightCode,
-  /getByLabel\('Email'\)\.fill\(mailbox\)/,
+  /getByLabel\('Email'\)\.fill\(mailbox(?:,\s*\{[^}]*\})?\)/,
   /request\.post\([\s\S]*?\/v1\/messages\/wait/,
   'Playwright example must fill the email field before starting request.post(/v1/messages/wait)',
 );
 assertAppearsBefore(
   playwrightCode,
   /request\.post\([\s\S]*?\/v1\/messages\/wait/,
-  /getByRole\('button', \{ name: 'Sign up' \}\)\.click\(\)/,
+  /getByRole\('button', \{ name: 'Sign up' \}\)\.click\((?:\{[^}]*\})?\)/,
   'Playwright example must start request.post(/v1/messages/wait) before the Sign up click',
 );
 assertPlaywrightWaitPreparationOrder(playwrightCode);
 {
   const waitBeforePrep = playwrightCode
     .replace(
-      /await page\.goto\(signupUrl\);\n\s*await page\.getByLabel\('Email'\)\.fill\(mailbox\);\n\s*/,
+      /await page\.goto\(signupUrl(?:,\s*\{[^}]*\})?\);\n\s*await page\.getByLabel\('Email'\)\.fill\(mailbox(?:,\s*\{[^}]*\})?\);\n\s*/,
       '',
     )
     .replace(
       /const wait = request\.post\([\s\S]*?\n  \}\);/,
-      (block) => `${block}\n\n  await page.goto(signupUrl);\n  await page.getByLabel('Email').fill(mailbox);`,
+      (block) => `${block}\n\n  await page.goto(signupUrl, { timeout: 30_000 });\n  await page.getByLabel('Email').fill(mailbox, { timeout: 10_000 });`,
     );
   assert.throws(
     () => assertPlaywrightWaitPreparationOrder(waitBeforePrep),
-    /page\.goto\(signupUrl\)|request\.post|preparation|before/,
+    /page\.goto\(signupUrl|request\.post|preparation|before/,
     'moving page.goto/email fill after request.post must fail the wait-order validator',
   );
 }
 {
-  const withoutGoto = playwrightCode.replace(/await page\.goto\(signupUrl\);\n\s*/, '');
+  const withoutGoto = playwrightCode.replace(/await page\.goto\(signupUrl(?:,\s*\{[^}]*\})?\);\n\s*/, '');
   assert.throws(
     () => assertPlaywrightWaitPreparationOrder(withoutGoto),
-    /page\.goto\(signupUrl\)|preparation/,
+    /page\.goto\(signupUrl|preparation/,
     'removing page.goto(signupUrl) preparation must fail the wait-order validator',
   );
 }
@@ -622,6 +722,31 @@ assert.equal(
   'verify.example.com',
   'exact HTTPS DNS hostname must pass the OTP link guard',
 );
+assert.equal(
+  decideOtpNavigationFromSourceContract(playwrightCode, 'https://verify.example.com/step2', 'verify.example.com', true),
+  'continue',
+  'same-host HTTPS top-level navigation must continue under the redirect-chain guard',
+);
+assert.equal(
+  decideOtpNavigationFromSourceContract(playwrightCode, 'http://verify.example.com/otp', 'verify.example.com', true),
+  'abort',
+  'trusted initial OTP URL redirecting to HTTP must be aborted',
+);
+assert.equal(
+  decideOtpNavigationFromSourceContract(playwrightCode, 'https://192.0.2.1/otp', 'verify.example.com', true),
+  'abort',
+  'trusted initial OTP URL redirecting to an IP literal must be aborted',
+);
+assert.equal(
+  decideOtpNavigationFromSourceContract(playwrightCode, 'https://evil.example.com/otp', 'verify.example.com', true),
+  'abort',
+  'trusted initial OTP URL redirecting to a different host must be aborted',
+);
+assert.equal(
+  decideOtpNavigationFromSourceContract(playwrightCode, 'https://evil.example.com/otp', 'verify.example.com', false),
+  'continue',
+  'non-navigation requests must continue even when the URL would fail OTP validation',
+);
 {
   const withoutIpGuard = playwrightCode
     .replace(/\n\s*const hostForIpCheck[\s\S]*?;\n/, '\n')
@@ -656,6 +781,82 @@ assert.equal(
     () => assertPlaywrightOtpLinkSourceContract(weakened),
     /isIP|weaken|IP-literal/,
     'weakening the IP-literal guard must fail the OTP link source-contract validator',
+  );
+}
+{
+  const withoutContextRoute = playwrightCode.replace(
+    /await page\.context\(\)\.route\('\*\*\/\*', abortUntrustedOtpNavigation\);\n\s*/,
+    '',
+  );
+  assert.throws(
+    () => assertPlaywrightOtpRedirectGuardSourceContract(withoutContextRoute),
+    /context\(\)\.route|route/,
+    'removing the browserContext route must fail the OTP redirect-guard validator',
+  );
+}
+{
+  const withPageRoute = playwrightCode.replace(
+    /page\.context\(\)\.route\('\*\*\/\*', abortUntrustedOtpNavigation\)/,
+    "page.route('**/*', abortUntrustedOtpNavigation)",
+  ).replace(
+    /page\.context\(\)\.unroute\('\*\*\/\*', abortUntrustedOtpNavigation\)/,
+    "page.unroute('**/*', abortUntrustedOtpNavigation)",
+  );
+  assert.throws(
+    () => assertPlaywrightOtpRedirectGuardSourceContract(withPageRoute),
+    /page\.route|context\(\)\.route|browserContext/,
+    'substituting page.route for browserContext.route must fail the OTP redirect-guard validator',
+  );
+}
+{
+  const routeInstall = playwrightCode.match(
+    /\n\s*await page\.context\(\)\.route\('\*\*\/\*', abortUntrustedOtpNavigation\);\n/,
+  );
+  assert.ok(routeInstall, 'Playwright example is missing context.route install for reorder mutation');
+  const withoutInstall = playwrightCode.replace(routeInstall[0], '\n');
+  const gotoAt = withoutInstall.search(/page\.goto\(link\.toString\(\)\)/);
+  assert.ok(gotoAt !== -1, 'route-after-goto mutation could not find page.goto(link.toString())');
+  const afterGoto = `${withoutInstall.slice(0, gotoAt)}${withoutInstall.slice(gotoAt).replace(
+    /page\.goto\(link\.toString\(\)\);/,
+    `page.goto(link.toString());${routeInstall[0]}`,
+  )}`;
+  assert.throws(
+    () => assertPlaywrightOtpRedirectGuardSourceContract(afterGoto),
+    /before page\.goto|route|install/,
+    'moving route installation after page.goto must fail the OTP redirect-guard validator',
+  );
+}
+{
+  const withoutServiceWorkers = playwrightCode.replace(
+    /test\.use\(\{\s*serviceWorkers:\s*'block'\s*\}\);\n?/,
+    '',
+  );
+  assert.throws(
+    () => assertPlaywrightOtpRedirectGuardSourceContract(withoutServiceWorkers),
+    /serviceWorkers:\s*'block'/,
+    "removing test.use({ serviceWorkers: 'block' }) must fail the OTP redirect-guard validator",
+  );
+}
+{
+  const continuesDisallowed = playwrightCode.replace(
+    /await route\.abort\(\);\n\s*return;/,
+    'await route.continue();\n      return;',
+  );
+  assert.throws(
+    () => assertPlaywrightOtpRedirectGuardSourceContract(continuesDisallowed),
+    /abort|disallowed|continue/,
+    'continuing a disallowed top-level navigation must fail the OTP redirect-guard validator',
+  );
+}
+{
+  const withoutFinally = playwrightCode.replace(
+    /try \{\n\s*await page\.goto\(link\.toString\(\)\);\n\s*\} finally \{\n\s*await page\.context\(\)\.unroute\('\*\*\/\*', abortUntrustedOtpNavigation\);\n\s*\}/,
+    'await page.goto(link.toString());',
+  );
+  assert.throws(
+    () => assertPlaywrightOtpRedirectGuardSourceContract(withoutFinally),
+    /finally|unroute/,
+    'omitting finally/unroute cleanup must fail the OTP redirect-guard validator',
   );
 }
 
@@ -1301,21 +1502,89 @@ function evaluateDocumentedSubjectGate(code, subjectValue) {
 function assertPlaywrightWaitPreparationOrder(code) {
   assertAppearsBefore(
     code,
-    /page\.goto\(signupUrl\)/,
-    /getByLabel\('Email'\)\.fill\(mailbox\)/,
+    /page\.goto\(signupUrl(?:,\s*\{[^}]*\})?\)/,
+    /getByLabel\('Email'\)\.fill\(mailbox(?:,\s*\{[^}]*\})?\)/,
     'Playwright example must prepare with page.goto(signupUrl) before email fill',
   );
   assertAppearsBefore(
     code,
-    /getByLabel\('Email'\)\.fill\(mailbox\)/,
+    /getByLabel\('Email'\)\.fill\(mailbox(?:,\s*\{[^}]*\})?\)/,
     /request\.post/,
     'Playwright example must fill email before request.post',
   );
   assertAppearsBefore(
     code,
     /request\.post/,
-    /getByRole\('button', \{ name: 'Sign up' \}\)\.click\(\)/,
+    /getByRole\('button', \{ name: 'Sign up' \}\)\.click\((?:\{[^}]*\})?\)/,
     'Playwright example must start request.post immediately before the Sign up click',
+  );
+}
+
+function assertPlaywrightTimeoutBudget(code) {
+  const enclosing = code.match(/test\.setTimeout\((\d[\d_]*)\)/);
+  assert.ok(enclosing, 'Playwright example is missing test.setTimeout(<ms>)');
+  const enclosingMs = Number(enclosing[1].replaceAll('_', ''));
+  assert.equal(enclosingMs, 180_000, 'Playwright enclosing test timeout must be 180_000');
+  assert.doesNotMatch(
+    code,
+    /test\.setTimeout\(90_000\)/,
+    'Playwright example must not keep test.setTimeout(90_000)',
+  );
+
+  const signupNav = code.match(/page\.goto\(signupUrl,\s*\{\s*timeout:\s*(\d[\d_]*)\s*\}\)/);
+  const emailFill = code.match(/getByLabel\('Email'\)\.fill\(mailbox,\s*\{\s*timeout:\s*(\d[\d_]*)\s*\}\)/);
+  const signupClick = code.match(
+    /getByRole\('button', \{ name: 'Sign up' \}\)\.click\(\{\s*timeout:\s*(\d[\d_]*)\s*\}\)/,
+  );
+  const codeFill = code.match(
+    /getByLabel\('Verification code'\)\.fill\(code,\s*\{\s*timeout:\s*(\d[\d_]*)\s*\}\)/,
+  );
+  const verifyClick = code.match(
+    /getByRole\('button', \{ name: 'Verify' \}\)\.click\(\{\s*timeout:\s*(\d[\d_]*)\s*\}\)/,
+  );
+  const requestTimeout = code.match(
+    /request\.post\([\s\S]*?timeoutSec:\s*60,[\s\S]*?timeout:\s*(\d[\d_]*)/,
+  );
+  const serverWait = code.match(/timeoutSec:\s*(\d+)/);
+  assert.ok(signupNav, 'Playwright example must bound signup navigation with timeout: 30_000');
+  assert.ok(emailFill, 'Playwright example must bound email fill with timeout: 10_000');
+  assert.ok(signupClick, 'Playwright example must bound Sign up click with timeout: 10_000');
+  assert.ok(codeFill, 'Playwright example must bound verification-code fill with timeout: 10_000');
+  assert.ok(verifyClick, 'Playwright example must bound Verify click with timeout: 10_000');
+  assert.ok(requestTimeout, 'Playwright example is missing request timeout: <ms>');
+  assert.ok(serverWait, 'Playwright example is missing timeoutSec: <seconds>');
+
+  const phaseMs = {
+    signupNav: Number(signupNav[1].replaceAll('_', '')),
+    emailFill: Number(emailFill[1].replaceAll('_', '')),
+    signupClick: Number(signupClick[1].replaceAll('_', '')),
+    codeFill: Number(codeFill[1].replaceAll('_', '')),
+    verifyClick: Number(verifyClick[1].replaceAll('_', '')),
+    request: Number(requestTimeout[1].replaceAll('_', '')),
+  };
+  assert.equal(phaseMs.signupNav, 30_000, 'signup navigation timeout must be 30_000');
+  assert.equal(phaseMs.emailFill, 10_000, 'email fill timeout must be 10_000');
+  assert.equal(phaseMs.signupClick, 10_000, 'Sign up click timeout must be 10_000');
+  assert.equal(phaseMs.codeFill, 10_000, 'verification-code fill timeout must be 10_000');
+  assert.equal(phaseMs.verifyClick, 10_000, 'Verify click timeout must be 10_000');
+  assert.equal(phaseMs.request, 70_000, 'Playwright request timeout must be 70_000');
+  assert.equal(Number(serverWait[1]), 60, 'Playwright timeoutSec must be 60');
+  const serverWaitMs = Number(serverWait[1]) * 1000;
+  assert.ok(
+    phaseMs.request > serverWaitMs,
+    `Playwright request/server ladder must keep 70_000 > 60_000; actual ${phaseMs.request} > ${serverWaitMs}`,
+  );
+
+  const cumulativeMs = Object.values(phaseMs).reduce((sum, value) => sum + value, 0);
+  assert.equal(cumulativeMs, 140_000, 'explicit bounded phases must sum to 140_000 ms');
+  assert.ok(
+    enclosingMs > cumulativeMs,
+    `Playwright enclosing timeout must exceed the cumulative bounded phases; actual ${enclosingMs} > ${cumulativeMs}`,
+  );
+  assert.equal(
+    enclosingMs - cumulativeMs,
+    40_000,
+    'Playwright enclosing timeout must leave 40_000 ms of overhead beyond the 140_000 ms cumulative maximum',
   );
 }
 
@@ -1324,6 +1593,11 @@ function assertPlaywrightOtpLinkSourceContract(code) {
     code,
     /import \{ isIP \} from 'node:net'/,
     'Playwright example must import isIP from node:net for OTP link IP rejection',
+  );
+  assert.match(
+    code,
+    /function assertTrustedOtpUrl\(rawUrl: string, expectedHost: string\): URL/,
+    'Playwright example must define one reusable assertTrustedOtpUrl validator',
   );
   assert.match(
     code,
@@ -1363,20 +1637,170 @@ function assertPlaywrightOtpLinkSourceContract(code) {
     /throw new Error\('refusing to visit OTP link: HTTPS and exact expected host are required'\)/,
     'Playwright example must throw the fail-closed OTP link error',
   );
+  assert.match(
+    code,
+    /assertTrustedOtpUrl\(message\.otp\.links\[0\] as string, expectedHost\)/,
+    'Playwright example must validate the initial OTP URL through assertTrustedOtpUrl',
+  );
+  assert.match(
+    code,
+    /assertTrustedOtpUrl\((?:req|request)\.url\(\), expectedHost\)/,
+    'Playwright example must reuse assertTrustedOtpUrl for redirect-chain navigation requests',
+  );
+}
+
+function extractAssertTrustedOtpUrlFromGuide(code) {
+  assertPlaywrightOtpLinkSourceContract(code);
+  const match = code.match(
+    /function assertTrustedOtpUrl\(rawUrl: string, expectedHost: string\): URL \{([\s\S]*?)\n  \}/,
+  );
+  assert.ok(match, 'Playwright example is missing a self-contained assertTrustedOtpUrl function to extract');
+  const body = match[1]
+    .replace(/: string\b/g, '')
+    .replace(/: URL\b/g, '')
+    .replace(/ as string\b/g, '');
+  return new Function('isIP', `return function assertTrustedOtpUrl(rawUrl, expectedHost) {${body}\n}`)(isIP);
 }
 
 function acceptOtpLinkFromSourceContract(code, rawUrl, expectedHost) {
+  const assertTrustedOtpUrl = extractAssertTrustedOtpUrlFromGuide(code);
+  return assertTrustedOtpUrl(rawUrl, expectedHost);
+}
+
+function assertPlaywrightOtpRedirectGuardSourceContract(code) {
   assertPlaywrightOtpLinkSourceContract(code);
-  const link = new URL(rawUrl);
-  const hostForIpCheck = link.hostname.replace(/^\[|\]$/g, '');
-  if (
-    link.protocol !== 'https:'
-    || link.hostname !== expectedHost
-    || isIP(hostForIpCheck) !== 0
-  ) {
-    throw new Error('refusing to visit OTP link: HTTPS and exact expected host are required');
+  assert.match(
+    code,
+    /test\.use\(\{\s*serviceWorkers:\s*'block'\s*\}\)/,
+    "Playwright example must set test.use({ serviceWorkers: 'block' })",
+  );
+  assert.match(
+    code,
+    /async function abortUntrustedOtpNavigation\(/,
+    'Playwright example must install a named abortUntrustedOtpNavigation route handler',
+  );
+  assert.match(
+    code,
+    /page\.context\(\)\.route\('\*\*\/\*', abortUntrustedOtpNavigation\)/,
+    'Playwright example must use page.context().route (browserContext.route), not page.route',
+  );
+  assert.doesNotMatch(
+    code,
+    /(?<!context\(\)\.)page\.route\(/,
+    'Playwright example must not substitute page.route for browserContext.route',
+  );
+  assert.match(
+    code,
+    /(?:req|request)\.isNavigationRequest\(\)/,
+    'Playwright example must inspect isNavigationRequest for redirect-chain guarding',
+  );
+  assert.match(
+    code,
+    /(?:req|request)\.frame\(\) === page\.mainFrame\(\)/,
+    'Playwright example must limit redirect-chain guarding to the main frame',
+  );
+  assert.match(
+    code,
+    /route\.abort\(\)/,
+    'Playwright example must abort disallowed top-level OTP navigations',
+  );
+  assert.match(
+    code,
+    /route\.continue\(\)/,
+    'Playwright example must continue allowed traffic',
+  );
+  const handlerMatch = code.match(
+    /async function abortUntrustedOtpNavigation\([\s\S]*?\n  \}/,
+  );
+  assert.ok(handlerMatch, 'Playwright example is missing abortUntrustedOtpNavigation body');
+  const catchBlock = handlerMatch[0].match(/catch\s*\{([\s\S]*?)\}/);
+  assert.ok(catchBlock, 'Playwright example must catch assertTrustedOtpUrl failures in the route handler');
+  assert.match(
+    catchBlock[1],
+    /route\.abort\(\)/,
+    'Playwright example must abort when assertTrustedOtpUrl rejects a top-level navigation',
+  );
+  assert.doesNotMatch(
+    catchBlock[1],
+    /route\.continue\(\)/,
+    'Playwright example must not continue a disallowed top-level navigation',
+  );
+  assertAppearsBefore(
+    code,
+    /page\.context\(\)\.route\('\*\*\/\*', abortUntrustedOtpNavigation\)/,
+    /page\.goto\(link\.toString\(\)\)/,
+    'Playwright example must install the context route before page.goto(link.toString())',
+  );
+  assert.match(
+    code,
+    /try \{\s*await page\.goto\(link\.toString\(\)\);\s*\} finally \{\s*await page\.context\(\)\.unroute\('\*\*\/\*', abortUntrustedOtpNavigation\);\s*\}/s,
+    'Playwright example must unroute the named handler in finally after page.goto',
+  );
+}
+
+function decideOtpNavigationFromSourceContract(code, rawUrl, expectedHost, isMainFrameNavigation) {
+  const assertTrustedOtpUrl = extractAssertTrustedOtpUrlFromGuide(code);
+  assertPlaywrightOtpRedirectGuardSourceContract(code);
+  if (isMainFrameNavigation) {
+    try {
+      assertTrustedOtpUrl(rawUrl, expectedHost);
+    } catch {
+      return 'abort';
+    }
   }
-  return link;
+  return 'continue';
+}
+
+function assertExactResolverIpv4Allowlist(markup, label) {
+  const ipv4Literal = /\b(?:\d{1,3}\.){3}\d{1,3}\b/g;
+  const matches = [...markup.matchAll(ipv4Literal)].map((match) => match[0]);
+  assert.ok(
+    matches.length > 0,
+    `${label} must include at least one IPv4 literal (expected exact 1.1.1.1)`,
+  );
+  for (const ip of matches) {
+    assert.equal(
+      ip,
+      '1.1.1.1',
+      `${label} must allow only exact 1.1.1.1 IPv4 literals; found ${ip}`,
+    );
+  }
+}
+
+function assertCloudflareCurlBearerOffArgv(markup) {
+  assert.match(markup, /\$CF_TOKEN/, 'Cloudflare API example must keep the CF_TOKEN environment variable');
+  assert.match(markup, /\$CF_ZONE/, 'Cloudflare API example must keep the CF_ZONE environment variable');
+  assert.match(
+    markup,
+    /https:\/\/api\.cloudflare\.com\/client\/v4\/zones\/\$CF_ZONE\/dns_records/,
+    'Cloudflare API example must POST to the Cloudflare DNS records endpoint',
+  );
+  assert.match(markup, /-X POST/, 'Cloudflare API example must preserve POST semantics');
+  assert.match(
+    markup,
+    /--data '\{"type":"A","name":"mail","content":"<VPS IP>","proxied":false,"ttl":300\}'/,
+    'Cloudflare API example must preserve the JSON payload with "proxied":false',
+  );
+  assert.doesNotMatch(
+    markup,
+    /-H ["']Authorization: Bearer \$CF_TOKEN["']/,
+    'Cloudflare API example must not place Authorization: Bearer $CF_TOKEN on curl argv',
+  );
+  assert.doesNotMatch(
+    markup,
+    /--oauth2-bearer\s+["']?\$CF_TOKEN/,
+    'Cloudflare API example must not place the bearer token on curl argv via --oauth2-bearer',
+  );
+  assert.match(
+    markup,
+    /printf 'header = "Authorization: Bearer %s"\\n' "\$CF_TOKEN"\s*\|\s*\\?\s*\n?\s*curl/,
+    'Cloudflare API example must feed the Authorization header to curl through a printf|curl stdin/config channel',
+  );
+  assert.match(
+    markup,
+    /(?:-K|--config)\s+-/,
+    'Cloudflare API example must read curl config/header material from stdin with -K - or --config -',
+  );
 }
 
 function assertCloudflareEmailRoutingPrerequisite(markup) {

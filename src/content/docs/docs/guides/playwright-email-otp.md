@@ -36,8 +36,10 @@ for synchronization.
 import { expect, test } from '@playwright/test';
 import { isIP } from 'node:net';
 
+test.use({ serviceWorkers: 'block' });
+
 test('signup waits for the verification email before reading the code', async ({ page, request }) => {
-  test.setTimeout(90_000);
+  test.setTimeout(180_000);
   const api = process.env.OAE_API ?? 'http://localhost:3100';
   const token = process.env.OAE_IDENTITY_TOKEN ?? '';
   const mailbox = process.env.OAE_MAILBOX ?? '';
@@ -81,8 +83,8 @@ test('signup waits for the verification email before reading the code', async ({
     return address;
   }
 
-  await page.goto(signupUrl);
-  await page.getByLabel('Email').fill(mailbox);
+  await page.goto(signupUrl, { timeout: 30_000 });
+  await page.getByLabel('Email').fill(mailbox, { timeout: 10_000 });
 
   const wait = request.post(`${apiUrl.origin}/v1/messages/wait`, {
     headers: {
@@ -98,7 +100,7 @@ test('signup waits for the verification email before reading the code', async ({
     timeout: 70_000,
   });
 
-  await page.getByRole('button', { name: 'Sign up' }).click();
+  await page.getByRole('button', { name: 'Sign up' }).click({ timeout: 10_000 });
 
   const response = await wait;
   expect(response.ok()).toBeTruthy();
@@ -108,15 +110,19 @@ test('signup waits for the verification email before reading the code', async ({
   const code = message.otp.codes[0] as string;
   expect(code).toBeTruthy();
 
-  await page.getByLabel('Verification code').fill(code);
-  await page.getByRole('button', { name: 'Verify' }).click();
+  await page.getByLabel('Verification code').fill(code, { timeout: 10_000 });
+  await page.getByRole('button', { name: 'Verify' }).click({ timeout: 10_000 });
 });
 ```
 
-The executable timeout ladder is enclosing test 90 seconds > request 70 seconds >
-server wait 60 seconds (`test.setTimeout(90_000)`, request `timeout: 70_000`,
-`timeoutSec: 60`). Prepare the signup page and fill the email field first, then start
-`request.post` immediately before the Sign up click so the wait budget is not spent on
+The executable timeout ladder is enclosing test 180 seconds, with an explicit
+cumulative maximum of 140 seconds across the bounded phases (signup navigation
+30s + email fill 10s + Sign up click 10s + OpenAgentEmail request 70s +
+verification-code fill 10s + Verify click 10s) and 40 seconds of remaining
+overhead (`test.setTimeout(180_000)`, request `timeout: 70_000`,
+`timeoutSec: 60`). Keep the request/server ladder `70_000 > 60_000`. Prepare the
+signup page and fill the email field first, then start `request.post`
+immediately before the Sign up click so the wait budget is not spent on
 unrelated navigation. Narrow `fromContains` / `subjectContains` so you do not consume
 the wrong mail. A reused inbox must be fresh/cleared, or the test must use a per-run
 unique subject correlation string in `subjectContains`, so a pre-existing/stale message
@@ -128,26 +134,52 @@ Match the **expected sender** before using `otp.codes[0]` or `otp.links[0]`.
 Do not log the mail body or the code.
 
 For a verification link, require **HTTPS** and the **exact expected host**
-before navigation:
+before navigation. `page.goto` follows redirects, so validate the initial URL and
+every top-level navigation in its redirect chain with the same helper. Block
+Service Workers so request interception cannot be bypassed, install a temporary
+`browserContext.route` handler before `goto`, and remove it in `finally`:
 
 ```typescript
-  const expectedHost = process.env.OAE_EXPECTED_HOST ?? '';
-  const raw = message.otp.links[0] as string;
-  const link = new URL(raw);
-  const hostForIpCheck = link.hostname.replace(/^\[|\]$/g, '');
-  if (
-    link.protocol !== 'https:'
-    || link.hostname !== expectedHost
-    || isIP(hostForIpCheck) !== 0
-  ) {
-    throw new Error('refusing to visit OTP link: HTTPS and exact expected host are required');
+  function assertTrustedOtpUrl(rawUrl: string, expectedHost: string): URL {
+    const link = new URL(rawUrl);
+    const hostForIpCheck = link.hostname.replace(/^\[|\]$/g, '');
+    if (
+      link.protocol !== 'https:'
+      || link.hostname !== expectedHost
+      || isIP(hostForIpCheck) !== 0
+    ) {
+      throw new Error('refusing to visit OTP link: HTTPS and exact expected host are required');
+    }
+    return link;
   }
-  await page.goto(link.toString());
+
+  const expectedHost = process.env.OAE_EXPECTED_HOST ?? '';
+  const link = assertTrustedOtpUrl(message.otp.links[0] as string, expectedHost);
+
+  async function abortUntrustedOtpNavigation(route) {
+    const request = route.request();
+    if (request.isNavigationRequest() && request.frame() === page.mainFrame()) {
+      try {
+        assertTrustedOtpUrl(request.url(), expectedHost);
+      } catch {
+        await route.abort();
+        return;
+      }
+    }
+    await route.continue();
+  }
+
+  await page.context().route('**/*', abortUntrustedOtpNavigation);
+  try {
+    await page.goto(link.toString());
+  } finally {
+    await page.context().unroute('**/*', abortUntrustedOtpNavigation);
+  }
 ```
 
 Skip the visit when any check fails. Do not open `http:` links, IPv4/IPv6 literal hosts
 (even when they equal `OAE_EXPECTED_HOST`), or a different hostname than the signup
-destination.
+destination. Abort those same destinations when they appear later in the redirect chain.
 
 ## Artifacts and parallel workers
 
