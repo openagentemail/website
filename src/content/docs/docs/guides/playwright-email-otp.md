@@ -98,14 +98,8 @@ test('signup waits for the verification email before reading the code', async ({
     },
     timeout: 70_000,
   });
-
-  try {
-    await page.getByRole('button', { name: 'Sign up' }).click({ timeout: 10_000 });
-  } catch (clickError) {
-    await wait.catch(() => {});
-    throw clickError;
-  }
-
+  void wait.catch(() => {});
+  await page.getByRole('button', { name: 'Sign up' }).click({ timeout: 10_000 });
   const response = await wait;
   expect(response.ok()).toBeTruthy();
   const message = await response.json();
@@ -127,10 +121,12 @@ overhead (`test.setTimeout(180_000)`, request `timeout: 70_000`,
 `timeoutSec: 60`). Keep the request/server ladder `70_000 > 60_000`. Prepare the
 signup page and fill the email field first, then start `request.post`
 immediately before the Sign up click so the wait budget is not spent on
-unrelated navigation. If the Sign up click fails after `wait` has started,
-observe/consume that promise's rejection before rethrowing the click error so
-an unhandled secondary rejection cannot obscure the primary failure. Narrow
-`fromContains` / `subjectContains` so you do not consume
+unrelated navigation. Observe `wait` rejection immediately after creating that
+promise (`void wait.catch(() => {})`) and still `await` the original `wait`
+after a successful Sign up click, so a REST failure during the click cannot
+become an `unhandledRejection` while the original REST error still propagates;
+a Sign up click failure can then surface immediately without waiting out the
+REST window. Narrow `fromContains` / `subjectContains` so you do not consume
 the wrong mail. A reused inbox must be fresh/cleared, or the test must use a per-run
 unique subject correlation string in `subjectContains`, so a pre-existing/stale message
 cannot satisfy the wait.
@@ -239,14 +235,8 @@ test('signup opens a trusted HTTPS verification link', async ({ page, request })
     },
     timeout: 70_000,
   });
-
-  try {
-    await page.getByRole('button', { name: 'Sign up' }).click({ timeout: 10_000 });
-  } catch (clickError) {
-    await wait.catch(() => {});
-    throw clickError;
-  }
-
+  void wait.catch(() => {});
+  await page.getByRole('button', { name: 'Sign up' }).click({ timeout: 10_000 });
   const response = await wait;
   expect(response.ok()).toBeTruthy();
   const message = await response.json();

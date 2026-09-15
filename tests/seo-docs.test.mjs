@@ -767,7 +767,8 @@ assert.equal(
 // It does not supply the real-browser redirect regression requested by #60.
 assertPlaywrightOtpManualRedirectProse(playwrightOtp);
 assertPlaywrightVerificationLinkSelfContained(playwrightOtp);
-assertPlaywrightSignupClickObservesWait(playwrightCode);
+await assertPlaywrightWaitClickSemanticsFromGuide(playwrightOtp);
+assertPlaywrightImmediateWaitObserver(playwrightOtp);
 assertPlaywrightOtpRouteTypeAnnotation(playwrightCode);
 
 {
@@ -1206,14 +1207,40 @@ assertPlaywrightOtpRouteTypeAnnotation(playwrightCode);
   );
 }
 {
-  const withoutWaitCatch = playwrightCode.replace(
-    /await wait\.catch\(\(\)\s*=>\s*\{\}\);\n\s*/g,
-    '',
+  const withoutImmediateObserver = playwrightOtp.replace(
+    /\n\s*void wait\.catch\(\(\)\s*=>\s*\{\}\);\n/g,
+    '\n',
   );
   assert.throws(
-    () => assertPlaywrightSignupClickObservesWait(withoutWaitCatch),
-    /wait\.catch|click|rejection|observ/,
-    'deleting wait rejection observation after Sign up click failure must fail',
+    () => assertPlaywrightImmediateWaitObserver(withoutImmediateObserver),
+    /immediate|void wait\.catch|observer|before.*Sign up|creation turn/i,
+    'deleting the immediate wait rejection observer must fail',
+  );
+  await assert.rejects(
+    () => assertPlaywrightWaitClickSemanticsFromGuide(withoutImmediateObserver),
+    /unhandledRejection|immediate|void wait\.catch|observer/i,
+    'deleting the immediate observer must fail the executable wait/click harness',
+  );
+}
+{
+  const movedLate = playwrightOtp.replace(
+    /\n\s*void wait\.catch\(\(\)\s*=>\s*\{\}\);\n(\s*await page\.getByRole\('button', \{ name: 'Sign up' \}\)\.click\(\{ timeout: 10_000 \}\);)/g,
+    '\n$1\n  void wait.catch(() => {});',
+  );
+  assert.match(
+    movedLate,
+    /Sign up' \}\)\.click[\s\S]*?void wait\.catch/,
+    'precondition: observer-after-click mutation must place void wait.catch after the Sign up click',
+  );
+  assert.throws(
+    () => assertPlaywrightImmediateWaitObserver(movedLate),
+    /immediate|void wait\.catch|observer|before.*Sign up|creation turn/i,
+    'moving the wait rejection observer after the Sign up click must fail',
+  );
+  await assert.rejects(
+    () => assertPlaywrightWaitClickSemanticsFromGuide(movedLate),
+    /unhandledRejection|immediate|void wait\.catch|observer|before/i,
+    'moving the observer after the click must fail the executable wait/click harness',
   );
 }
 {
@@ -2256,17 +2283,208 @@ function assertPlaywrightVerificationLinkSelfContained(markup) {
   );
 }
 
-function assertPlaywrightSignupClickObservesWait(code) {
-  assert.match(
-    code,
-    /getByRole\('button', \{ name: 'Sign up' \}\)\.click\(/,
-    'Playwright example must click the Sign up button',
+function playwrightOtpWaitClickFences(markup) {
+  const fences = [...markup.matchAll(/```typescript\n([\s\S]*?)```/g)].map((match) => match[1]);
+  const waitClickFences = fences.filter((fence) => (
+    /const wait = request\.post\(/.test(fence)
+    && /getByRole\('button', \{ name: 'Sign up' \}\)\.click\(/.test(fence)
+    && /const response = await wait;/.test(fence)
+  ));
+  assert.equal(
+    waitClickFences.length,
+    2,
+    `Playwright guide must contain exactly two TypeScript fences with wait/click blocks; actual ${waitClickFences.length}`,
   );
-  assert.match(
-    code,
-    /catch\s*\(\s*clickError\s*\)\s*\{[\s\S]*?await wait\.catch\(\(\)\s*=>\s*\{\}\);[\s\S]*?throw clickError;/,
-    'Playwright example must observe/consume wait rejection before rethrowing a Sign up click failure',
+  return waitClickFences;
+}
+
+function extractWaitClickBlockFromFence(fence) {
+  const blockMatch = fence.match(
+    /const wait = request\.post\([\s\S]*?\n  \}\);[\s\S]*?const response = await wait;/,
   );
+  assert.ok(
+    blockMatch,
+    'Playwright example is missing an extractable const wait = request.post(...) … const response = await wait; block',
+  );
+  return blockMatch[0];
+}
+
+function assertPlaywrightImmediateWaitObserver(markup) {
+  const fences = playwrightOtpWaitClickFences(markup);
+  for (const [index, fence] of fences.entries()) {
+    const block = extractWaitClickBlockFromFence(fence);
+    const waitDecl = block.match(/const wait = request\.post\([\s\S]*?\n  \}\);/);
+    assert.ok(waitDecl, `fence ${index + 1}: missing const wait = request.post(...) declaration`);
+    const afterWait = block.slice(waitDecl[0].length);
+    assert.match(
+      afterWait,
+      /^\s*void wait\.catch\(\(\)\s*=>\s*\{\}\);/,
+      `fence ${index + 1}: wait rejection must be observed with void wait.catch(() => {}) immediately after creation, in the same synchronous turn`,
+    );
+    const observerAt = afterWait.search(/void wait\.catch\(\(\)\s*=>\s*\{\}\);/);
+    const clickAt = afterWait.search(/getByRole\('button', \{ name: 'Sign up' \}\)\.click\(/);
+    assert.ok(
+      observerAt !== -1 && clickAt !== -1 && observerAt < clickAt,
+      `fence ${index + 1}: immediate wait observer must appear before the Sign up click`,
+    );
+    assert.doesNotMatch(
+      block,
+      /wait\s*=\s*wait\.catch/,
+      `fence ${index + 1}: observer must not replace or transform the original wait promise`,
+    );
+    assert.match(
+      block,
+      /const response = await wait;/,
+      `fence ${index + 1}: successful click path must still await the original wait promise`,
+    );
+    assert.doesNotMatch(
+      afterWait,
+      /catch\s*\(\s*clickError\s*\)\s*\{[\s\S]*?await wait\.catch/,
+      `fence ${index + 1}: must not rely only on a late wait.catch inside the click-error path`,
+    );
+  }
+}
+
+function runWaitClickBlockFromGuide(block, { request, page, apiUrl, token, mailbox, expectedSender, expectedSubject }) {
+  // Execute the guide's own wait/click text — not a parallel hand-written model.
+  return new Function(
+    'request',
+    'page',
+    'apiUrl',
+    'token',
+    'mailbox',
+    'expectedSender',
+    'expectedSubject',
+    `return (async () => {\n${block}\nreturn response;\n})();`,
+  )(request, page, apiUrl, token, mailbox, expectedSender, expectedSubject);
+}
+
+async function assertPlaywrightWaitClickSemanticsFromGuide(markup) {
+  const fences = playwrightOtpWaitClickFences(markup);
+  const apiUrl = new URL('http://localhost:3100');
+  const token = 'oa_test-token';
+  const mailbox = 'agent@example.com';
+  const expectedSender = 'noreply@example.com';
+  const expectedSubject = 'Verify your account';
+
+  for (const [index, fence] of fences.entries()) {
+    const block = extractWaitClickBlockFromFence(fence);
+    const label = `fence ${index + 1}`;
+
+    {
+      const unhandled = [];
+      const onUnhandled = (reason) => {
+        unhandled.push(reason);
+      };
+      process.on('unhandledRejection', onUnhandled);
+      const restError = new Error(`${label} REST failed while click pending`);
+      try {
+        const request = {
+          post() {
+            return new Promise((_, reject) => {
+              setTimeout(() => reject(restError), 20);
+            });
+          },
+        };
+        const page = {
+          getByRole() {
+            return {
+              async click() {
+                await new Promise((resolve) => setTimeout(resolve, 80));
+              },
+            };
+          },
+        };
+        await assert.rejects(
+          () => runWaitClickBlockFromGuide(block, {
+            request,
+            page,
+            apiUrl,
+            token,
+            mailbox,
+            expectedSender,
+            expectedSubject,
+          }),
+          (error) => error === restError,
+          `${label}: after a successful click, awaiting the original wait must propagate the REST rejection`,
+        );
+      } finally {
+        process.off('unhandledRejection', onUnhandled);
+      }
+      assert.equal(
+        unhandled.length,
+        0,
+        `${label}: request rejection while click is pending must not produce unhandledRejection (immediate observer required); got ${unhandled.map((reason) => String(reason && reason.message ? reason.message : reason)).join(' | ')}`,
+      );
+    }
+
+    {
+      const restError = new Error(`${label} REST failed after click success`);
+      const request = {
+        post() {
+          return Promise.reject(restError);
+        },
+      };
+      const page = {
+        getByRole() {
+          return {
+            async click() {},
+          };
+        },
+      };
+      await assert.rejects(
+        () => runWaitClickBlockFromGuide(block, {
+          request,
+          page,
+          apiUrl,
+          token,
+          mailbox,
+          expectedSender,
+          expectedSubject,
+        }),
+        (error) => error === restError,
+        `${label}: successful click must still await the original wait so REST errors propagate`,
+      );
+    }
+
+    {
+      const clickError = new Error(`${label} Sign up click failed`);
+      const request = {
+        post() {
+          // Pending/slow REST wait: awaiting it on the click-failure path would hang.
+          return new Promise(() => {});
+        },
+      };
+      const page = {
+        getByRole() {
+          return {
+            async click() {
+              throw clickError;
+            },
+          };
+        },
+      };
+      const startedAt = Date.now();
+      await assert.rejects(
+        () => runWaitClickBlockFromGuide(block, {
+          request,
+          page,
+          apiUrl,
+          token,
+          mailbox,
+          expectedSender,
+          expectedSubject,
+        }),
+        (error) => error === clickError,
+        `${label}: click failure must surface as the primary error`,
+      );
+      const elapsedMs = Date.now() - startedAt;
+      assert.ok(
+        elapsedMs < 1_000,
+        `${label}: click-failure path must return promptly without awaiting the pending/slow REST wait; elapsed ${elapsedMs}ms`,
+      );
+    }
+  }
 }
 
 function assertPlaywrightOtpRouteTypeAnnotation(code) {
