@@ -432,6 +432,35 @@ assert.match(playwrightCode, /\/v1\/messages\/wait/, 'Playwright example must ca
 assert.match(playwrightCode, /timeoutSec:\s*60/, 'Playwright wait must be bounded');
 assert.match(
   playwrightCode,
+  /test\.setTimeout\(90_000\)/,
+  'Playwright example must set enclosing test timeout with test.setTimeout(90_000)',
+);
+assertAppearsBefore(
+  playwrightCode,
+  /test\.setTimeout\(90_000\)/,
+  /request\.post/,
+  'Playwright example must call test.setTimeout before request.post',
+);
+{
+  const enclosing = playwrightCode.match(/test\.setTimeout\((\d[\d_]*)\)/);
+  const requestTimeout = playwrightCode.match(/timeout:\s*(\d[\d_]*)/);
+  const serverWait = playwrightCode.match(/timeoutSec:\s*(\d+)/);
+  assert.ok(enclosing, 'Playwright example is missing test.setTimeout(<ms>)');
+  assert.ok(requestTimeout, 'Playwright example is missing request timeout: <ms>');
+  assert.ok(serverWait, 'Playwright example is missing timeoutSec: <seconds>');
+  const enclosingMs = Number(enclosing[1].replaceAll('_', ''));
+  const requestMs = Number(requestTimeout[1].replaceAll('_', ''));
+  const serverWaitMs = Number(serverWait[1]) * 1000;
+  assert.equal(enclosingMs, 90_000, 'Playwright enclosing test timeout must be 90_000');
+  assert.equal(requestMs, 70_000, 'Playwright request timeout must be 70_000');
+  assert.equal(Number(serverWait[1]), 60, 'Playwright timeoutSec must be 60');
+  assert.ok(
+    enclosingMs > requestMs && requestMs > serverWaitMs,
+    `Playwright example timeout ladder must be 90_000 > 70_000 > timeoutSec: 60; actual ${enclosingMs} > ${requestMs} > ${serverWaitMs}`,
+  );
+}
+assert.match(
+  playwrightCode,
   /startsWith\('oa_'\)/,
   'Playwright example must use a scoped oa_ identity token, not an admin key',
 );

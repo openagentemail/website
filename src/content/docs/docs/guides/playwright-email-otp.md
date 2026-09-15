@@ -36,6 +36,7 @@ for synchronization.
 import { expect, test } from '@playwright/test';
 
 test('signup waits for the verification email before reading the code', async ({ page, request }) => {
+  test.setTimeout(90_000);
   const api = process.env.OAE_API ?? 'http://localhost:3100';
   const token = process.env.OAE_IDENTITY_TOKEN ?? '';
   const mailbox = process.env.OAE_MAILBOX ?? '';
@@ -80,9 +81,10 @@ test('signup waits for the verification email before reading the code', async ({
 });
 ```
 
-`timeoutSec: 60` is the server wait; the Playwright request `timeout` must sit
-above it. Narrow `fromContains` / `subjectContains` so you do not consume the
-wrong mail.
+The executable timeout ladder is enclosing test 90 seconds > request 70 seconds >
+server wait 60 seconds (`test.setTimeout(90_000)`, request `timeout: 70_000`,
+`timeoutSec: 60`). Narrow `fromContains` / `subjectContains` so you do not consume
+the wrong mail.
 
 ## Before you consume the result
 
