@@ -31,6 +31,14 @@ In the Cloudflare dashboard, open the zone for your `DOMAIN`, then
 Assume the script printed records for `example.com` / `mail.example.com`.
 Substitute your `DOMAIN` and paste the script's values.
 
+Before you add the self-hosted root MX/SPF rows below, make sure managed
+[Cloudflare Email Routing](https://developers.cloudflare.com/dns/troubleshooting/email-issues/#is-email-routing-turned-on)
+is not still enabled on this zone. Email Routing manages root MX/SPF (and related)
+records that conflict with self-hosted mail; it does not deliver to your self-hosted
+SMTP host. Follow Cloudflare's
+[disable / remove-domain cutover](https://developers.cloudflare.com/email-service/configuration/domains/#remove-a-domain-from-email-routing)
+guidance, then verify those managed routing records are removed before continuing.
+
 | Script record | Type | Name | Content | Proxy status / extra |
 |---|---|---|---|---|
 | `mail.example.com. A <IPv4>` | A | `mail` | the IPv4 from the script | **DNS only** |

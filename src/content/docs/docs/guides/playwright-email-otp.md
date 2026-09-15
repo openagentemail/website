@@ -34,6 +34,7 @@ for synchronization.
 
 ```typescript
 import { expect, test } from '@playwright/test';
+import { isIP } from 'node:net';
 
 test('signup waits for the verification email before reading the code', async ({ page, request }) => {
   test.setTimeout(90_000);
@@ -64,7 +65,7 @@ test('signup waits for the verification email before reading the code', async ({
     const trimmed = String(fromValue).trim();
     const angled = /^(.*)<([^<>]+)>$/.exec(trimmed);
     if (angled) {
-      if (angled[1].includes('@') || trimmed.includes(',')) {
+      if (angled[1].includes('@')) {
         throw new Error('message.from must be exactly one mailbox address');
       }
       const address = angled[2].trim().toLowerCase();
@@ -80,6 +81,9 @@ test('signup waits for the verification email before reading the code', async ({
     return address;
   }
 
+  await page.goto(signupUrl);
+  await page.getByLabel('Email').fill(mailbox);
+
   const wait = request.post(`${apiUrl.origin}/v1/messages/wait`, {
     headers: {
       Authorization: `Bearer ${token}`,
@@ -94,8 +98,6 @@ test('signup waits for the verification email before reading the code', async ({
     timeout: 70_000,
   });
 
-  await page.goto(signupUrl);
-  await page.getByLabel('Email').fill(mailbox);
   await page.getByRole('button', { name: 'Sign up' }).click();
 
   const response = await wait;
@@ -113,8 +115,12 @@ test('signup waits for the verification email before reading the code', async ({
 
 The executable timeout ladder is enclosing test 90 seconds > request 70 seconds >
 server wait 60 seconds (`test.setTimeout(90_000)`, request `timeout: 70_000`,
-`timeoutSec: 60`). Narrow `fromContains` / `subjectContains` so you do not consume
-the wrong mail.
+`timeoutSec: 60`). Prepare the signup page and fill the email field first, then start
+`request.post` immediately before the Sign up click so the wait budget is not spent on
+unrelated navigation. Narrow `fromContains` / `subjectContains` so you do not consume
+the wrong mail. A reused inbox must be fresh/cleared, or the test must use a per-run
+unique subject correlation string in `subjectContains`, so a pre-existing/stale message
+cannot satisfy the wait.
 
 ## Before you consume the result
 
@@ -128,14 +134,20 @@ before navigation:
   const expectedHost = process.env.OAE_EXPECTED_HOST ?? '';
   const raw = message.otp.links[0] as string;
   const link = new URL(raw);
-  if (link.protocol !== 'https:' || link.hostname !== expectedHost) {
+  const hostForIpCheck = link.hostname.replace(/^\[|\]$/g, '');
+  if (
+    link.protocol !== 'https:'
+    || link.hostname !== expectedHost
+    || isIP(hostForIpCheck) !== 0
+  ) {
     throw new Error('refusing to visit OTP link: HTTPS and exact expected host are required');
   }
   await page.goto(link.toString());
 ```
 
-Skip the visit when either check fails. Do not open `http:` links, IP hosts,
-or a different hostname than the signup destination.
+Skip the visit when any check fails. Do not open `http:` links, IPv4/IPv6 literal hosts
+(even when they equal `OAE_EXPECTED_HOST`), or a different hostname than the signup
+destination.
 
 ## Artifacts and parallel workers
 

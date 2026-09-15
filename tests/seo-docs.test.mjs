@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { readFile, readdir } from 'node:fs/promises';
+import { isIP } from 'node:net';
 import { parse } from 'parse5';
 
 const quickstart = await readFile(new URL('../src/content/docs/docs/quickstart.md', import.meta.url), 'utf8');
@@ -89,6 +90,8 @@ const REQUIRED_LINKS = [
 const OFFICIAL_LINKS = [
   { source: 'Cloudflare DNS', markup: dnsCloudflare, href: 'https://developers.cloudflare.com/dns/manage-dns-records/how-to/create-dns-records/' },
   { source: 'Cloudflare DNS', markup: dnsCloudflare, href: 'https://developers.cloudflare.com/dns/manage-dns-records/how-to/email-records/' },
+  { source: 'Cloudflare DNS', markup: dnsCloudflare, href: 'https://developers.cloudflare.com/dns/troubleshooting/email-issues/#is-email-routing-turned-on' },
+  { source: 'Cloudflare DNS', markup: dnsCloudflare, href: 'https://developers.cloudflare.com/email-service/configuration/domains/#remove-a-domain-from-email-routing' },
   { source: 'Namecheap DNS', markup: dnsNamecheap, href: 'https://www.namecheap.com/support/knowledgebase/article.aspx/322/2237/how-can-i-set-up-mx-records-required-for-mail-service/' },
   { source: 'Namecheap DNS', markup: dnsNamecheap, href: 'https://www.namecheap.com/support/knowledgebase/article.aspx/317/2237/how-do-i-add-txtspfdkimdmarc-records-for-my-domain/' },
   { source: 'Route 53 DNS', markup: dnsRoute53, href: 'https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/resource-record-sets-creating.html' },
@@ -372,6 +375,28 @@ assert.doesNotMatch(
   'Cloudflare guide must not set proxied true on mail records',
 );
 
+assertCloudflareEmailRoutingPrerequisite(dnsCloudflare);
+{
+  const withoutRouting = dnsCloudflare
+    .replace(/Email Routing[\s\S]*?(?=## |\| Script record)/, '');
+  assert.throws(
+    () => assertCloudflareEmailRoutingPrerequisite(withoutRouting),
+    /Email Routing|prerequisite|MX|SPF/,
+    'removing the Cloudflare Email Routing prerequisite must fail the source-contract validator',
+  );
+}
+{
+  const withoutOfficialLink = dnsCloudflare.replace(
+    /https:\/\/developers\.cloudflare\.com\/email-service\/configuration\/domains\/#remove-a-domain-from-email-routing/g,
+    'https://developers.cloudflare.com/dns/manage-dns-records/how-to/create-dns-records/',
+  );
+  assert.throws(
+    () => assertCloudflareEmailRoutingPrerequisite(withoutOfficialLink),
+    /remove-a-domain-from-email-routing|Email Routing|official/,
+    'replacing the Email Routing disable/cutover link must fail the source-contract validator',
+  );
+}
+
 assert.match(dnsNamecheap, /BasicDNS/, 'Namecheap guide must name BasicDNS');
 assert.match(dnsNamecheap, /PremiumDNS/, 'Namecheap guide must name PremiumDNS');
 assert.match(dnsNamecheap, /FreeDNS/, 'Namecheap guide must name FreeDNS');
@@ -519,22 +544,120 @@ assert.match(
 );
 assertAppearsBefore(
   playwrightCode,
+  /page\.goto\(signupUrl\)/,
+  /getByLabel\('Email'\)\.fill\(mailbox\)/,
+  'Playwright example must page.goto(signupUrl) before filling the email field',
+);
+assertAppearsBefore(
+  playwrightCode,
+  /getByLabel\('Email'\)\.fill\(mailbox\)/,
+  /request\.post\([\s\S]*?\/v1\/messages\/wait/,
+  'Playwright example must fill the email field before starting request.post(/v1/messages/wait)',
+);
+assertAppearsBefore(
+  playwrightCode,
   /request\.post\([\s\S]*?\/v1\/messages\/wait/,
   /getByRole\('button', \{ name: 'Sign up' \}\)\.click\(\)/,
   'Playwright example must start request.post(/v1/messages/wait) before the Sign up click',
 );
+assertPlaywrightWaitPreparationOrder(playwrightCode);
+{
+  const waitBeforePrep = playwrightCode
+    .replace(
+      /await page\.goto\(signupUrl\);\n\s*await page\.getByLabel\('Email'\)\.fill\(mailbox\);\n\s*/,
+      '',
+    )
+    .replace(
+      /const wait = request\.post\([\s\S]*?\n  \}\);/,
+      (block) => `${block}\n\n  await page.goto(signupUrl);\n  await page.getByLabel('Email').fill(mailbox);`,
+    );
+  assert.throws(
+    () => assertPlaywrightWaitPreparationOrder(waitBeforePrep),
+    /page\.goto\(signupUrl\)|request\.post|preparation|before/,
+    'moving page.goto/email fill after request.post must fail the wait-order validator',
+  );
+}
+{
+  const withoutGoto = playwrightCode.replace(/await page\.goto\(signupUrl\);\n\s*/, '');
+  assert.throws(
+    () => assertPlaywrightWaitPreparationOrder(withoutGoto),
+    /page\.goto\(signupUrl\)|preparation/,
+    'removing page.goto(signupUrl) preparation must fail the wait-order validator',
+  );
+}
 assertAppearsBefore(
   playwrightCode,
   /expect\(parseSingleMailbox\(String\(message\.from\)\)\)\.toBe\(parseSingleMailbox\(expectedSender\)\)/,
   /message\.otp\.codes\[0\]/,
   'Playwright example must exact-match the normalized sender before message.otp.codes[0]',
 );
+assertPlaywrightOtpLinkSourceContract(playwrightCode);
 assertAppearsBefore(
   playwrightCode,
-  /link\.protocol !== 'https:' \|\| link\.hostname !== expectedHost/,
+  /isIP\(/,
   /page\.goto\(link\.toString\(\)\)/,
-  'Playwright example must apply the HTTPS+exact-host guard before page.goto(link.toString())',
+  'Playwright example must apply the IP-literal guard before page.goto(link.toString())',
 );
+assert.throws(
+  () => acceptOtpLinkFromSourceContract(playwrightCode, 'https://192.0.2.1/otp', '192.0.2.1'),
+  /OTP link|HTTPS|host|IP/i,
+  'IPv4 literal OTP host must be rejected even when it equals OAE_EXPECTED_HOST',
+);
+{
+  const ipv6OtpUrl = 'https://[2001:db8::1]/otp';
+  const ipv6ExpectedHost = '[2001:db8::1]';
+  assert.equal(
+    new URL(ipv6OtpUrl).hostname,
+    ipv6ExpectedHost,
+    'precondition: Node URL.hostname for bracketed IPv6 equals the exact OAE_EXPECTED_HOST value',
+  );
+  assert.throws(
+    () => acceptOtpLinkFromSourceContract(playwrightCode, ipv6OtpUrl, ipv6ExpectedHost),
+    /OTP link|HTTPS|host|IP/i,
+    'IPv6 literal OTP host must be rejected even when it equals OAE_EXPECTED_HOST',
+  );
+}
+assert.equal(
+  acceptOtpLinkFromSourceContract(playwrightCode, 'https://verify.example.com/otp', 'verify.example.com').hostname,
+  'verify.example.com',
+  'exact HTTPS DNS hostname must pass the OTP link guard',
+);
+{
+  const withoutIpGuard = playwrightCode
+    .replace(/\n\s*const hostForIpCheck[\s\S]*?;\n/, '\n')
+    .replace(/\s*\|\|\s*isIP\(hostForIpCheck\) !== 0/, '');
+  assert.throws(
+    () => assertPlaywrightOtpLinkSourceContract(withoutIpGuard),
+    /isIP|IP-literal|hostForIpCheck/,
+    'removing the IP-literal guard must fail the OTP link source-contract validator',
+  );
+}
+{
+  const ipBlockMatch = playwrightCode.match(
+    /\n\s*const hostForIpCheck[\s\S]*?throw new Error\('refusing to visit OTP link:[^']*'\);\n\s*\}\n/,
+  );
+  assert.ok(ipBlockMatch, 'Playwright example is missing the OTP link IP guard block for reorder mutation');
+  const withoutBlock = playwrightCode.replace(ipBlockMatch[0], '\n');
+  const gotoAt = withoutBlock.search(/page\.goto\(link\.toString\(\)\)/);
+  assert.ok(gotoAt !== -1, 'reorder mutation could not find page.goto(link.toString())');
+  const movedAfterGoto = `${withoutBlock.slice(0, gotoAt + 'page.goto'.length)}${ipBlockMatch[0]}${withoutBlock.slice(gotoAt + 'page.goto'.length)}`;
+  assert.throws(
+    () => assertPlaywrightOtpLinkSourceContract(movedAfterGoto),
+    /before page\.goto|isIP|IP-literal/,
+    'moving the IP-literal guard after page.goto must fail the OTP link source-contract validator',
+  );
+}
+{
+  const weakened = playwrightCode.replace(
+    /isIP\(hostForIpCheck\) !== 0/,
+    'isIP(hostForIpCheck) === 4 && false',
+  );
+  assert.throws(
+    () => assertPlaywrightOtpLinkSourceContract(weakened),
+    /isIP|weaken|IP-literal/,
+    'weakening the IP-literal guard must fail the OTP link source-contract validator',
+  );
+}
 
 assertPlaywrightOaeApiUrlSourceContract(playwrightCode);
 assert.equal(
@@ -632,6 +755,11 @@ assert.equal(
   assertExactNormalizedSender(playwrightCode, 'Trusted@Example.com', 'trusted@example.com'),
   'trusted@example.com',
 );
+assert.equal(
+  assertExactNormalizedSender(playwrightCode, '"Doe, Jane" <trusted@example.com>', 'trusted@example.com'),
+  'trusted@example.com',
+  'quoted display-name with a comma must parse as one mailbox',
+);
 assert.throws(
   () => assertExactNormalizedSender(playwrightCode, 'not-an-email', 'trusted@example.com'),
   /mailbox|malformed|exact|sender/i,
@@ -720,6 +848,21 @@ assert.match(
   playwrightOtp,
   /distinct mailbox per worker/,
   'Playwright guide must require a distinct mailbox per parallel worker or unique correlation',
+);
+assert.match(
+  playwrightOtp,
+  /fresh|cleared/i,
+  'Playwright guide must require a fresh/cleared inbox when the mailbox is reused',
+);
+assert.match(
+  playwrightOtp,
+  /unique subject|per-run unique|subject correlation/i,
+  'Playwright guide must allow a per-run unique subject correlation string for stale-mail safety',
+);
+assert.match(
+  playwrightOtp,
+  /pre-existing|stale/i,
+  'Playwright guide must warn that a pre-existing/stale message must not satisfy the wait',
 );
 assert.match(playwrightOtp, /Never put the admin key/, 'Playwright guide must forbid the admin key');
 assert.match(
@@ -1153,6 +1296,121 @@ function evaluateDocumentedSubjectGate(code, subjectValue) {
   const expectedSender = 'trusted@example.com';
   const signupUrl = 'https://signup.example.com';
   return Boolean(mailbox && expectedSender && expectedSubject && signupUrl);
+}
+
+function assertPlaywrightWaitPreparationOrder(code) {
+  assertAppearsBefore(
+    code,
+    /page\.goto\(signupUrl\)/,
+    /getByLabel\('Email'\)\.fill\(mailbox\)/,
+    'Playwright example must prepare with page.goto(signupUrl) before email fill',
+  );
+  assertAppearsBefore(
+    code,
+    /getByLabel\('Email'\)\.fill\(mailbox\)/,
+    /request\.post/,
+    'Playwright example must fill email before request.post',
+  );
+  assertAppearsBefore(
+    code,
+    /request\.post/,
+    /getByRole\('button', \{ name: 'Sign up' \}\)\.click\(\)/,
+    'Playwright example must start request.post immediately before the Sign up click',
+  );
+}
+
+function assertPlaywrightOtpLinkSourceContract(code) {
+  assert.match(
+    code,
+    /import \{ isIP \} from 'node:net'/,
+    'Playwright example must import isIP from node:net for OTP link IP rejection',
+  );
+  assert.match(
+    code,
+    /const hostForIpCheck = link\.hostname\.replace\(\/\^\\\[\|\\\]\$\/g, ''\)/,
+    'Playwright example must normalize bracketed IPv6 host text before isIP',
+  );
+  assert.match(
+    code,
+    /isIP\(hostForIpCheck\) !== 0/,
+    'Playwright example must reject IP-literal hosts with isIP(hostForIpCheck) !== 0',
+  );
+  assert.doesNotMatch(
+    code,
+    /isIP\(hostForIpCheck\) === 4 && false/,
+    'Playwright example must not weaken the IP-literal guard',
+  );
+  assertAppearsBefore(
+    code,
+    /isIP\(hostForIpCheck\) !== 0/,
+    /page\.goto\(link\.toString\(\)\)/,
+    'Playwright example must apply the IP-literal guard before page.goto(link.toString())',
+  );
+  assertAppearsBefore(
+    code,
+    /link\.protocol !== 'https:'/,
+    /page\.goto\(link\.toString\(\)\)/,
+    'Playwright example must apply the HTTPS guard before page.goto(link.toString())',
+  );
+  assertAppearsBefore(
+    code,
+    /link\.hostname !== expectedHost/,
+    /page\.goto\(link\.toString\(\)\)/,
+    'Playwright example must apply the exact-host guard before page.goto(link.toString())',
+  );
+  assert.match(
+    code,
+    /throw new Error\('refusing to visit OTP link: HTTPS and exact expected host are required'\)/,
+    'Playwright example must throw the fail-closed OTP link error',
+  );
+}
+
+function acceptOtpLinkFromSourceContract(code, rawUrl, expectedHost) {
+  assertPlaywrightOtpLinkSourceContract(code);
+  const link = new URL(rawUrl);
+  const hostForIpCheck = link.hostname.replace(/^\[|\]$/g, '');
+  if (
+    link.protocol !== 'https:'
+    || link.hostname !== expectedHost
+    || isIP(hostForIpCheck) !== 0
+  ) {
+    throw new Error('refusing to visit OTP link: HTTPS and exact expected host are required');
+  }
+  return link;
+}
+
+function assertCloudflareEmailRoutingPrerequisite(markup) {
+  assert.match(
+    markup,
+    /Email Routing/,
+    'Cloudflare guide must name Email Routing as a self-hosted mail prerequisite',
+  );
+  assert.match(
+    markup,
+    /https:\/\/developers\.cloudflare\.com\/dns\/troubleshooting\/email-issues\/#is-email-routing-turned-on/,
+    'Cloudflare guide must link official Email Routing conflict troubleshooting',
+  );
+  assert.match(
+    markup,
+    /https:\/\/developers\.cloudflare\.com\/email-service\/configuration\/domains\/#remove-a-domain-from-email-routing/,
+    'Cloudflare guide must link official Email Routing disable/removal/cutover guidance',
+  );
+  assert.match(
+    markup,
+    /managed|remove|disabled|disable/i,
+    'Cloudflare guide must tell readers to remove/disable managed Email Routing records before continuing',
+  );
+  assertAppearsBefore(
+    markup,
+    /Email Routing/,
+    /\| Script record \| Type \| Name \| Content \|/,
+    'Cloudflare Email Routing prerequisite must appear before the self-hosted record table',
+  );
+  assert.doesNotMatch(
+    markup,
+    /Email Routing (?:delivers|forwards) to (?:your |the )?self-hosted/i,
+    'Cloudflare guide must not imply Email Routing delivers to the self-hosted SMTP host',
+  );
 }
 
 function artifactForHref(href) {
