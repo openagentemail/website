@@ -9,7 +9,9 @@ and fall back to the body fields when extraction misses.
 
 It is not a site-by-site playbook. For OKX/Coinbase examples, captcha/KYC
 boundaries, and bulk-registration rules, use
-[Agent sign-ups](/docs/guides/agent-signup/).
+[Agent sign-ups](/docs/guides/agent-signup/). For a Playwright test that starts
+`POST /v1/messages/wait` before the signup click, see
+[Playwright email OTP](/docs/guides/playwright-email-otp/).
 
 ## MCP: `mail_wait_for` then `mail_read_message`
 

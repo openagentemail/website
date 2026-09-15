@@ -50,9 +50,13 @@ export default defineConfig({
           label: 'Guides',
           items: [
             'docs/guides/dns-setup',
+            { label: 'Cloudflare DNS', slug: 'docs/guides/dns-cloudflare' },
+            { label: 'Namecheap DNS', slug: 'docs/guides/dns-namecheap' },
+            { label: 'Route 53 DNS', slug: 'docs/guides/dns-route53' },
             'docs/guides/deliverability',
             'docs/guides/agent-signup',
             'docs/guides/otp-extraction',
+            { label: 'Playwright email OTP', slug: 'docs/guides/playwright-email-otp' },
             'docs/guides/notifications',
             'docs/guides/phone-notifications',
             'docs/guides/iphone-mail',

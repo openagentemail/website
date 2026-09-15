@@ -11,6 +11,18 @@ break it. Everything here assumes `DOMAIN=example.com` and the mail hostname
 Set these records **before** expecting inbound mail, and re-check them any time with
 `./deploy/doctor.sh`.
 
+## Provider field maps
+
+Values always come from `./deploy/dns-records.sh`. These pages map the same
+records into each dashboard:
+
+- [Cloudflare](/docs/guides/dns-cloudflare/)
+- [Namecheap](/docs/guides/dns-namecheap/)
+- [Amazon Route 53](/docs/guides/dns-route53/)
+
+Keep this page for record semantics, failure modes, and the Cloudflare API
+shortcut below.
+
 ## The records
 
 ### 1. `A` / `AAAA` — `mail.example.com` → your VPS IP
@@ -160,17 +172,20 @@ export CF_TOKEN=<api token with Zone.DNS edit>   # https://dash.cloudflare.com/p
 export CF_ZONE=<zone ID>                          # Overview page → right sidebar
 
 cf_add() { # type name value [extra json]
+  # Feed the bearer header through curl config on stdin so the token stays off argv.
+  printf 'header = "Authorization: Bearer %s"\n' "$CF_TOKEN" | \
   curl -sS -X POST "https://api.cloudflare.com/client/v4/zones/$CF_ZONE/dns_records" \
-    -H "Authorization: Bearer $CF_TOKEN" -H "Content-Type: application/json" \
+    -H "Content-Type: application/json" \
+    -K - \
     --data "$1" | jq -r '.success'
 }
 
-cf_add '{"type":"A","name":"mail","content":"<VPS IP>","proxied":false,"ttl":300}'
-cf_add '{"type":"MX","name":"@","content":"mail.example.com","priority":10,"ttl":300}'
-cf_add '{"type":"TXT","name":"@","content":"v=spf1 mx ~all","ttl":300}'
+cf_add '{"type":"A","name":"mail.example.com","content":"<VPS IP>","proxied":false,"ttl":300}'
+cf_add '{"type":"MX","name":"example.com","content":"mail.example.com","priority":10,"ttl":300}'
+cf_add '{"type":"TXT","name":"example.com","content":"v=spf1 mx ~all","ttl":300}'
 # copy the DKIM value exactly as printed by ./deploy/dns-records.sh:
-cf_add '{"type":"TXT","name":"mail._domainkey","content":"<v=DKIM1; k=rsa; p=...>","ttl":300}'
-cf_add '{"type":"TXT","name":"_dmarc","content":"v=DMARC1; p=quarantine; rua=mailto:postmaster@example.com","ttl":300}'
+cf_add '{"type":"TXT","name":"mail._domainkey.example.com","content":"<v=DKIM1; k=rsa; p=...>","ttl":300}'
+cf_add '{"type":"TXT","name":"_dmarc.example.com","content":"v=DMARC1; p=quarantine; rua=mailto:postmaster@example.com","ttl":300}'
 ```
 
 Two things the API will not save you from:
