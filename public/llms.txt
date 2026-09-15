@@ -1,0 +1,22 @@
+# openagent.email
+
+> Apache-2.0 self-hosted email for AI agents: unlimited inboxes on your own domain, with MCP and REST, OTP and link extraction, and no per-inbox fees.
+
+The site publishes HTML documentation only. This file is a selected map of those pages, not a Markdown mirror of the site.
+
+## Start here
+
+- [openagent.email](https://openagent.email/): Product homepage for self-hosted agent mailboxes on your domain, with MCP, REST, and OTP extraction.
+- [Quickstart](https://openagent.email/docs/quickstart/): Deploy on a VPS with Docker Compose and an HTTPS reverse proxy, from zero to a working agent mailbox in about 10 minutes.
+- [Connect your agent](https://openagent.email/docs/guides/connect-your-agent/): Wire Claude Desktop, Cursor, and REST into openagent.email for CLI, desktop, and web chat.
+- [MCP server](https://openagent.email/mcp/): Pick local stdio, self-hosted remote HTTP/OAuth, or the hosted connector for Claude, Cursor, and other agents.
+
+## Safety and operations
+
+- [Security](https://openagent.email/docs/guides/security/): Token hygiene for admin keys, identity tokens, and OAuth; keep the API bound to localhost unless you put TLS in front.
+- [Deliverability](https://openagent.email/docs/guides/deliverability/): Check outbound and inbound port 25, PTR/rDNS, IP reputation, and SPF/DKIM/DMARC, starting with deploy/doctor.sh.
+
+## Reference
+
+- [REST API](https://openagent.email/docs/reference/api/): Identities, messages, wait-for-mail, OTP extraction, and send; bearer auth except health and public discovery routes.
+- [MCP client setup](https://openagent.email/docs/reference/mcp-clients/): Copy-paste HTTP and stdio configs for Claude Code, Claude Desktop, Cursor, and Kimi Code.
