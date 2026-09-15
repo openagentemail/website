@@ -41,16 +41,46 @@ test('signup waits for the verification email before reading the code', async ({
   const token = process.env.OAE_IDENTITY_TOKEN ?? '';
   const mailbox = process.env.OAE_MAILBOX ?? '';
   const expectedSender = process.env.OAE_EXPECTED_SENDER ?? '';
+  const expectedSubject = (process.env.OAE_EXPECTED_SUBJECT ?? '').trim();
   const signupUrl = process.env.SIGNUP_URL ?? '';
 
   if (!token.startsWith('oa_')) {
     throw new Error('OAE_IDENTITY_TOKEN must be a scoped oa_ identity token for this mailbox');
   }
-  if (!mailbox || !expectedSender || !signupUrl) {
-    throw new Error('OAE_MAILBOX, OAE_EXPECTED_SENDER, and SIGNUP_URL are required before wait');
+  if (!mailbox || !expectedSender || !expectedSubject || !signupUrl) {
+    throw new Error('OAE_MAILBOX, OAE_EXPECTED_SENDER, OAE_EXPECTED_SUBJECT, and SIGNUP_URL are required before wait');
   }
 
-  const wait = request.post(`${api}/v1/messages/wait`, {
+  const apiUrl = new URL(api);
+  const allowHttpLoopback = new Set(['localhost', '127.0.0.1', '[::1]']);
+  if (
+    apiUrl.protocol !== 'https:'
+    && !(apiUrl.protocol === 'http:' && allowHttpLoopback.has(apiUrl.hostname))
+  ) {
+    throw new Error('OAE_API must be https: or http: on localhost, 127.0.0.1, or [::1]');
+  }
+
+  function parseSingleMailbox(fromValue: string): string {
+    const trimmed = String(fromValue).trim();
+    const angled = /^(.*)<([^<>]+)>$/.exec(trimmed);
+    if (angled) {
+      if (angled[1].includes('@') || trimmed.includes(',')) {
+        throw new Error('message.from must be exactly one mailbox address');
+      }
+      const address = angled[2].trim().toLowerCase();
+      if (!/^[^\s@<>]+@[^\s@<>]+$/.test(address)) {
+        throw new Error('message.from must be exactly one mailbox address');
+      }
+      return address;
+    }
+    const address = trimmed.toLowerCase();
+    if (!/^[^\s@<>]+@[^\s@<>]+$/.test(address)) {
+      throw new Error('message.from must be exactly one mailbox address');
+    }
+    return address;
+  }
+
+  const wait = request.post(`${apiUrl.origin}/v1/messages/wait`, {
     headers: {
       Authorization: `Bearer ${token}`,
       'Content-Type': 'application/json',
@@ -58,7 +88,7 @@ test('signup waits for the verification email before reading the code', async ({
     data: {
       address: mailbox,
       fromContains: expectedSender,
-      subjectContains: 'verify',
+      subjectContains: expectedSubject,
       timeoutSec: 60,
     },
     timeout: 70_000,
@@ -72,7 +102,7 @@ test('signup waits for the verification email before reading the code', async ({
   expect(response.ok()).toBeTruthy();
   const message = await response.json();
 
-  expect(String(message.from).toLowerCase()).toContain(expectedSender.toLowerCase());
+  expect(parseSingleMailbox(String(message.from))).toBe(parseSingleMailbox(expectedSender));
   const code = message.otp.codes[0] as string;
   expect(code).toBeTruthy();
 

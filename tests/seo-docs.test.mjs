@@ -481,16 +481,21 @@ assert.doesNotMatch(
   'Playwright example must not call page.waitForTimeout()',
 );
 const waitCallAt = playwrightCode.indexOf('request.post');
-const failClosedAt = playwrightCode.search(/!mailbox \|\| !expectedSender \|\| !signupUrl/);
-assert.ok(failClosedAt !== -1, 'Playwright example must fail closed when mailbox, expected sender, or signup URL is empty');
+const failClosedAt = playwrightCode.search(
+  /!mailbox \|\| !expectedSender \|\| !expectedSubject \|\| !signupUrl/,
+);
+assert.ok(
+  failClosedAt !== -1,
+  'Playwright example must fail closed when mailbox, expected sender, expected subject, or signup URL is empty',
+);
 assert.ok(
   waitCallAt !== -1 && failClosedAt < waitCallAt,
   'Playwright example must fail closed before starting the wait',
 );
-assert.match(
+assert.doesNotMatch(
   playwrightCode,
   /toContain\(expectedSender/,
-  'Playwright example must validate expected sender before consuming otp.codes',
+  'Playwright example must not use toContain(expectedSender); exact mailbox equality is required',
 );
 assert.doesNotMatch(
   playwrightCode,
@@ -520,9 +525,9 @@ assertAppearsBefore(
 );
 assertAppearsBefore(
   playwrightCode,
-  /toContain\(expectedSender/,
+  /expect\(parseSingleMailbox\(String\(message\.from\)\)\)\.toBe\(parseSingleMailbox\(expectedSender\)\)/,
   /message\.otp\.codes\[0\]/,
-  'Playwright example must call toContain(expectedSender) before message.otp.codes[0]',
+  'Playwright example must exact-match the normalized sender before message.otp.codes[0]',
 );
 assertAppearsBefore(
   playwrightCode,
@@ -530,6 +535,172 @@ assertAppearsBefore(
   /page\.goto\(link\.toString\(\)\)/,
   'Playwright example must apply the HTTPS+exact-host guard before page.goto(link.toString())',
 );
+
+assertPlaywrightOaeApiUrlSourceContract(playwrightCode);
+assert.equal(
+  playwrightCode.includes("?? 'http://localhost:3100'"),
+  true,
+  'Playwright example must keep the documented local default http://localhost:3100',
+);
+assert.throws(
+  () => acceptOaeApiUrlFromSourceContract(playwrightCode, 'http://mailbox.example.test'),
+  /OAE_API/,
+  'remote http://mailbox.example.test must be rejected before bearer request',
+);
+assert.throws(
+  () => acceptOaeApiUrlFromSourceContract(playwrightCode, 'http://localhost.evil'),
+  /OAE_API/,
+  'deceptive http://localhost.evil must be rejected before bearer request',
+);
+assert.equal(
+  acceptOaeApiUrlFromSourceContract(playwrightCode, 'http://localhost:3100').origin,
+  'http://localhost:3100',
+  'documented local default must remain usable after URL validation',
+);
+assert.equal(
+  acceptOaeApiUrlFromSourceContract(playwrightCode, 'https://mail.example.com').protocol,
+  'https:',
+  'https OAE_API must be permitted for any hostname',
+);
+{
+  const withoutValidation = playwrightCode
+    .replace(/\n\s*const apiUrl = new URL\(api\);[\s\S]*?throw new Error\('OAE_API[^']*'\);\n\s*\}\n/, '\n')
+    .replace(/\$\{apiUrl\.origin\}/g, '${api}');
+  assert.throws(
+    () => assertPlaywrightOaeApiUrlSourceContract(withoutValidation),
+    /OAE_API|new URL|request\.post|apiUrl/,
+    'removing URL validation must fail the source-contract validator',
+  );
+}
+{
+  const urlBlockMatch = playwrightCode.match(
+    /\n\s*const apiUrl = new URL\(api\);[\s\S]*?throw new Error\('OAE_API[^']*'\);\n\s*\}\n/,
+  );
+  assert.ok(urlBlockMatch, 'Playwright example is missing the OAE_API validation block for reorder mutation');
+  const withoutBlock = playwrightCode.replace(urlBlockMatch[0], '\n');
+  const postAt = withoutBlock.search(/request\.post\(/);
+  assert.ok(postAt !== -1, 'reorder mutation could not find request.post');
+  const movedAfterPost = `${withoutBlock.slice(0, postAt + 'request.post'.length)}${urlBlockMatch[0]}${withoutBlock.slice(postAt + 'request.post'.length)}`;
+  assert.throws(
+    () => assertPlaywrightOaeApiUrlSourceContract(movedAfterPost),
+    /before request\.post|OAE_API|new URL/,
+    'moving URL validation after request.post must fail the source-contract validator',
+  );
+}
+{
+  const withEvilHost = playwrightCode.replace(
+    "new Set(['localhost', '127.0.0.1', '[::1]'])",
+    "new Set(['localhost', '127.0.0.1', '[::1]', 'localhost.evil'])",
+  );
+  assert.throws(
+    () => assertPlaywrightOaeApiUrlSourceContract(withEvilHost),
+    /exact three-member|allowHttpLoopback|localhost\.evil|Set/,
+    'adding localhost.evil to the allowlist Set must fail the source-contract validator',
+  );
+}
+{
+  const withPrefixApprox = playwrightCode.replace(
+    /allowHttpLoopback\.has\(apiUrl\.hostname\)/,
+    "apiUrl.hostname.startsWith('localhost')",
+  );
+  assert.throws(
+    () => assertPlaywrightOaeApiUrlSourceContract(withPrefixApprox),
+    /prefix|suffix|substring|allowHttpLoopback\.has|approximation/,
+    'replacing allowHttpLoopback.has with a prefix approximation must fail the source-contract validator',
+  );
+}
+
+assertPlaywrightSenderSourceContract(playwrightCode);
+assert.ok(
+  'trusted@example.com.attacker.test'.toLowerCase().includes('trusted@example.com'.toLowerCase()),
+  'sanity: attacker mailbox would pass substring containment against trusted@example.com',
+);
+assert.throws(
+  () => assertExactNormalizedSender(playwrightCode, 'trusted@example.com.attacker.test', 'trusted@example.com'),
+  /exact|mailbox|sender|match/i,
+  'trusted@example.com.attacker.test must not satisfy expected trusted@example.com',
+);
+assert.equal(
+  assertExactNormalizedSender(playwrightCode, 'trusted@example.com', 'trusted@example.com'),
+  'trusted@example.com',
+);
+assert.equal(
+  assertExactNormalizedSender(playwrightCode, 'Name <trusted@example.com>', 'trusted@example.com'),
+  'trusted@example.com',
+);
+assert.equal(
+  assertExactNormalizedSender(playwrightCode, 'Trusted@Example.com', 'trusted@example.com'),
+  'trusted@example.com',
+);
+assert.throws(
+  () => assertExactNormalizedSender(playwrightCode, 'not-an-email', 'trusted@example.com'),
+  /mailbox|malformed|exact|sender/i,
+  'malformed sender input must fail closed',
+);
+assert.throws(
+  () => assertExactNormalizedSender(playwrightCode, 'a@b.com, c@d.com', 'a@b.com'),
+  /mailbox|multiple|exact|sender/i,
+  'multiple-address sender input must fail closed',
+);
+assert.throws(
+  () => assertExactNormalizedSender(playwrightCode, 'Alias <a@b.com>, Other <c@d.com>', 'a@b.com'),
+  /mailbox|multiple|exact|sender/i,
+  'multiple angled mailboxes must fail closed',
+);
+{
+  const withContainment = playwrightCode.replace(
+    /expect\(parseSingleMailbox\(String\(message\.from\)\)\)\.toBe\(parseSingleMailbox\(expectedSender\)\);/,
+    "expect(String(message.from).toLowerCase()).toContain(expectedSender.toLowerCase());",
+  );
+  assert.throws(
+    () => assertPlaywrightSenderSourceContract(withContainment),
+    /toContain\(expectedSender/,
+    'restoring toContain(expectedSender) must fail the sender source-contract validator',
+  );
+}
+
+assertPlaywrightSubjectSourceContract(playwrightCode);
+assert.equal(
+  evaluateDocumentedSubjectGate(playwrightCode, '   '),
+  false,
+  'whitespace-only OAE_EXPECTED_SUBJECT must be rejected by the documented fail-closed condition',
+);
+assert.equal(
+  evaluateDocumentedSubjectGate(playwrightCode, 'Verify your account'),
+  true,
+  'non-empty trimmed OAE_EXPECTED_SUBJECT must pass the documented fail-closed condition',
+);
+{
+  const hardCodedVerify = playwrightCode
+    .replace(/subjectContains:\s*expectedSubject/, "subjectContains: 'verify'");
+  assert.throws(
+    () => assertPlaywrightSubjectSourceContract(hardCodedVerify),
+    /subjectContains|verify|expectedSubject/,
+    "hard-coded subjectContains: 'verify' must fail the subject source-contract validator",
+  );
+}
+{
+  const untrimmed = playwrightCode.replace(
+    /const expectedSubject = \(process\.env\.OAE_EXPECTED_SUBJECT \?\? ''\)\.trim\(\);/,
+    "const expectedSubject = process.env.OAE_EXPECTED_SUBJECT ?? '';",
+  );
+  assert.throws(
+    () => assertPlaywrightSubjectSourceContract(untrimmed),
+    /trim|expectedSubject|OAE_EXPECTED_SUBJECT/,
+    'untrimmed OAE_EXPECTED_SUBJECT assignment must fail the subject source-contract validator',
+  );
+}
+{
+  const withoutSubjectGate = playwrightCode.replace(
+    /!mailbox \|\| !expectedSender \|\| !expectedSubject \|\| !signupUrl/,
+    '!mailbox || !expectedSender || !signupUrl',
+  );
+  assert.throws(
+    () => assertPlaywrightSubjectSourceContract(withoutSubjectGate),
+    /expectedSubject|fail-closed|OAE_EXPECTED_SUBJECT/,
+    'removing expectedSubject from the fail-closed condition must fail the subject source-contract validator',
+  );
+}
 assert.match(
   playwrightOtp,
   /expected sender/,
@@ -797,6 +968,191 @@ function assertAppearsBefore(haystack, earlier, later, message) {
   assert.ok(earlierAt !== -1, `${message}: missing earlier pattern ${earlier}`);
   assert.ok(laterAt !== -1, `${message}: missing later pattern ${later}`);
   assert.ok(earlierAt < laterAt, message);
+}
+
+function assertPlaywrightOaeApiUrlSourceContract(code) {
+  assert.match(
+    code,
+    /const apiUrl = new URL\(api\);/,
+    'Playwright example must parse OAE_API with const apiUrl = new URL(api)',
+  );
+  assertAppearsBefore(
+    code,
+    /const apiUrl = new URL\(api\);/,
+    /request\.post/,
+    'Playwright example must validate OAE_API before request.post',
+  );
+  assert.match(code, /apiUrl\.protocol/, 'Playwright example must inspect apiUrl.protocol');
+  assert.match(code, /apiUrl\.hostname/, 'Playwright example must inspect apiUrl.hostname');
+  assert.match(code, /'https:'/, 'Playwright example must permit https:');
+  const allowlistMatch = code.match(
+    /const allowHttpLoopback = new Set\(\[((?:[^[\]]|\[[^\]]*\])*)\]\)/,
+  );
+  assert.ok(allowlistMatch, 'Playwright example must define allowHttpLoopback as a Set literal');
+  const allowlistHosts = [...allowlistMatch[1].matchAll(/'([^']+)'/g)].map((match) => match[1]);
+  assert.deepEqual(
+    allowlistHosts,
+    ['localhost', '127.0.0.1', '[::1]'],
+    'Playwright example must use an exact three-member allowHttpLoopback Set with no extra member',
+  );
+  assert.match(
+    code,
+    /allowHttpLoopback\.has\(apiUrl\.hostname\)/,
+    'Playwright example must gate http: with allowHttpLoopback.has(apiUrl.hostname)',
+  );
+  assert.match(
+    code,
+    /apiUrl\.protocol !== 'https:'\s*&&\s*!\(apiUrl\.protocol === 'http:' && allowHttpLoopback\.has\(apiUrl\.hostname\)\)/,
+    'Playwright example must use the exact fail-closed Boolean: all HTTPS; HTTP only when allowHttpLoopback.has(apiUrl.hostname)',
+  );
+  assert.doesNotMatch(
+    code,
+    /apiUrl\.hostname\.(?:endsWith|startsWith|includes|indexOf)\(|hostname\.(?:endsWith|startsWith|includes|indexOf)\(/,
+    'Playwright example must not use prefix/suffix/substring host approximation',
+  );
+  assert.match(
+    code,
+    /throw new Error\('OAE_API must be https: or http: on localhost, 127\.0\.0\.1, or \[::1\]'\)/,
+    'Playwright example must throw a fail-closed OAE_API error',
+  );
+  assert.match(
+    code,
+    /request\.post\(`\$\{apiUrl\.origin\}\/v1\/messages\/wait`/,
+    'Playwright example must send request.post through the validated apiUrl.origin',
+  );
+  assert.doesNotMatch(
+    code,
+    /request\.post\(`\$\{api\}\/v1\/messages\/wait`/,
+    'Playwright example must not post to the unvalidated api string',
+  );
+}
+
+function extractAllowHttpLoopbackFromGuide(code) {
+  assertPlaywrightOaeApiUrlSourceContract(code);
+  const allowlistMatch = code.match(
+    /const allowHttpLoopback = new Set\(\[((?:[^[\]]|\[[^\]]*\])*)\]\)/,
+  );
+  assert.ok(allowlistMatch, 'Playwright example is missing allowHttpLoopback Set for URL execution');
+  const hosts = [...allowlistMatch[1].matchAll(/'([^']+)'/g)].map((match) => match[1]);
+  return new Set(hosts);
+}
+
+function acceptOaeApiUrlFromSourceContract(code, apiValue) {
+  const allowHttpLoopback = extractAllowHttpLoopbackFromGuide(code);
+  const apiUrl = new URL(apiValue);
+  if (
+    apiUrl.protocol !== 'https:'
+    && !(apiUrl.protocol === 'http:' && allowHttpLoopback.has(apiUrl.hostname))
+  ) {
+    throw new Error('OAE_API must be https: or http: on localhost, 127.0.0.1, or [::1]');
+  }
+  return apiUrl;
+}
+
+function extractParseSingleMailboxFromGuide(code) {
+  assertPlaywrightSenderSourceContract(code);
+  const match = code.match(
+    /function parseSingleMailbox\(fromValue: string\): string \{([\s\S]*?)\n  \}/,
+  );
+  assert.ok(match, 'Playwright example is missing a self-contained parseSingleMailbox function to extract');
+  const body = match[1]
+    .replace(/: string\b/g, '')
+    .replace(/ as string\b/g, '');
+  // Instantiate the guide's own parser (TypeScript annotations stripped) — no duplicate implementation.
+  return new Function(`return function parseSingleMailbox(fromValue) {${body}\n}`)();
+}
+
+function assertExactNormalizedSender(code, fromValue, expectedSender) {
+  const parseSingleMailbox = extractParseSingleMailboxFromGuide(code);
+  const actual = parseSingleMailbox(String(fromValue));
+  const expected = parseSingleMailbox(String(expectedSender));
+  if (actual !== expected) {
+    throw new Error('message.from does not exactly match OAE_EXPECTED_SENDER');
+  }
+  return actual;
+}
+
+function assertPlaywrightSenderSourceContract(code) {
+  assert.doesNotMatch(
+    code,
+    /toContain\(expectedSender/,
+    'Playwright example must not use toContain(expectedSender)',
+  );
+  assert.match(
+    code,
+    /fromContains:\s*expectedSender/,
+    'Playwright example must keep fromContains: expectedSender as a coarse server-side filter',
+  );
+  assert.match(
+    code,
+    /function parseSingleMailbox\(fromValue: string\): string/,
+    'Playwright example must define parseSingleMailbox for exact one-mailbox parsing',
+  );
+  assert.match(
+    code,
+    /expect\(parseSingleMailbox\(String\(message\.from\)\)\)\.toBe\(parseSingleMailbox\(expectedSender\)\)/,
+    'Playwright example must compare parsed message.from to parseSingleMailbox(expectedSender) with exact equality',
+  );
+  assertAppearsBefore(
+    code,
+    /expect\(parseSingleMailbox\(String\(message\.from\)\)\)\.toBe\(parseSingleMailbox\(expectedSender\)\)/,
+    /message\.otp\.codes\[0\]/,
+    'Playwright example must exact-match the normalized sender before reading message.otp.codes[0]',
+  );
+  assert.match(
+    code,
+    /\.toLowerCase\(\)/,
+    'Playwright example must normalize sender case',
+  );
+  assert.match(
+    code,
+    /throw new Error\('message\.from must be exactly one mailbox address'\)/,
+    'Playwright example must reject malformed or multiple-address sender input',
+  );
+}
+
+function assertPlaywrightSubjectSourceContract(code) {
+  assert.match(
+    code,
+    /const expectedSubject = \(process\.env\.OAE_EXPECTED_SUBJECT \?\? ''\)\.trim\(\);/,
+    'Playwright example must assign OAE_EXPECTED_SUBJECT with trim at assignment',
+  );
+  assertAppearsBefore(
+    code,
+    /const expectedSubject = \(process\.env\.OAE_EXPECTED_SUBJECT \?\? ''\)\.trim\(\);/,
+    /request\.post/,
+    'Playwright example must read/trim OAE_EXPECTED_SUBJECT before request.post',
+  );
+  assert.match(
+    code,
+    /!mailbox \|\| !expectedSender \|\| !expectedSubject \|\| !signupUrl/,
+    'Playwright example must require non-empty OAE_EXPECTED_SUBJECT in the fail-closed environment check',
+  );
+  assertAppearsBefore(
+    code,
+    /!mailbox \|\| !expectedSender \|\| !expectedSubject \|\| !signupUrl/,
+    /request\.post/,
+    'Playwright example must require expectedSubject before request.post',
+  );
+  assert.match(
+    code,
+    /subjectContains:\s*expectedSubject/,
+    'Playwright example must bind subjectContains to expectedSubject',
+  );
+  assert.doesNotMatch(
+    code,
+    /subjectContains:\s*'verify'/,
+    "Playwright example must not hard-code subjectContains: 'verify'",
+  );
+}
+
+function evaluateDocumentedSubjectGate(code, subjectValue) {
+  assertPlaywrightSubjectSourceContract(code);
+  const expectedSubject = String(subjectValue ?? '').trim();
+  const mailbox = 'agent@example.com';
+  const expectedSender = 'trusted@example.com';
+  const signupUrl = 'https://signup.example.com';
+  return Boolean(mailbox && expectedSender && expectedSubject && signupUrl);
 }
 
 function artifactForHref(href) {
