@@ -180,12 +180,12 @@ cf_add() { # type name value [extra json]
     --data "$1" | jq -r '.success'
 }
 
-cf_add '{"type":"A","name":"mail","content":"<VPS IP>","proxied":false,"ttl":300}'
-cf_add '{"type":"MX","name":"@","content":"mail.example.com","priority":10,"ttl":300}'
-cf_add '{"type":"TXT","name":"@","content":"v=spf1 mx ~all","ttl":300}'
+cf_add '{"type":"A","name":"mail.example.com","content":"<VPS IP>","proxied":false,"ttl":300}'
+cf_add '{"type":"MX","name":"example.com","content":"mail.example.com","priority":10,"ttl":300}'
+cf_add '{"type":"TXT","name":"example.com","content":"v=spf1 mx ~all","ttl":300}'
 # copy the DKIM value exactly as printed by ./deploy/dns-records.sh:
-cf_add '{"type":"TXT","name":"mail._domainkey","content":"<v=DKIM1; k=rsa; p=...>","ttl":300}'
-cf_add '{"type":"TXT","name":"_dmarc","content":"v=DMARC1; p=quarantine; rua=mailto:postmaster@example.com","ttl":300}'
+cf_add '{"type":"TXT","name":"mail._domainkey.example.com","content":"<v=DKIM1; k=rsa; p=...>","ttl":300}'
+cf_add '{"type":"TXT","name":"_dmarc.example.com","content":"v=DMARC1; p=quarantine; rua=mailto:postmaster@example.com","ttl":300}'
 ```
 
 Two things the API will not save you from:

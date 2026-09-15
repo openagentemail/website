@@ -516,6 +516,117 @@ assertDnsSetupCloudflareHelperBearerOffArgv(dnsSetup);
   );
 }
 
+assertDnsSetupCloudflareHelperRecordFqdns(dnsSetup);
+{
+  const relativeA = dnsSetup.replace(
+    /cf_add '\{"type":"A","name":"mail\.example\.com"/,
+    'cf_add \'{"type":"A","name":"mail"',
+  );
+  assert.match(
+    relativeA,
+    /cf_add '\{"type":"A","name":"mail"/,
+    'precondition: A-record mutation must restore relative "name":"mail"',
+  );
+  assert.throws(
+    () => assertDnsSetupCloudflareHelperRecordFqdns(relativeA),
+    /mail\.example\.com|"name"|FQDN|complete record name|A-record/,
+    'restoring relative API A "name":"mail" must fail the dns-setup FQDN validator',
+  );
+}
+{
+  const relativeMx = dnsSetup.replace(
+    /cf_add '\{"type":"MX","name":"example\.com"/,
+    'cf_add \'{"type":"MX","name":"@"',
+  );
+  assert.match(
+    relativeMx,
+    /cf_add '\{"type":"MX","name":"@"/,
+    'precondition: MX-record mutation must restore relative "name":"@"',
+  );
+  assert.throws(
+    () => assertDnsSetupCloudflareHelperRecordFqdns(relativeMx),
+    /example\.com|"name"|FQDN|complete record name|MX/,
+    'restoring relative API MX "name":"@" must fail the dns-setup FQDN validator',
+  );
+}
+{
+  const relativeSpf = dnsSetup.replace(
+    /cf_add '\{"type":"TXT","name":"example\.com","content":"v=spf1 mx ~all"/,
+    'cf_add \'{"type":"TXT","name":"@","content":"v=spf1 mx ~all"',
+  );
+  assert.match(
+    relativeSpf,
+    /cf_add '\{"type":"TXT","name":"@","content":"v=spf1 mx ~all"/,
+    'precondition: SPF TXT mutation must restore relative "name":"@"',
+  );
+  assert.throws(
+    () => assertDnsSetupCloudflareHelperRecordFqdns(relativeSpf),
+    /example\.com|"name"|FQDN|complete record name|SPF/,
+    'restoring relative API SPF "name":"@" must fail the dns-setup FQDN validator',
+  );
+}
+{
+  const relativeDkim = dnsSetup.replace(
+    /cf_add '\{"type":"TXT","name":"mail\._domainkey\.example\.com"/,
+    'cf_add \'{"type":"TXT","name":"mail._domainkey"',
+  );
+  assert.match(
+    relativeDkim,
+    /cf_add '\{"type":"TXT","name":"mail\._domainkey"/,
+    'precondition: DKIM TXT mutation must restore relative "name":"mail._domainkey"',
+  );
+  assert.throws(
+    () => assertDnsSetupCloudflareHelperRecordFqdns(relativeDkim),
+    /mail\._domainkey\.example\.com|"name"|FQDN|complete record name|DKIM/,
+    'restoring relative API DKIM "name":"mail._domainkey" must fail the dns-setup FQDN validator',
+  );
+}
+{
+  const relativeDmarc = dnsSetup.replace(
+    /cf_add '\{"type":"TXT","name":"_dmarc\.example\.com"/,
+    'cf_add \'{"type":"TXT","name":"_dmarc"',
+  );
+  assert.match(
+    relativeDmarc,
+    /cf_add '\{"type":"TXT","name":"_dmarc"/,
+    'precondition: DMARC TXT mutation must restore relative "name":"_dmarc"',
+  );
+  assert.throws(
+    () => assertDnsSetupCloudflareHelperRecordFqdns(relativeDmarc),
+    /_dmarc\.example\.com|"name"|FQDN|complete record name|DMARC/,
+    'restoring relative API DMARC "name":"_dmarc" must fail the dns-setup FQDN validator',
+  );
+}
+{
+  const weakenedFqdnCheck = (markup) => {
+    assert.match(
+      markup,
+      /cf_add '\{"type":"A","name":"mail/,
+      'weakened dns-setup A-record check accepts relative or FQDN mail names',
+    );
+  };
+  const relativeA = dnsSetup.includes('"name":"mail.example.com"')
+    ? dnsSetup.replace(
+      /cf_add '\{"type":"A","name":"mail\.example\.com"/,
+      'cf_add \'{"type":"A","name":"mail"',
+    )
+    : dnsSetup;
+  assert.match(
+    relativeA,
+    /cf_add '\{"type":"A","name":"mail"/,
+    'precondition: relative A name must be present for the weakened-validator probe',
+  );
+  assert.doesNotThrow(
+    () => weakenedFqdnCheck(relativeA),
+    'precondition: a weakened A-record check must accept relative "name":"mail"',
+  );
+  assert.throws(
+    () => assertDnsSetupCloudflareHelperRecordFqdns(relativeA),
+    /mail\.example\.com|"name"|FQDN|complete record name|A-record/,
+    'restoring/using a weakened A-record check must not pass the dns-setup FQDN contract',
+  );
+}
+
 assert.match(dnsNamecheap, /BasicDNS/, 'Namecheap guide must name BasicDNS');
 assert.match(dnsNamecheap, /PremiumDNS/, 'Namecheap guide must name PremiumDNS');
 assert.match(dnsNamecheap, /FreeDNS/, 'Namecheap guide must name FreeDNS');
@@ -769,6 +880,7 @@ assertPlaywrightOtpManualRedirectProse(playwrightOtp);
 assertPlaywrightVerificationLinkSelfContained(playwrightOtp);
 await assertPlaywrightWaitClickSemanticsFromGuide(playwrightOtp);
 assertPlaywrightImmediateWaitObserver(playwrightOtp);
+assertPlaywrightBearerWaitMaxRedirects(playwrightOtp);
 assertPlaywrightOtpRouteTypeAnnotation(playwrightCode);
 
 {
@@ -1156,11 +1268,58 @@ assertPlaywrightOtpRouteTypeAnnotation(playwrightCode);
   );
 }
 {
-  const withoutMaxRedirects = playwrightCode.replace(/\s*maxRedirects:\s*0\s*,?/, '');
+  const withoutMaxRedirects = playwrightCode.replace(
+    /route\.fetch\(\{\s*url:\s*currentUrl,\s*maxRedirects:\s*0\s*\}\)/,
+    'route.fetch({ url: currentUrl })',
+  );
   assert.throws(
     () => assertPlaywrightOtpRedirectGuardSourceContract(withoutMaxRedirects),
     /maxRedirects:\s*0/,
-    'deleting maxRedirects: 0 must fail the OTP redirect-guard validator',
+    'deleting route.fetch maxRedirects: 0 must fail the OTP redirect-guard validator',
+  );
+}
+{
+  const fences = playwrightOtpWaitClickFences(playwrightOtp);
+  assert.equal(fences.length, 2, 'precondition: exactly two wait/click TypeScript fences');
+  for (const [index, fence] of fences.entries()) {
+    const withoutWaitMaxRedirects = playwrightOtp.replace(
+      fence,
+      fence.replace(/\n\s*maxRedirects:\s*0\s*,?/, '\n'),
+    );
+    // Keep route.fetch maxRedirects intact so only the bearer-wait lock is exercised.
+    assert.match(
+      withoutWaitMaxRedirects,
+      /route\.fetch\(\{\s*url:\s*currentUrl,\s*maxRedirects:\s*0\s*\}\)/,
+      `precondition: fence ${index + 1} bearer-wait maxRedirects deletion must leave route.fetch maxRedirects: 0`,
+    );
+    assert.throws(
+      () => assertPlaywrightBearerWaitMaxRedirects(withoutWaitMaxRedirects),
+      /maxRedirects:\s*0|bearer wait|request\.post|fence/,
+      `deleting maxRedirects: 0 from bearer wait fence ${index + 1} must fail the OTP wait redirect lock`,
+    );
+  }
+}
+{
+  const weakenedWaitRedirectCheck = (markup) => {
+    assert.match(
+      markup,
+      /route\.fetch\(\{\s*url:\s*currentUrl,\s*maxRedirects:\s*0\s*\}\)/,
+      'weakened check accepts route.fetch maxRedirects and ignores bearer wait options',
+    );
+  };
+  const fence = playwrightOtpWaitClickFences(playwrightOtp)[0];
+  const withoutWaitMaxRedirects = playwrightOtp.replace(
+    fence,
+    fence.replace(/\n\s*maxRedirects:\s*0\s*,?/, '\n'),
+  );
+  assert.doesNotThrow(
+    () => weakenedWaitRedirectCheck(withoutWaitMaxRedirects),
+    'precondition: a weakened redirect check must pass when only route.fetch keeps maxRedirects: 0',
+  );
+  assert.throws(
+    () => assertPlaywrightBearerWaitMaxRedirects(withoutWaitMaxRedirects),
+    /maxRedirects:\s*0|bearer wait|request\.post|fence/,
+    'relaxing the wait redirect lock to route.fetch alone must not pass the bearer-wait contract',
   );
 }
 {
@@ -2689,6 +2848,96 @@ function assertCloudflareDnsApiARecordFqdn(markup) {
     /--data '\{"type":"A","name":"mail","content":/,
     'Cloudflare raw DNS API A-record body must not use relative "name":"mail"',
   );
+}
+
+function assertDnsSetupCloudflareHelperRecordFqdns(markup) {
+  const helperFence = [...markup.matchAll(/```bash\n([\s\S]*?)```/g)]
+    .map((match) => match[1])
+    .find((fence) => /cf_add\(\)/.test(fence) && /cf_add '\{"type":"A"/.test(fence));
+  assert.ok(
+    helperFence,
+    'DNS setup must include the linked full Cloudflare cf_add helper bash fence',
+  );
+
+  assert.match(
+    helperFence,
+    /cf_add '\{"type":"A","name":"mail\.example\.com","content":"<VPS IP>","proxied":false,"ttl":300\}'/,
+    'dns-setup Cloudflare helper A-record must use complete FQDN "name":"mail.example.com"',
+  );
+  assert.match(
+    helperFence,
+    /cf_add '\{"type":"MX","name":"example\.com","content":"mail\.example\.com","priority":10,"ttl":300\}'/,
+    'dns-setup Cloudflare helper MX-record must use complete FQDN "name":"example.com"',
+  );
+  assert.match(
+    helperFence,
+    /cf_add '\{"type":"TXT","name":"example\.com","content":"v=spf1 mx ~all","ttl":300\}'/,
+    'dns-setup Cloudflare helper root SPF TXT must use complete FQDN "name":"example.com"',
+  );
+  assert.match(
+    helperFence,
+    /cf_add '\{"type":"TXT","name":"mail\._domainkey\.example\.com","content":"<v=DKIM1; k=rsa; p=\.\.\.>","ttl":300\}'/,
+    'dns-setup Cloudflare helper DKIM TXT must use complete FQDN "name":"mail._domainkey.example.com"',
+  );
+  assert.match(
+    helperFence,
+    /cf_add '\{"type":"TXT","name":"_dmarc\.example\.com","content":"v=DMARC1; p=quarantine; rua=mailto:postmaster@example\.com","ttl":300\}'/,
+    'dns-setup Cloudflare helper DMARC TXT must use complete FQDN "name":"_dmarc.example.com"',
+  );
+
+  assert.doesNotMatch(
+    helperFence,
+    /cf_add '\{"type":"A","name":"mail","/,
+    'dns-setup Cloudflare helper A-record must not use relative "name":"mail"',
+  );
+  assert.doesNotMatch(
+    helperFence,
+    /cf_add '\{"type":"MX","name":"@",/,
+    'dns-setup Cloudflare helper MX-record must not use relative "name":"@"',
+  );
+  assert.doesNotMatch(
+    helperFence,
+    /cf_add '\{"type":"TXT","name":"@","content":"v=spf1 mx ~all"/,
+    'dns-setup Cloudflare helper root SPF TXT must not use relative "name":"@"',
+  );
+  assert.doesNotMatch(
+    helperFence,
+    /cf_add '\{"type":"TXT","name":"mail\._domainkey","/,
+    'dns-setup Cloudflare helper DKIM TXT must not use relative "name":"mail._domainkey"',
+  );
+  assert.doesNotMatch(
+    helperFence,
+    /cf_add '\{"type":"TXT","name":"_dmarc","/,
+    'dns-setup Cloudflare helper DMARC TXT must not use relative "name":"_dmarc"',
+  );
+}
+
+function assertPlaywrightBearerWaitMaxRedirects(markup) {
+  const fences = playwrightOtpWaitClickFences(markup);
+  for (const [index, fence] of fences.entries()) {
+    const waitDecl = fence.match(
+      /const wait = request\.post\(`\$\{apiUrl\.origin\}\/v1\/messages\/wait`,\s*\{[\s\S]*?\n  \}\);/,
+    );
+    assert.ok(
+      waitDecl,
+      `fence ${index + 1}: missing bearer-authenticated request.post(\`\${apiUrl.origin}/v1/messages/wait\`, ...)`,
+    );
+    assert.match(
+      waitDecl[0],
+      /Authorization:\s*`Bearer \$\{token\}`/,
+      `fence ${index + 1}: wait request.post must remain bearer-authenticated`,
+    );
+    assert.match(
+      waitDecl[0],
+      /maxRedirects:\s*0/,
+      `fence ${index + 1}: bearer wait request.post options must explicitly set maxRedirects: 0`,
+    );
+    assert.doesNotMatch(
+      waitDecl[0],
+      /route\.fetch/,
+      `fence ${index + 1}: bearer wait maxRedirects lock must be on request.post options, not route.fetch`,
+    );
+  }
 }
 
 function assertDnsSetupCloudflareHelperBearerOffArgv(markup) {

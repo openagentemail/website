@@ -97,6 +97,7 @@ test('signup waits for the verification email before reading the code', async ({
       timeoutSec: 60,
     },
     timeout: 70_000,
+    maxRedirects: 0,
   });
   void wait.catch(() => {});
   await page.getByRole('button', { name: 'Sign up' }).click({ timeout: 10_000 });
@@ -234,6 +235,7 @@ test('signup opens a trusted HTTPS verification link', async ({ page, request })
       timeoutSec: 60,
     },
     timeout: 70_000,
+    maxRedirects: 0,
   });
   void wait.catch(() => {});
   await page.getByRole('button', { name: 'Sign up' }).click({ timeout: 10_000 });
