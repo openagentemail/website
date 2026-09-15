@@ -1,0 +1,73 @@
+---
+import Legal from '../layouts/Legal.astro';
+
+const pageTitle = 'openagent.email MCP Server — Claude, Cursor, and Agents';
+const pageDescription =
+  'Route Claude, Cursor, and other agents to the openagent.email MCP server: local stdio, self-hosted remote HTTP/OAuth, or the hosted connector.';
+---
+
+<Legal title={pageTitle} documentTitle={pageTitle} description={pageDescription}>
+  <link slot="head" rel="canonical" href="https://openagent.email/mcp/" />
+
+  <h1>openagent.email MCP Server — Claude, Cursor, and Agents</h1>
+  <p class="lede">
+    Use this page to pick the MCP path you already have docs for. It does not replace the
+    client, public-ingress, or REST references.
+  </p>
+
+  <h2>Three existing routes</h2>
+  <ul>
+    <li>
+      <strong>Local stdio.</strong> Agents on the same machine run
+      <code>@openagentemail/mcp</code> as a stdio process. Copy-paste configs are in
+      <a href="/docs/reference/mcp-clients/">MCP client setup</a>.
+    </li>
+    <li>
+      <strong>Self-hosted remote HTTP/OAuth.</strong> Cloud agents can call
+      <code>POST /mcp</code> on your own origin. Public ingress is in
+      <a href="/docs/guides/public-mcp/">Exposing MCP publicly</a>; the HTTP client
+      shape is in <a href="/docs/reference/mcp-clients/">MCP client setup</a>.
+    </li>
+    <li>
+      <strong>Hosted connector.</strong> Web chat products connect to the hosted MCP
+      URL over OAuth. Click paths for Claude, ChatGPT, Grok, and related clients are
+      in <a href="/docs/guides/connect-your-agent/">Connect your agent</a>.
+    </li>
+  </ul>
+
+  <h2>Docs this hub points to</h2>
+  <ul>
+    <li><a href="/docs/quickstart/">Quickstart</a></li>
+    <li><a href="/docs/guides/connect-your-agent/">Connect your agent</a></li>
+    <li><a href="/docs/reference/mcp-clients/">MCP client setup</a></li>
+    <li><a href="/docs/guides/public-mcp/">Exposing MCP publicly</a></li>
+    <li><a href="/docs/reference/api/">REST API</a></li>
+    <li><a href="/docs/guides/otp-extraction/">OTP extraction</a></li>
+  </ul>
+
+  <p>
+    openagent.email can be self-hosted; MailSlurp's MCP is hosted SaaS. See
+    <a href="/compare#mailslurp">openagent.email vs MailSlurp</a>.
+  </p>
+
+  <h2>How do I connect Claude Desktop or Cursor?</h2>
+  <p>
+    Follow <a href="/docs/guides/connect-your-agent/">Connect your agent</a> and paste
+    the matching config from <a href="/docs/reference/mcp-clients/">MCP client setup</a>.
+    Claude Desktop and Cursor both speak MCP over local stdio or HTTP.
+  </p>
+
+  <h2>Do I need a public MCP URL?</h2>
+  <p>
+    Only when a cloud or web agent must reach your server. Local stdio stays on the
+    same machine. Public HTTP/OAuth ingress is covered in
+    <a href="/docs/guides/public-mcp/">Exposing MCP publicly</a>.
+  </p>
+
+  <h2>Can I use REST instead of MCP?</h2>
+  <p>
+    Yes. The <a href="/docs/reference/api/">REST API</a> exposes the same mailbox,
+    including the wait/read flow in the
+    <a href="/docs/guides/otp-extraction/">OTP extraction</a> guide.
+  </p>
+</Legal>

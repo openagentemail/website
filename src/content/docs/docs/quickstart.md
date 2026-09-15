@@ -1,6 +1,6 @@
 ---
-title: Quickstart
-description: From zero to a working agent mailbox in about 10 minutes.
+title: "Quickstart: Deploy openagent.email on a VPS with Docker Compose"
+description: Deploy openagent.email on a VPS with Docker Compose and an HTTPS reverse proxy — from zero to a working agent mailbox in about 10 minutes.
 ---
 
 **You need:** a VPS with TCP port 25 open (don't have one? see
@@ -173,3 +173,9 @@ When two identities on this server need to coordinate, use
 [email-backed tasks](/docs/guides/tasks/). They keep task state in the email
 thread itself and can wake the assigned agent through the built-in private
 notification route.
+
+## Next steps
+
+- [Connect your agent](/docs/guides/connect-your-agent/)
+- [Security](/docs/guides/security/)
+- [Deliverability](/docs/guides/deliverability/)

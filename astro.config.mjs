@@ -52,6 +52,7 @@ export default defineConfig({
             'docs/guides/dns-setup',
             'docs/guides/deliverability',
             'docs/guides/agent-signup',
+            'docs/guides/otp-extraction',
             'docs/guides/notifications',
             'docs/guides/phone-notifications',
             'docs/guides/iphone-mail',
