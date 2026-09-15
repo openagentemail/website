@@ -17,8 +17,10 @@
     "test:jsonld-rendered": "node tests/jsonld-escaping.test.mjs --check-rendered",
     "test:seo-docs": "node --test tests/seo-docs.test.mjs",
     "test:seo-docs-rendered": "node tests/seo-docs.test.mjs --check-rendered",
-    "prebuild": "npm run test:compare-freshness && npm run test:hosted-checkout && npm run test:mail-security-docs && npm run test:iphone-mail-guide && npm run test:jsonld && npm run test:seo-docs",
-    "postbuild": "npm run test:compare-rendered && npm run test:jsonld-rendered && npm run test:seo-docs-rendered"
+    "test:llms-txt": "node --test tests/llms-txt.test.mjs",
+    "test:llms-txt-rendered": "node tests/llms-txt.test.mjs --check-rendered",
+    "prebuild": "npm run test:compare-freshness && npm run test:hosted-checkout && npm run test:mail-security-docs && npm run test:iphone-mail-guide && npm run test:jsonld && npm run test:seo-docs && npm run test:llms-txt",
+    "postbuild": "npm run test:compare-rendered && npm run test:jsonld-rendered && npm run test:seo-docs-rendered && npm run test:llms-txt-rendered"
   },
   "dependencies": {
     "@astrojs/starlight": "^0.37.7",
