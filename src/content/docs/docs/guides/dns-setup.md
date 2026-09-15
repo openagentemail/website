@@ -172,8 +172,11 @@ export CF_TOKEN=<api token with Zone.DNS edit>   # https://dash.cloudflare.com/p
 export CF_ZONE=<zone ID>                          # Overview page → right sidebar
 
 cf_add() { # type name value [extra json]
+  # Feed the bearer header through curl config on stdin so the token stays off argv.
+  printf 'header = "Authorization: Bearer %s"\n' "$CF_TOKEN" | \
   curl -sS -X POST "https://api.cloudflare.com/client/v4/zones/$CF_ZONE/dns_records" \
-    -H "Authorization: Bearer $CF_TOKEN" -H "Content-Type: application/json" \
+    -H "Content-Type: application/json" \
+    -K - \
     --data "$1" | jq -r '.success'
 }
 

@@ -441,14 +441,15 @@ assertCloudflareEmailRoutingPrerequisite(dnsCloudflare);
 }
 
 assertCloudflareCurlBearerOffArgv(dnsCloudflare);
+assertCloudflareDnsApiARecordFqdn(dnsCloudflare);
 {
   const unsafeArgvExample = `curl -sS -X POST "https://api.cloudflare.com/client/v4/zones/$CF_ZONE/dns_records" \\
   -H "Authorization: Bearer $CF_TOKEN" -H "Content-Type: application/json" \\
-  --data '{"type":"A","name":"mail","content":"<VPS IP>","proxied":false,"ttl":300}'`;
+  --data '{"type":"A","name":"mail.example.com","content":"<VPS IP>","proxied":false,"ttl":300}'`;
   const withBearerOnArgv = dnsCloudflare.includes('-H "Authorization: Bearer $CF_TOKEN"')
     ? dnsCloudflare
     : dnsCloudflare.replace(
-      /printf 'header = "Authorization: Bearer %s"\\n' "\$CF_TOKEN" \| \\\ncurl -sS -X POST "https:\/\/api\.cloudflare\.com\/client\/v4\/zones\/\$CF_ZONE\/dns_records" \\\n  -H "Content-Type: application\/json" \\\n  -K - \\\n  --data '\{"type":"A","name":"mail","content":"<VPS IP>","proxied":false,"ttl":300\}'/,
+      /printf 'header = "Authorization: Bearer %s"\\n' "\$CF_TOKEN" \| \\\ncurl -sS -X POST "https:\/\/api\.cloudflare\.com\/client\/v4\/zones\/\$CF_ZONE\/dns_records" \\\n  -H "Content-Type: application\/json" \\\n  -K - \\\n  --data '\{"type":"A","name":"mail\.example\.com","content":"<VPS IP>","proxied":false,"ttl":300\}'/,
       unsafeArgvExample,
     );
   assert.match(
@@ -474,6 +475,44 @@ assertCloudflareCurlBearerOffArgv(dnsCloudflare);
     () => assertCloudflareCurlBearerOffArgv(withoutStdinConfig),
     /stdin|config|-K|Authorization|Bearer|argv|printf/,
     'removing the curl stdin/config bearer channel must fail the source-contract validator',
+  );
+}
+{
+  const relativeName = dnsCloudflare.replace(
+    /"name":"mail\.example\.com"/,
+    '"name":"mail"',
+  );
+  assert.match(
+    relativeName,
+    /"name":"mail"/,
+    'precondition: A-record name mutation must restore relative "name":"mail"',
+  );
+  assert.throws(
+    () => assertCloudflareDnsApiARecordFqdn(relativeName),
+    /mail\.example\.com|"name"|FQDN|complete record name/,
+    'restoring relative API "name":"mail" must fail the Cloudflare A-record FQDN validator',
+  );
+}
+
+assertDnsSetupCloudflareHelperBearerOffArgv(dnsSetup);
+{
+  const withBearerOnArgv = dnsSetup.includes('-H "Authorization: Bearer $CF_TOKEN"')
+    ? dnsSetup
+    : dnsSetup.replace(
+      /printf 'header = "Authorization: Bearer %s"\\n' "\$CF_TOKEN" \| \\\n\s*curl -sS -X POST "https:\/\/api\.cloudflare\.com\/client\/v4\/zones\/\$CF_ZONE\/dns_records" \\\n\s*-H "Content-Type: application\/json" \\\n\s*-K - \\\n\s*--data "\$1"/,
+      `curl -sS -X POST "https://api.cloudflare.com/client/v4/zones/$CF_ZONE/dns_records" \\
+    -H "Authorization: Bearer $CF_TOKEN" -H "Content-Type: application/json" \\
+    --data "$1"`,
+    );
+  assert.match(
+    withBearerOnArgv,
+    /-H "Authorization: Bearer \$CF_TOKEN"/,
+    'precondition: dns-setup bearer-on-argv mutation must restore Authorization Bearer on curl argv',
+  );
+  assert.throws(
+    () => assertDnsSetupCloudflareHelperBearerOffArgv(withBearerOnArgv),
+    /Authorization: Bearer|argv|CF_TOKEN|-H/,
+    'restoring -H "Authorization: Bearer $CF_TOKEN" on dns-setup curl argv must fail the source-contract validator',
   );
 }
 
@@ -722,31 +761,304 @@ assert.equal(
   'verify.example.com',
   'exact HTTPS DNS hostname must pass the OTP link guard',
 );
-assert.equal(
-  decideOtpNavigationFromSourceContract(playwrightCode, 'https://verify.example.com/step2', 'verify.example.com', true),
-  'continue',
-  'same-host HTTPS top-level navigation must continue under the redirect-chain guard',
-);
-assert.equal(
-  decideOtpNavigationFromSourceContract(playwrightCode, 'http://verify.example.com/otp', 'verify.example.com', true),
-  'abort',
-  'trusted initial OTP URL redirecting to HTTP must be aborted',
-);
-assert.equal(
-  decideOtpNavigationFromSourceContract(playwrightCode, 'https://192.0.2.1/otp', 'verify.example.com', true),
-  'abort',
-  'trusted initial OTP URL redirecting to an IP literal must be aborted',
-);
-assert.equal(
-  decideOtpNavigationFromSourceContract(playwrightCode, 'https://evil.example.com/otp', 'verify.example.com', true),
-  'abort',
-  'trusted initial OTP URL redirecting to a different host must be aborted',
-);
-assert.equal(
-  decideOtpNavigationFromSourceContract(playwrightCode, 'https://evil.example.com/otp', 'verify.example.com', false),
-  'continue',
-  'non-navigation requests must continue even when the URL would fail OTP validation',
-);
+
+// GitHub #60 (test(docs): add real-browser OTP redirect regression smoke):
+// this suite extracts and executes the guide's manual route.fetch loop against stubs only.
+// It does not supply the real-browser redirect regression requested by #60.
+assertPlaywrightOtpManualRedirectProse(playwrightOtp);
+assertPlaywrightVerificationLinkSelfContained(playwrightOtp);
+assertPlaywrightSignupClickObservesWait(playwrightCode);
+assertPlaywrightOtpRouteTypeAnnotation(playwrightCode);
+
+{
+  const initialHttp = await runOtpRedirectManualLoopFromGuide(playwrightCode, {
+    initialUrl: 'http://verify.example.com/otp',
+    expectedHost: 'verify.example.com',
+    chain: {},
+  });
+  assert.equal(initialHttp.outcome, 'abort', 'initial HTTP OTP URL must abort before any route.fetch');
+  assert.deepEqual(initialHttp.fetchedUrls, [], 'untrusted initial HTTP URL must never reach route.fetch');
+}
+
+{
+  const sameHost = await runOtpRedirectManualLoopFromGuide(playwrightCode, {
+    initialUrl: 'https://verify.example.com/otp',
+    expectedHost: 'verify.example.com',
+    chain: {
+      'https://verify.example.com/otp': {
+        status: 302,
+        headers: { location: 'https://verify.example.com/step2' },
+      },
+      'https://verify.example.com/step2': {
+        status: 200,
+        headers: {},
+      },
+    },
+  });
+  assert.equal(sameHost.outcome, 'fulfill', 'same-host HTTPS redirect must fulfill the terminal response');
+  assert.deepEqual(
+    sameHost.fetchedUrls,
+    ['https://verify.example.com/otp', 'https://verify.example.com/step2'],
+    'same-host HTTPS redirect must fetch only the initial URL and the validated next hop',
+  );
+  assert.equal(sameHost.fulfilledStatus, 200, 'terminal same-host response must be fulfilled');
+  assert.equal(sameHost.continued, false, 'top-level OTP navigation must not fall back to route.continue()');
+}
+
+{
+  const relative = await runOtpRedirectManualLoopFromGuide(playwrightCode, {
+    initialUrl: 'https://verify.example.com/otp',
+    expectedHost: 'verify.example.com',
+    chain: {
+      'https://verify.example.com/otp': {
+        status: 302,
+        headers: { location: '/relative-next' },
+      },
+      'https://verify.example.com/relative-next': {
+        status: 200,
+        headers: {},
+      },
+    },
+  });
+  assert.equal(relative.outcome, 'fulfill', 'relative Location redirect must resolve and fulfill');
+  assert.deepEqual(
+    relative.fetchedUrls,
+    ['https://verify.example.com/otp', 'https://verify.example.com/relative-next'],
+    'relative Location must resolve against the current hop before fetch',
+  );
+}
+
+{
+  const toHttp = await runOtpRedirectManualLoopFromGuide(playwrightCode, {
+    initialUrl: 'https://verify.example.com/otp',
+    expectedHost: 'verify.example.com',
+    chain: {
+      'https://verify.example.com/otp': {
+        status: 302,
+        headers: { location: 'http://verify.example.com/escaped' },
+      },
+    },
+  });
+  assert.equal(toHttp.outcome, 'abort', 'HTTP redirect target must abort/fail closed');
+  assert.deepEqual(
+    toHttp.fetchedUrls,
+    ['https://verify.example.com/otp'],
+    'HTTP redirect target must never reach route.fetch',
+  );
+}
+
+{
+  const toOtherHost = await runOtpRedirectManualLoopFromGuide(playwrightCode, {
+    initialUrl: 'https://verify.example.com/otp',
+    expectedHost: 'verify.example.com',
+    chain: {
+      'https://verify.example.com/otp': {
+        status: 302,
+        headers: { location: 'https://evil.example.com/otp' },
+      },
+    },
+  });
+  assert.equal(toOtherHost.outcome, 'abort', 'different-host redirect target must abort/fail closed');
+  assert.deepEqual(
+    toOtherHost.fetchedUrls,
+    ['https://verify.example.com/otp'],
+    'different-host redirect target must never reach route.fetch',
+  );
+}
+
+{
+  const toIpv4 = await runOtpRedirectManualLoopFromGuide(playwrightCode, {
+    initialUrl: 'https://verify.example.com/otp',
+    expectedHost: 'verify.example.com',
+    chain: {
+      'https://verify.example.com/otp': {
+        status: 302,
+        headers: { location: 'https://192.0.2.1/otp' },
+      },
+    },
+  });
+  assert.equal(toIpv4.outcome, 'abort', 'IPv4 redirect target must abort/fail closed');
+  assert.deepEqual(toIpv4.fetchedUrls, ['https://verify.example.com/otp'], 'IPv4 redirect target must never reach route.fetch');
+}
+
+{
+  const toIpv6 = await runOtpRedirectManualLoopFromGuide(playwrightCode, {
+    initialUrl: 'https://verify.example.com/otp',
+    expectedHost: 'verify.example.com',
+    chain: {
+      'https://verify.example.com/otp': {
+        status: 302,
+        headers: { location: 'https://[2001:db8::1]/otp' },
+      },
+    },
+  });
+  assert.equal(toIpv6.outcome, 'abort', 'IPv6 redirect target must abort/fail closed');
+  assert.deepEqual(toIpv6.fetchedUrls, ['https://verify.example.com/otp'], 'IPv6 redirect target must never reach route.fetch');
+}
+
+{
+  const missingLocation = await runOtpRedirectManualLoopFromGuide(playwrightCode, {
+    initialUrl: 'https://verify.example.com/otp',
+    expectedHost: 'verify.example.com',
+    chain: {
+      'https://verify.example.com/otp': {
+        status: 302,
+        headers: {},
+      },
+    },
+  });
+  assert.equal(missingLocation.outcome, 'abort', 'missing Location on a redirect response must fail closed');
+  assert.deepEqual(missingLocation.fetchedUrls, ['https://verify.example.com/otp']);
+}
+
+{
+  const malformedLocation = await runOtpRedirectManualLoopFromGuide(playwrightCode, {
+    initialUrl: 'https://verify.example.com/otp',
+    expectedHost: 'verify.example.com',
+    chain: {
+      'https://verify.example.com/otp': {
+        status: 302,
+        headers: { location: 'https://[not-a-valid-url' },
+      },
+    },
+  });
+  assert.equal(malformedLocation.outcome, 'abort', 'malformed Location must fail closed');
+  assert.deepEqual(malformedLocation.fetchedUrls, ['https://verify.example.com/otp']);
+}
+
+{
+  const fiveHopChain = {};
+  const hops = [
+    'https://verify.example.com/otp',
+    'https://verify.example.com/h1',
+    'https://verify.example.com/h2',
+    'https://verify.example.com/h3',
+    'https://verify.example.com/h4',
+    'https://verify.example.com/h5',
+  ];
+  for (let i = 0; i < hops.length - 1; i += 1) {
+    fiveHopChain[hops[i]] = { status: 302, headers: { location: hops[i + 1] } };
+  }
+  fiveHopChain[hops[5]] = { status: 200, headers: {} };
+  const fiveHops = await runOtpRedirectManualLoopFromGuide(playwrightCode, {
+    initialUrl: hops[0],
+    expectedHost: 'verify.example.com',
+    chain: fiveHopChain,
+  });
+  assert.equal(fiveHops.outcome, 'fulfill', 'five redirect hops may complete and fulfill the terminal response');
+  assert.deepEqual(fiveHops.fetchedUrls, hops, 'exactly five redirects followed means six fetches including the terminal URL');
+  assert.equal(fiveHops.fulfilledStatus, 200);
+}
+
+{
+  const sixHopChain = {};
+  const hops = [
+    'https://verify.example.com/otp',
+    'https://verify.example.com/h1',
+    'https://verify.example.com/h2',
+    'https://verify.example.com/h3',
+    'https://verify.example.com/h4',
+    'https://verify.example.com/h5',
+    'https://verify.example.com/h6',
+  ];
+  for (let i = 0; i < hops.length - 1; i += 1) {
+    sixHopChain[hops[i]] = { status: 302, headers: { location: hops[i + 1] } };
+  }
+  sixHopChain[hops[6]] = { status: 200, headers: {} };
+  const overflow = await runOtpRedirectManualLoopFromGuide(playwrightCode, {
+    initialUrl: hops[0],
+    expectedHost: 'verify.example.com',
+    chain: sixHopChain,
+  });
+  assert.equal(overflow.outcome, 'abort', 'a sixth redirect must overflow fail-closed');
+  assert.deepEqual(
+    overflow.fetchedUrls,
+    hops.slice(0, 6),
+    'sixth redirect target must not be fetched (stop after the fifth redirect response)',
+  );
+  assert.equal(overflow.fetchedUrls.includes(hops[6]), false, 'overflow must not fetch the sixth redirect target');
+}
+
+{
+  const nonNav = await runOtpRedirectManualLoopFromGuide(playwrightCode, {
+    initialUrl: 'https://evil.example.com/otp',
+    expectedHost: 'verify.example.com',
+    isNavigation: false,
+    chain: {},
+  });
+  assert.equal(nonNav.outcome, 'continue', 'non-navigation requests must continue even when the URL would fail OTP validation');
+  assert.deepEqual(nonNav.fetchedUrls, [], 'non-navigation requests must not enter the manual redirect fetch loop');
+}
+
+{
+  const fetchThrows = await runOtpRedirectManualLoopFromGuide(playwrightCode, {
+    initialUrl: 'https://verify.example.com/otp',
+    expectedHost: 'verify.example.com',
+    chain: {
+      'https://verify.example.com/otp': {
+        throws: true,
+        message: 'stub route.fetch failure',
+      },
+    },
+  });
+  assert.equal(fetchThrows.outcome, 'abort', 'route.fetch throw must abort fail-closed via the extracted handler catch path');
+  assert.equal(fetchThrows.aborted, true, 'route.fetch throw must call route.abort()');
+  assert.equal(fetchThrows.continued, false, 'route.fetch throw must not fall back to route.continue()');
+  assert.deepEqual(
+    fetchThrows.fetchedUrls,
+    ['https://verify.example.com/otp'],
+    'route.fetch throw still records the attempted fetch URL before fail-closed abort',
+  );
+}
+
+{
+  const routeCalls = [];
+  const unrouteCalls = [];
+  const namedHandler = async function abortUntrustedOtpNavigation() {
+    throw new Error('named handler must not run during the goto-throw cleanup probe');
+  };
+  const page = {
+    context() {
+      return {
+        async route(pattern, handler) {
+          routeCalls.push({ pattern, handler });
+        },
+        async unroute(pattern, handler) {
+          unrouteCalls.push({ pattern, handler });
+        },
+      };
+    },
+    async goto() {
+      throw new Error('forced page.goto failure');
+    },
+  };
+  const link = {
+    toString() {
+      return 'https://verify.example.com/otp';
+    },
+  };
+  const runInstallGotoUnroute = extractOtpRouteInstallGotoUnrouteFromGuide(playwrightCode);
+  await assert.rejects(
+    () => runInstallGotoUnroute(page, link, namedHandler),
+    /forced page\.goto failure/,
+    'extracted guide route/try/finally block must still surface the page.goto failure',
+  );
+  assert.equal(routeCalls.length, 1, 'extracted guide block must install exactly one context route');
+  assert.equal(routeCalls[0].pattern, '**/*', 'extracted guide block must route **/*');
+  assert.equal(
+    routeCalls[0].handler,
+    namedHandler,
+    'extracted guide block must install the exact named abortUntrustedOtpNavigation handler',
+  );
+  assert.equal(unrouteCalls.length, 1, 'page.goto throw must still execute exactly one finally unroute');
+  assert.equal(unrouteCalls[0].pattern, '**/*', 'finally unroute must target **/*');
+  assert.equal(
+    unrouteCalls[0].handler,
+    namedHandler,
+    'finally must unroute the exact named abortUntrustedOtpNavigation handler after page.goto throws',
+  );
+}
+
 {
   const withoutIpGuard = playwrightCode
     .replace(/\n\s*const hostForIpCheck[\s\S]*?;\n/, '\n')
@@ -781,6 +1093,11 @@ assert.equal(
     () => assertPlaywrightOtpLinkSourceContract(weakened),
     /isIP|weaken|IP-literal/,
     'weakening the IP-literal guard must fail the OTP link source-contract validator',
+  );
+  assert.throws(
+    () => assertPlaywrightOtpRedirectGuardSourceContract(weakened),
+    /isIP|weaken|validator|assertTrustedOtpUrl/,
+    'weakening/removing the shared validator must fail the OTP redirect-guard validator',
   );
 }
 {
@@ -828,7 +1145,7 @@ assert.equal(
 }
 {
   const withoutServiceWorkers = playwrightCode.replace(
-    /test\.use\(\{\s*serviceWorkers:\s*'block'\s*\}\);\n?/,
+    /test\.use\(\{\s*serviceWorkers:\s*'block'\s*\}\);\n?/g,
     '',
   );
   assert.throws(
@@ -838,13 +1155,42 @@ assert.equal(
   );
 }
 {
+  const withoutMaxRedirects = playwrightCode.replace(/\s*maxRedirects:\s*0\s*,?/, '');
+  assert.throws(
+    () => assertPlaywrightOtpRedirectGuardSourceContract(withoutMaxRedirects),
+    /maxRedirects:\s*0/,
+    'deleting maxRedirects: 0 must fail the OTP redirect-guard validator',
+  );
+}
+{
+  const withoutHopCap = playwrightCode
+    .replace(/\n\s*const OTP_REDIRECT_MAX = 5;\n/, '\n')
+    .replace(/redirectsFollowed >= OTP_REDIRECT_MAX/g, 'false');
+  assert.throws(
+    () => assertPlaywrightOtpRedirectGuardSourceContract(withoutHopCap),
+    /OTP_REDIRECT_MAX|hop|redirect/,
+    'deleting/neutralizing the hop cap must fail the OTP redirect-guard validator',
+  );
+}
+{
+  const allowsHttp = playwrightCode.replace(
+    /link\.protocol !== 'https:'/,
+    "link.protocol !== 'https:' && link.protocol !== 'http:'",
+  );
+  assert.throws(
+    () => assertPlaywrightOtpRedirectGuardSourceContract(allowsHttp),
+    /https:|http:|protocol|validator/,
+    'allowing http: in the shared validator must fail the OTP redirect-guard validator',
+  );
+}
+{
   const continuesDisallowed = playwrightCode.replace(
     /await route\.abort\(\);\n\s*return;/,
     'await route.continue();\n      return;',
   );
   assert.throws(
     () => assertPlaywrightOtpRedirectGuardSourceContract(continuesDisallowed),
-    /abort|disallowed|continue/,
+    /abort|disallowed|continue|fulfill/,
     'continuing a disallowed top-level navigation must fail the OTP redirect-guard validator',
   );
 }
@@ -857,6 +1203,52 @@ assert.equal(
     () => assertPlaywrightOtpRedirectGuardSourceContract(withoutFinally),
     /finally|unroute/,
     'omitting finally/unroute cleanup must fail the OTP redirect-guard validator',
+  );
+}
+{
+  const withoutWaitCatch = playwrightCode.replace(
+    /await wait\.catch\(\(\)\s*=>\s*\{\}\);\n\s*/g,
+    '',
+  );
+  assert.throws(
+    () => assertPlaywrightSignupClickObservesWait(withoutWaitCatch),
+    /wait\.catch|click|rejection|observ/,
+    'deleting wait rejection observation after Sign up click failure must fail',
+  );
+}
+{
+  const withoutRouteTypeImport = playwrightCode.replace(
+    /import \{ expect, test, type Route \} from '@playwright\/test';/g,
+    "import { expect, test } from '@playwright/test';",
+  );
+  assert.throws(
+    () => assertPlaywrightOtpRouteTypeAnnotation(withoutRouteTypeImport),
+    /type Route|Route/,
+    'deleting the Playwright Route type import must fail',
+  );
+}
+{
+  const withoutRouteAnnotation = playwrightCode.replace(
+    /async function abortUntrustedOtpNavigation\(route: Route\)/,
+    'async function abortUntrustedOtpNavigation(route)',
+  );
+  assert.throws(
+    () => assertPlaywrightOtpRouteTypeAnnotation(withoutRouteAnnotation),
+    /route: Route|Route/,
+    'deleting the route: Route parameter annotation must fail',
+  );
+}
+{
+  const linkFence = verificationLinkTypescriptFence(playwrightOtp);
+  const outerOnly = linkFence
+    .replace(/const message = await response\.json\(\);\n/, '')
+    .replace(/async \(\{\s*page\s*,\s*request\s*\}\)/, 'async ({ request })');
+  assert.throws(
+    () => assertPlaywrightVerificationLinkSelfContained(
+      playwrightOtp.replace(linkFence, outerOnly),
+    ),
+    /self-contained|message|page|callback|scope|async \(\{/,
+    'verification-link fence using out-of-scope message/page must fail',
   );
 }
 
@@ -1644,8 +2036,13 @@ function assertPlaywrightOtpLinkSourceContract(code) {
   );
   assert.match(
     code,
-    /assertTrustedOtpUrl\((?:req|request)\.url\(\), expectedHost\)/,
+    /assertTrustedOtpUrl\(\s*(?:(?:req|request)\.url\(\)|currentUrl|nextUrl)\s*,\s*expectedHost\)/,
     'Playwright example must reuse assertTrustedOtpUrl for redirect-chain navigation requests',
+  );
+  assert.match(
+    code,
+    /link\.protocol !== 'https:'(?!\s*&&\s*link\.protocol !== 'http:')/,
+    'Playwright example must require https: and must not allow http: in assertTrustedOtpUrl',
   );
 }
 
@@ -1676,8 +2073,8 @@ function assertPlaywrightOtpRedirectGuardSourceContract(code) {
   );
   assert.match(
     code,
-    /async function abortUntrustedOtpNavigation\(/,
-    'Playwright example must install a named abortUntrustedOtpNavigation route handler',
+    /async function abortUntrustedOtpNavigation\(route: Route\)/,
+    'Playwright example must install a named abortUntrustedOtpNavigation route handler annotated with Route',
   );
   assert.match(
     code,
@@ -1701,29 +2098,81 @@ function assertPlaywrightOtpRedirectGuardSourceContract(code) {
   );
   assert.match(
     code,
+    /const OTP_REDIRECT_MAX = 5/,
+    'Playwright example must define OTP_REDIRECT_MAX = 5 as the redirect hop cap',
+  );
+  assert.match(
+    code,
+    /redirectsFollowed >= OTP_REDIRECT_MAX/,
+    'Playwright example must enforce the hop cap before fetching another redirect target',
+  );
+  assert.match(
+    code,
+    /route\.fetch\(\{\s*url:\s*currentUrl,\s*maxRedirects:\s*0\s*\}\)/,
+    'Playwright example must call route.fetch({ url: currentUrl, maxRedirects: 0 }) for every hop',
+  );
+  assert.match(
+    code,
+    /maxRedirects:\s*0/,
+    'Playwright example must include the literal maxRedirects: 0',
+  );
+  assert.match(
+    code,
+    /route\.fulfill\(\{\s*response:\s*\w+\s*\}\)/,
+    'Playwright example must fulfill the terminal response into the intercepted navigation',
+  );
+  assert.match(
+    code,
     /route\.abort\(\)/,
     'Playwright example must abort disallowed top-level OTP navigations',
   );
   assert.match(
     code,
     /route\.continue\(\)/,
-    'Playwright example must continue allowed traffic',
-  );
-  const handlerMatch = code.match(
-    /async function abortUntrustedOtpNavigation\([\s\S]*?\n  \}/,
-  );
-  assert.ok(handlerMatch, 'Playwright example is missing abortUntrustedOtpNavigation body');
-  const catchBlock = handlerMatch[0].match(/catch\s*\{([\s\S]*?)\}/);
-  assert.ok(catchBlock, 'Playwright example must catch assertTrustedOtpUrl failures in the route handler');
-  assert.match(
-    catchBlock[1],
-    /route\.abort\(\)/,
-    'Playwright example must abort when assertTrustedOtpUrl rejects a top-level navigation',
+    'Playwright example must continue non-navigation traffic',
   );
   assert.doesNotMatch(
-    catchBlock[1],
-    /route\.continue\(\)/,
-    'Playwright example must not continue a disallowed top-level navigation',
+    code,
+    /link\.protocol !== 'https:' && link\.protocol !== 'http:'/,
+    'Playwright example must not allow http: in the shared OTP URL validator',
+  );
+  const handlerMatch = code.match(
+    /async function abortUntrustedOtpNavigation\(route: Route\) \{([\s\S]*?)\n  \}/,
+  );
+  assert.ok(handlerMatch, 'Playwright example is missing abortUntrustedOtpNavigation body');
+  const handlerBody = handlerMatch[1];
+  assert.match(
+    handlerBody,
+    /assertTrustedOtpUrl\(/,
+    'Playwright example must reuse assertTrustedOtpUrl inside the manual redirect loop',
+  );
+  assert.match(
+    handlerBody,
+    /route\.abort\(\)/,
+    'Playwright example must abort when validation/fetch/overflow fails',
+  );
+  // Non-nav traffic may route.continue(); failing top-level OTP checks must abort.
+  const validationCatches = [...handlerBody.matchAll(/assertTrustedOtpUrl\([\s\S]*?catch\s*\{([\s\S]*?)\}/g)];
+  assert.ok(
+    validationCatches.length >= 1,
+    'Playwright example must catch assertTrustedOtpUrl failures in the route handler',
+  );
+  for (const catchBlock of validationCatches) {
+    assert.match(
+      catchBlock[1],
+      /route\.abort\(\)/,
+      'Playwright example must abort when assertTrustedOtpUrl rejects a top-level navigation',
+    );
+    assert.doesNotMatch(
+      catchBlock[1],
+      /route\.continue\(\)/,
+      'Playwright example must not continue a disallowed top-level navigation',
+    );
+  }
+  assert.doesNotMatch(
+    handlerBody,
+    /await route\.continue\(\);\s*\n\s*return;\s*\n\s*\}\s*\n\s*catch/,
+    'Playwright example must not continue on a top-level OTP validation failure path',
   );
   assertAppearsBefore(
     code,
@@ -1738,17 +2187,225 @@ function assertPlaywrightOtpRedirectGuardSourceContract(code) {
   );
 }
 
-function decideOtpNavigationFromSourceContract(code, rawUrl, expectedHost, isMainFrameNavigation) {
-  const assertTrustedOtpUrl = extractAssertTrustedOtpUrlFromGuide(code);
+function assertPlaywrightOtpManualRedirectProse(markup) {
+  assert.match(
+    markup,
+    /maxRedirects:\s*0/,
+    'Playwright guide must document maxRedirects: 0 for manual redirect following',
+  );
+  assert.match(
+    markup,
+    /initial URL/i,
+    'Playwright guide must explain that fulfillment keeps the page at the initial URL',
+  );
+  assert.match(
+    markup,
+    /<base>|base URL|relative/i,
+    'Playwright guide must explain relative URL resolution against the displayed/original URL unless a base URL exists',
+  );
+  assert.match(
+    markup,
+    /stub(?:bed)?|not a real-browser redirect/i,
+    'Playwright guide must state that CI exercises a stubbed route.fetch chain, not a real-browser redirect server',
+  );
+}
+
+function verificationLinkTypescriptFence(markup) {
+  const fences = [...markup.matchAll(/```typescript\n([\s\S]*?)```/g)].map((match) => match[1]);
+  const linkFence = fences.find((fence) => (
+    fence.includes('abortUntrustedOtpNavigation')
+    && fence.includes('assertTrustedOtpUrl')
+    && fence.includes('page.goto(link.toString())')
+  ));
+  assert.ok(linkFence, 'Playwright guide is missing a verification-link TypeScript fence with the redirect handler');
+  return linkFence;
+}
+
+function assertPlaywrightVerificationLinkSelfContained(markup) {
+  const fence = verificationLinkTypescriptFence(markup);
+  assert.match(
+    fence,
+    /test\(/,
+    'verification-link example must be a complete test(...) callback/example',
+  );
+  assert.match(
+    fence,
+    /async \(\{\s*page\s*,\s*request\s*\}\)/,
+    'verification-link example must declare page and request in its own callback parameters',
+  );
+  assert.match(
+    fence,
+    /const message = await response\.json\(\)/,
+    'verification-link example must assign message inside the callback',
+  );
+  assert.match(
+    fence,
+    /import \{\s*expect,\s*test,\s*type Route\s*\} from '@playwright\/test'/,
+    'verification-link example must import expect, test, and type Route for a copyable strict TypeScript test',
+  );
+  const messageDeclAt = fence.search(/const message = await response\.json\(\)/);
+  const otpUseAt = fence.search(/message\.otp\./);
+  assert.ok(
+    messageDeclAt !== -1 && otpUseAt !== -1 && otpUseAt > messageDeclAt,
+    'verification-link example must not use out-of-scope message.otp before declaring message in-callback',
+  );
+  assert.match(
+    fence,
+    /async \(\{\s*page\s*,\s*request\s*\}\) =>/,
+    'verification-link example must bind page in its own callback scope',
+  );
+}
+
+function assertPlaywrightSignupClickObservesWait(code) {
+  assert.match(
+    code,
+    /getByRole\('button', \{ name: 'Sign up' \}\)\.click\(/,
+    'Playwright example must click the Sign up button',
+  );
+  assert.match(
+    code,
+    /catch\s*\(\s*clickError\s*\)\s*\{[\s\S]*?await wait\.catch\(\(\)\s*=>\s*\{\}\);[\s\S]*?throw clickError;/,
+    'Playwright example must observe/consume wait rejection before rethrowing a Sign up click failure',
+  );
+}
+
+function assertPlaywrightOtpRouteTypeAnnotation(code) {
+  assert.match(
+    code,
+    /import \{\s*expect,\s*test,\s*type Route\s*\} from '@playwright\/test'/,
+    'Playwright example must import type Route from @playwright/test',
+  );
+  assert.match(
+    code,
+    /async function abortUntrustedOtpNavigation\(route: Route\)/,
+    'Playwright example must annotate the named route handler parameter as route: Route',
+  );
+}
+
+function createStubApiResponse({ status, headers = {}, url }) {
+  let disposed = false;
+  return {
+    status: () => status,
+    headers: () => headers,
+    url: () => url,
+    async dispose() {
+      disposed = true;
+    },
+    get disposed() {
+      return disposed;
+    },
+  };
+}
+
+function extractOtpRedirectHandlerFromGuide(code, { page, expectedHost }) {
   assertPlaywrightOtpRedirectGuardSourceContract(code);
-  if (isMainFrameNavigation) {
-    try {
-      assertTrustedOtpUrl(rawUrl, expectedHost);
-    } catch {
-      return 'abort';
-    }
-  }
-  return 'continue';
+  const assertTrustedOtpUrl = extractAssertTrustedOtpUrlFromGuide(code);
+  const maxMatch = code.match(/const OTP_REDIRECT_MAX = (\d+)/);
+  assert.ok(maxMatch, 'Playwright example is missing OTP_REDIRECT_MAX for handler extraction');
+  const OTP_REDIRECT_MAX = Number(maxMatch[1]);
+  assert.ok(OTP_REDIRECT_MAX <= 5, 'OTP_REDIRECT_MAX must be no greater than 5');
+  const handlerMatch = code.match(
+    /async function abortUntrustedOtpNavigation\(route: Route\) \{([\s\S]*?)\n  \}/,
+  );
+  assert.ok(handlerMatch, 'Playwright example is missing abortUntrustedOtpNavigation body to extract');
+  const body = handlerMatch[1]
+    .replace(/: string\b/g, '')
+    .replace(/: Route\b/g, '')
+    .replace(/ as string\b/g, '')
+    .replace(/ as const\b/g, '');
+  return new Function(
+    'page',
+    'expectedHost',
+    'assertTrustedOtpUrl',
+    'OTP_REDIRECT_MAX',
+    `return async function abortUntrustedOtpNavigation(route) {${body}\n}`,
+  )(page, expectedHost, assertTrustedOtpUrl, OTP_REDIRECT_MAX);
+}
+
+function extractOtpRouteInstallGotoUnrouteFromGuide(code) {
+  assertPlaywrightOtpRedirectGuardSourceContract(code);
+  const blockMatch = code.match(
+    /await page\.context\(\)\.route\('\*\*\/\*', abortUntrustedOtpNavigation\);\n\s*try \{\n\s*await page\.goto\(link\.toString\(\)\);\n\s*\} finally \{\n\s*await page\.context\(\)\.unroute\('\*\*\/\*', abortUntrustedOtpNavigation\);\n\s*\}/,
+  );
+  assert.ok(
+    blockMatch,
+    'Playwright example is missing the route-install/try-page.goto/finally-unroute block to extract',
+  );
+  // Execute the guide's own install/try/finally text — not a parallel cleanup model.
+  return new Function(
+    'page',
+    'link',
+    'abortUntrustedOtpNavigation',
+    `return (async () => {\n${blockMatch[0]}\n})();`,
+  );
+}
+
+async function runOtpRedirectManualLoopFromGuide(code, {
+  initialUrl,
+  expectedHost,
+  chain,
+  isNavigation = true,
+  isMainFrame = true,
+}) {
+  const fetchedUrls = [];
+  const mainFrame = { id: 'main' };
+  const otherFrame = { id: 'child' };
+  const page = {
+    mainFrame() {
+      return mainFrame;
+    },
+  };
+  let outcome = 'pending';
+  let fulfilledStatus = null;
+  let continued = false;
+  let aborted = false;
+  const route = {
+    request() {
+      return {
+        url: () => initialUrl,
+        isNavigationRequest: () => isNavigation,
+        frame: () => (isMainFrame ? mainFrame : otherFrame),
+      };
+    },
+    async fetch(options) {
+      assert.equal(
+        options?.maxRedirects,
+        0,
+        'extracted guide handler must pass maxRedirects: 0 to every route.fetch',
+      );
+      const url = options.url;
+      fetchedUrls.push(url);
+      const entry = chain[url];
+      if (!entry) {
+        throw new Error(`stub chain missing response for ${url}`);
+      }
+      if (entry.throws) {
+        throw new Error(entry.message || 'stub route.fetch failure');
+      }
+      return createStubApiResponse({ ...entry, url });
+    },
+    async fulfill({ response }) {
+      outcome = 'fulfill';
+      fulfilledStatus = response.status();
+    },
+    async abort() {
+      aborted = true;
+      outcome = 'abort';
+    },
+    async continue() {
+      continued = true;
+      outcome = 'continue';
+    },
+  };
+  const handler = extractOtpRedirectHandlerFromGuide(code, { page, expectedHost });
+  await handler(route);
+  return {
+    outcome,
+    fetchedUrls,
+    fulfilledStatus,
+    continued,
+    aborted,
+  };
 }
 
 function assertExactResolverIpv4Allowlist(markup, label) {
@@ -1778,8 +2435,8 @@ function assertCloudflareCurlBearerOffArgv(markup) {
   assert.match(markup, /-X POST/, 'Cloudflare API example must preserve POST semantics');
   assert.match(
     markup,
-    /--data '\{"type":"A","name":"mail","content":"<VPS IP>","proxied":false,"ttl":300\}'/,
-    'Cloudflare API example must preserve the JSON payload with "proxied":false',
+    /--data '\{"type":"A","name":"mail\.example\.com","content":"<VPS IP>","proxied":false,"ttl":300\}'/,
+    'Cloudflare API example must preserve the JSON payload with FQDN name and "proxied":false',
   );
   assert.doesNotMatch(
     markup,
@@ -1800,6 +2457,62 @@ function assertCloudflareCurlBearerOffArgv(markup) {
     markup,
     /(?:-K|--config)\s+-/,
     'Cloudflare API example must read curl config/header material from stdin with -K - or --config -',
+  );
+}
+
+function assertCloudflareDnsApiARecordFqdn(markup) {
+  assert.match(
+    markup,
+    /--data '\{"type":"A","name":"mail\.example\.com","content":"<VPS IP>","proxied":false,"ttl":300\}'/,
+    'Cloudflare raw DNS API A-record body must use complete record FQDN "name":"mail.example.com"',
+  );
+  assert.doesNotMatch(
+    markup,
+    /--data '\{"type":"A","name":"mail","content":/,
+    'Cloudflare raw DNS API A-record body must not use relative "name":"mail"',
+  );
+}
+
+function assertDnsSetupCloudflareHelperBearerOffArgv(markup) {
+  assert.match(
+    markup,
+    /cf_add\(\)/,
+    'DNS setup Cloudflare helper must keep the cf_add helper',
+  );
+  assert.match(
+    markup,
+    /https:\/\/api\.cloudflare\.com\/client\/v4\/zones\/\$CF_ZONE\/dns_records/,
+    'DNS setup Cloudflare helper must POST to the Cloudflare DNS records endpoint',
+  );
+  assert.match(
+    markup,
+    /-H "Content-Type: application\/json"/,
+    'DNS setup Cloudflare helper must preserve Content-Type: application/json',
+  );
+  assert.match(
+    markup,
+    /--data "\$1"/,
+    'DNS setup Cloudflare helper must preserve --data "$1" payload behavior',
+  );
+  assert.doesNotMatch(
+    markup,
+    /-H ["']Authorization: Bearer \$CF_TOKEN["']/,
+    'DNS setup Cloudflare helper must not place Authorization: Bearer $CF_TOKEN on curl argv',
+  );
+  assert.doesNotMatch(
+    markup,
+    /--oauth2-bearer\s+["']?\$CF_TOKEN/,
+    'DNS setup Cloudflare helper must not place the bearer token on curl argv via --oauth2-bearer',
+  );
+  assert.match(
+    markup,
+    /printf 'header = "Authorization: Bearer %s"\\n' "\$CF_TOKEN"\s*\|\s*\\?\s*\n?\s*curl/,
+    'DNS setup Cloudflare helper must feed Authorization through printf|curl stdin/config',
+  );
+  assert.match(
+    markup,
+    /(?:-K|--config)\s+-/,
+    'DNS setup Cloudflare helper must read curl config from stdin with -K - or --config -',
   );
 }
 

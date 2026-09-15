@@ -34,7 +34,6 @@ for synchronization.
 
 ```typescript
 import { expect, test } from '@playwright/test';
-import { isIP } from 'node:net';
 
 test.use({ serviceWorkers: 'block' });
 
@@ -100,7 +99,12 @@ test('signup waits for the verification email before reading the code', async ({
     timeout: 70_000,
   });
 
-  await page.getByRole('button', { name: 'Sign up' }).click({ timeout: 10_000 });
+  try {
+    await page.getByRole('button', { name: 'Sign up' }).click({ timeout: 10_000 });
+  } catch (clickError) {
+    await wait.catch(() => {});
+    throw clickError;
+  }
 
   const response = await wait;
   expect(response.ok()).toBeTruthy();
@@ -123,7 +127,10 @@ overhead (`test.setTimeout(180_000)`, request `timeout: 70_000`,
 `timeoutSec: 60`). Keep the request/server ladder `70_000 > 60_000`. Prepare the
 signup page and fill the email field first, then start `request.post`
 immediately before the Sign up click so the wait budget is not spent on
-unrelated navigation. Narrow `fromContains` / `subjectContains` so you do not consume
+unrelated navigation. If the Sign up click fails after `wait` has started,
+observe/consume that promise's rejection before rethrowing the click error so
+an unhandled secondary rejection cannot obscure the primary failure. Narrow
+`fromContains` / `subjectContains` so you do not consume
 the wrong mail. A reused inbox must be fresh/cleared, or the test must use a per-run
 unique subject correlation string in `subjectContains`, so a pre-existing/stale message
 cannot satisfy the wait.
@@ -134,12 +141,75 @@ Match the **expected sender** before using `otp.codes[0]` or `otp.links[0]`.
 Do not log the mail body or the code.
 
 For a verification link, require **HTTPS** and the **exact expected host**
-before navigation. `page.goto` follows redirects, so validate the initial URL and
-every top-level navigation in its redirect chain with the same helper. Block
-Service Workers so request interception cannot be bypassed, install a temporary
-`browserContext.route` handler before `goto`, and remove it in `finally`:
+before navigation. `page.goto` would otherwise follow redirects on its own, so
+this sample installs a temporary `browserContext.route` handler that catches the
+**initial** navigation, then manually follows and validates each hop with
+`route.fetch({ url, maxRedirects: 0 })`. Only 301/302/303/307/308 responses with
+a `Location` header count as redirects. Every resolved next URL must pass the
+same HTTPS + exact-host + non-IP check before it is fetched. At most **5**
+redirects may be followed; a sixth redirect fails closed before its target is
+fetched. The terminal response is `route.fulfill`'d back into the intercepted
+navigation, so the page URL stays the initial URL — relative document URLs
+resolve from that displayed/original URL unless the document supplies a
+`<base>` URL. Do not assume the browser visits each redirect target. Block
+Service Workers so request interception cannot be bypassed, and remove the
+named handler in `finally`.
+
+CI for this guide exercises a **stubbed** `route.fetch` chain in
+`tests/seo-docs.test.mjs`. It is not a real-browser redirect server.
 
 ```typescript
+import { expect, test, type Route } from '@playwright/test';
+import { isIP } from 'node:net';
+
+test.use({ serviceWorkers: 'block' });
+
+test('signup opens a trusted HTTPS verification link', async ({ page, request }) => {
+  test.setTimeout(180_000);
+  const api = process.env.OAE_API ?? 'http://localhost:3100';
+  const token = process.env.OAE_IDENTITY_TOKEN ?? '';
+  const mailbox = process.env.OAE_MAILBOX ?? '';
+  const expectedSender = process.env.OAE_EXPECTED_SENDER ?? '';
+  const expectedSubject = (process.env.OAE_EXPECTED_SUBJECT ?? '').trim();
+  const signupUrl = process.env.SIGNUP_URL ?? '';
+  const expectedHost = process.env.OAE_EXPECTED_HOST ?? '';
+
+  if (!token.startsWith('oa_')) {
+    throw new Error('OAE_IDENTITY_TOKEN must be a scoped oa_ identity token for this mailbox');
+  }
+  if (!mailbox || !expectedSender || !expectedSubject || !signupUrl || !expectedHost) {
+    throw new Error('OAE_MAILBOX, OAE_EXPECTED_SENDER, OAE_EXPECTED_SUBJECT, SIGNUP_URL, and OAE_EXPECTED_HOST are required before wait');
+  }
+
+  const apiUrl = new URL(api);
+  const allowHttpLoopback = new Set(['localhost', '127.0.0.1', '[::1]']);
+  if (
+    apiUrl.protocol !== 'https:'
+    && !(apiUrl.protocol === 'http:' && allowHttpLoopback.has(apiUrl.hostname))
+  ) {
+    throw new Error('OAE_API must be https: or http: on localhost, 127.0.0.1, or [::1]');
+  }
+
+  function parseSingleMailbox(fromValue: string): string {
+    const trimmed = String(fromValue).trim();
+    const angled = /^(.*)<([^<>]+)>$/.exec(trimmed);
+    if (angled) {
+      if (angled[1].includes('@')) {
+        throw new Error('message.from must be exactly one mailbox address');
+      }
+      const address = angled[2].trim().toLowerCase();
+      if (!/^[^\s@<>]+@[^\s@<>]+$/.test(address)) {
+        throw new Error('message.from must be exactly one mailbox address');
+      }
+      return address;
+    }
+    const address = trimmed.toLowerCase();
+    if (!/^[^\s@<>]+@[^\s@<>]+$/.test(address)) {
+      throw new Error('message.from must be exactly one mailbox address');
+    }
+    return address;
+  }
+
   function assertTrustedOtpUrl(rawUrl: string, expectedHost: string): URL {
     const link = new URL(rawUrl);
     const hostForIpCheck = link.hostname.replace(/^\[|\]$/g, '');
@@ -153,20 +223,113 @@ Service Workers so request interception cannot be bypassed, install a temporary
     return link;
   }
 
-  const expectedHost = process.env.OAE_EXPECTED_HOST ?? '';
+  await page.goto(signupUrl, { timeout: 30_000 });
+  await page.getByLabel('Email').fill(mailbox, { timeout: 10_000 });
+
+  const wait = request.post(`${apiUrl.origin}/v1/messages/wait`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    data: {
+      address: mailbox,
+      fromContains: expectedSender,
+      subjectContains: expectedSubject,
+      timeoutSec: 60,
+    },
+    timeout: 70_000,
+  });
+
+  try {
+    await page.getByRole('button', { name: 'Sign up' }).click({ timeout: 10_000 });
+  } catch (clickError) {
+    await wait.catch(() => {});
+    throw clickError;
+  }
+
+  const response = await wait;
+  expect(response.ok()).toBeTruthy();
+  const message = await response.json();
+
+  expect(parseSingleMailbox(String(message.from))).toBe(parseSingleMailbox(expectedSender));
   const link = assertTrustedOtpUrl(message.otp.links[0] as string, expectedHost);
 
-  async function abortUntrustedOtpNavigation(route) {
-    const request = route.request();
-    if (request.isNavigationRequest() && request.frame() === page.mainFrame()) {
-      try {
-        assertTrustedOtpUrl(request.url(), expectedHost);
-      } catch {
-        await route.abort();
-        return;
-      }
+  const OTP_REDIRECT_MAX = 5;
+
+  async function abortUntrustedOtpNavigation(route: Route) {
+    const req = route.request();
+    if (!(req.isNavigationRequest() && req.frame() === page.mainFrame())) {
+      await route.continue();
+      return;
     }
-    await route.continue();
+
+    let currentUrl = req.url();
+    try {
+      assertTrustedOtpUrl(currentUrl, expectedHost);
+    } catch {
+      await route.abort();
+      return;
+    }
+
+    let terminalResponse = null;
+    let redirectsFollowed = 0;
+    try {
+      for (;;) {
+        const fetched = await route.fetch({ url: currentUrl, maxRedirects: 0 });
+        const status = fetched.status();
+        if (
+          status !== 301
+          && status !== 302
+          && status !== 303
+          && status !== 307
+          && status !== 308
+        ) {
+          terminalResponse = fetched;
+          break;
+        }
+
+        const locationHeader = fetched.headers()['location'];
+        await fetched.dispose();
+        if (locationHeader == null || String(locationHeader).trim() === '') {
+          await route.abort();
+          return;
+        }
+
+        let nextUrl;
+        try {
+          nextUrl = new URL(String(locationHeader), currentUrl).href;
+        } catch {
+          await route.abort();
+          return;
+        }
+
+        if (redirectsFollowed >= OTP_REDIRECT_MAX) {
+          await route.abort();
+          return;
+        }
+
+        try {
+          assertTrustedOtpUrl(nextUrl, expectedHost);
+        } catch {
+          await route.abort();
+          return;
+        }
+
+        redirectsFollowed += 1;
+        currentUrl = nextUrl;
+      }
+
+      await route.fulfill({ response: terminalResponse });
+    } catch {
+      if (terminalResponse) {
+        try {
+          await terminalResponse.dispose();
+        } catch {
+          // ignore dispose errors on the failure path
+        }
+      }
+      await route.abort();
+    }
   }
 
   await page.context().route('**/*', abortUntrustedOtpNavigation);
@@ -175,6 +338,7 @@ Service Workers so request interception cannot be bypassed, install a temporary
   } finally {
     await page.context().unroute('**/*', abortUntrustedOtpNavigation);
   }
+});
 ```
 
 Skip the visit when any check fails. Do not open `http:` links, IPv4/IPv6 literal hosts

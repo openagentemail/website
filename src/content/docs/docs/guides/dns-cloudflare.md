@@ -69,7 +69,7 @@ printf 'header = "Authorization: Bearer %s"\n' "$CF_TOKEN" | \
 curl -sS -X POST "https://api.cloudflare.com/client/v4/zones/$CF_ZONE/dns_records" \
   -H "Content-Type: application/json" \
   -K - \
-  --data '{"type":"A","name":"mail","content":"<VPS IP>","proxied":false,"ttl":300}'
+  --data '{"type":"A","name":"mail.example.com","content":"<VPS IP>","proxied":false,"ttl":300}'
 ```
 
 The full five-record helper stays on [DNS setup](/docs/guides/dns-setup/#cloudflare-api-shortcut).
