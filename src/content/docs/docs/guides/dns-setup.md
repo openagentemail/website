@@ -11,6 +11,18 @@ break it. Everything here assumes `DOMAIN=example.com` and the mail hostname
 Set these records **before** expecting inbound mail, and re-check them any time with
 `./deploy/doctor.sh`.
 
+## Provider field maps
+
+Values always come from `./deploy/dns-records.sh`. These pages map the same
+records into each dashboard:
+
+- [Cloudflare](/docs/guides/dns-cloudflare/)
+- [Namecheap](/docs/guides/dns-namecheap/)
+- [Amazon Route 53](/docs/guides/dns-route53/)
+
+Keep this page for record semantics, failure modes, and the Cloudflare API
+shortcut below.
+
 ## The records
 
 ### 1. `A` / `AAAA` — `mail.example.com` → your VPS IP

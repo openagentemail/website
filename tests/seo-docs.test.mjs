@@ -5,6 +5,11 @@ import { parse } from 'parse5';
 const quickstart = await readFile(new URL('../src/content/docs/docs/quickstart.md', import.meta.url), 'utf8');
 const connect = await readFile(new URL('../src/content/docs/docs/guides/connect-your-agent.md', import.meta.url), 'utf8');
 const otp = await readFile(new URL('../src/content/docs/docs/guides/otp-extraction.md', import.meta.url), 'utf8');
+const dnsSetup = await readFile(new URL('../src/content/docs/docs/guides/dns-setup.md', import.meta.url), 'utf8');
+const dnsCloudflare = await readFile(new URL('../src/content/docs/docs/guides/dns-cloudflare.md', import.meta.url), 'utf8');
+const dnsNamecheap = await readFile(new URL('../src/content/docs/docs/guides/dns-namecheap.md', import.meta.url), 'utf8');
+const dnsRoute53 = await readFile(new URL('../src/content/docs/docs/guides/dns-route53.md', import.meta.url), 'utf8');
+const playwrightOtp = await readFile(new URL('../src/content/docs/docs/guides/playwright-email-otp.md', import.meta.url), 'utf8');
 const mcp = await readFile(new URL('../src/pages/mcp.astro', import.meta.url), 'utf8');
 const homepage = await readFile(new URL('../src/pages/index.astro', import.meta.url), 'utf8');
 const astroConfig = await readFile(new URL('../astro.config.mjs', import.meta.url), 'utf8');
@@ -24,12 +29,29 @@ const MCP_DESCRIPTION =
   'Route Claude, Cursor, and other agents to the openagent.email MCP server: local stdio, self-hosted remote HTTP/OAuth, or the hosted connector.';
 const MCP_CANONICAL = 'https://openagent.email/mcp/';
 const JSONLD_MIME = 'ld+json';
+const DNS_CLOUDFLARE_TITLE = 'Cloudflare DNS for openagent.email';
+const DNS_CLOUDFLARE_DESCRIPTION =
+  'Map A, MX, SPF, DKIM, and DMARC from dns-records.sh into Cloudflare DNS Records, with mail A/AAAA left DNS only.';
+const DNS_NAMECHEAP_TITLE = 'Namecheap DNS for openagent.email';
+const DNS_NAMECHEAP_DESCRIPTION =
+  'Map dns-records.sh into Namecheap BasicDNS, PremiumDNS, or FreeDNS using Custom MX and relative Host values.';
+const DNS_ROUTE53_TITLE = 'Amazon Route 53 DNS for openagent.email';
+const DNS_ROUTE53_DESCRIPTION =
+  'Create dns-records.sh records in the authoritative public hosted zone, with MX priority plus FQDN and DKIM TXT in 255-character quoted chunks.';
+const PLAYWRIGHT_OTP_TITLE = 'Playwright email OTP for agent sign-ups';
+const PLAYWRIGHT_OTP_DESCRIPTION =
+  'Start POST /v1/messages/wait before signup, then use a scoped oa_ identity token to consume otp.codes or HTTPS links.';
 
 const ARTIFACTS = {
   quickstart: 'dist/docs/quickstart/index.html',
   connect: 'dist/docs/guides/connect-your-agent/index.html',
   mcp: 'dist/mcp/index.html',
   otp: 'dist/docs/guides/otp-extraction/index.html',
+  dnsSetup: 'dist/docs/guides/dns-setup/index.html',
+  dnsCloudflare: 'dist/docs/guides/dns-cloudflare/index.html',
+  dnsNamecheap: 'dist/docs/guides/dns-namecheap/index.html',
+  dnsRoute53: 'dist/docs/guides/dns-route53/index.html',
+  playwrightOtp: 'dist/docs/guides/playwright-email-otp/index.html',
 };
 
 const REQUIRED_LINKS = [
@@ -44,7 +66,17 @@ const REQUIRED_LINKS = [
   { source: 'OTP extraction', markup: otp, href: '/docs/reference/api/' },
   { source: 'OTP extraction', markup: otp, href: '/docs/guides/security/' },
   { source: 'OTP extraction', markup: otp, href: '/docs/guides/agent-signup/' },
+  { source: 'OTP extraction', markup: otp, href: '/docs/guides/playwright-email-otp/' },
   { source: 'OTP extraction', markup: otp, href: '/docs/reference/mcp-clients/#external-mail-fence-expected-not-a-bug' },
+  { source: 'DNS setup', markup: dnsSetup, href: '/docs/guides/dns-cloudflare/' },
+  { source: 'DNS setup', markup: dnsSetup, href: '/docs/guides/dns-namecheap/' },
+  { source: 'DNS setup', markup: dnsSetup, href: '/docs/guides/dns-route53/' },
+  { source: 'Cloudflare DNS', markup: dnsCloudflare, href: '/docs/guides/dns-setup/' },
+  { source: 'Namecheap DNS', markup: dnsNamecheap, href: '/docs/guides/dns-setup/' },
+  { source: 'Route 53 DNS', markup: dnsRoute53, href: '/docs/guides/dns-setup/' },
+  { source: 'Playwright email OTP', markup: playwrightOtp, href: '/docs/guides/otp-extraction/' },
+  { source: 'Playwright email OTP', markup: playwrightOtp, href: '/docs/guides/agent-signup/' },
+  { source: 'Playwright email OTP', markup: playwrightOtp, href: '/docs/guides/security/' },
   { source: 'MCP hub', markup: mcp, href: '/docs/quickstart/' },
   { source: 'MCP hub', markup: mcp, href: '/docs/guides/connect-your-agent/' },
   { source: 'MCP hub', markup: mcp, href: '/docs/reference/mcp-clients/' },
@@ -52,6 +84,20 @@ const REQUIRED_LINKS = [
   { source: 'MCP hub', markup: mcp, href: '/docs/reference/api/' },
   { source: 'MCP hub', markup: mcp, href: '/docs/guides/otp-extraction/' },
   { source: 'MCP hub', markup: mcp, href: '/compare#mailslurp' },
+];
+
+const OFFICIAL_LINKS = [
+  { source: 'Cloudflare DNS', markup: dnsCloudflare, href: 'https://developers.cloudflare.com/dns/manage-dns-records/how-to/create-dns-records/' },
+  { source: 'Cloudflare DNS', markup: dnsCloudflare, href: 'https://developers.cloudflare.com/dns/manage-dns-records/how-to/email-records/' },
+  { source: 'Namecheap DNS', markup: dnsNamecheap, href: 'https://www.namecheap.com/support/knowledgebase/article.aspx/322/2237/how-can-i-set-up-mx-records-required-for-mail-service/' },
+  { source: 'Namecheap DNS', markup: dnsNamecheap, href: 'https://www.namecheap.com/support/knowledgebase/article.aspx/317/2237/how-do-i-add-txtspfdkimdmarc-records-for-my-domain/' },
+  { source: 'Route 53 DNS', markup: dnsRoute53, href: 'https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/resource-record-sets-creating.html' },
+  { source: 'Route 53 DNS', markup: dnsRoute53, href: 'https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/resource-record-sets-values-basic.html' },
+  { source: 'Route 53 DNS', markup: dnsRoute53, href: 'https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/Using_Elastic_Addressing_Reverse_DNS.html' },
+  { source: 'Playwright email OTP', markup: playwrightOtp, href: 'https://playwright.dev/docs/api-testing' },
+  { source: 'Playwright email OTP', markup: playwrightOtp, href: 'https://playwright.dev/docs/test-fixtures' },
+  { source: 'Playwright email OTP', markup: playwrightOtp, href: 'https://playwright.dev/docs/best-practices' },
+  { source: 'Playwright email OTP', markup: playwrightOtp, href: 'https://playwright.dev/docs/api/class-page#page-wait-for-timeout' },
 ];
 
 const OTP_CONTRACT_TERMS = [
@@ -237,6 +283,245 @@ assert.match(
   /label: 'Guides',\s*items: \[[^\]]*['"]docs\/guides\/otp-extraction['"]/s,
   'OTP extraction guide must be in the existing Guides sidebar',
 );
+
+const guidesItems = astroConfig.match(/label: 'Guides',\s*items: \[([\s\S]*?)\],\n\s+\}/);
+assert.ok(guidesItems, 'Guides sidebar items are missing');
+const guideSlugs = [...guidesItems[1].matchAll(/['"](docs\/guides\/[^'"]+)['"]/g)].map((match) => match[1]);
+assert.deepEqual(
+  guideSlugs.slice(0, 4),
+  [
+    'docs/guides/dns-setup',
+    'docs/guides/dns-cloudflare',
+    'docs/guides/dns-namecheap',
+    'docs/guides/dns-route53',
+  ],
+  'provider pages must follow DNS setup in the Guides sidebar',
+);
+const otpSidebarIndex = guideSlugs.indexOf('docs/guides/otp-extraction');
+assert.equal(
+  guideSlugs[otpSidebarIndex + 1],
+  'docs/guides/playwright-email-otp',
+  'Playwright page must follow OTP extraction in the Guides sidebar',
+);
+
+const dnsCloudflareMeta = frontmatter(dnsCloudflare, 'Cloudflare DNS');
+assertPinnedMetadata('Cloudflare DNS', dnsCloudflareMeta, DNS_CLOUDFLARE_TITLE, DNS_CLOUDFLARE_DESCRIPTION);
+const dnsNamecheapMeta = frontmatter(dnsNamecheap, 'Namecheap DNS');
+assertPinnedMetadata('Namecheap DNS', dnsNamecheapMeta, DNS_NAMECHEAP_TITLE, DNS_NAMECHEAP_DESCRIPTION);
+const dnsRoute53Meta = frontmatter(dnsRoute53, 'Route 53 DNS');
+assertPinnedMetadata('Route 53 DNS', dnsRoute53Meta, DNS_ROUTE53_TITLE, DNS_ROUTE53_DESCRIPTION);
+const playwrightOtpMeta = frontmatter(playwrightOtp, 'Playwright email OTP');
+assertPinnedMetadata('Playwright email OTP', playwrightOtpMeta, PLAYWRIGHT_OTP_TITLE, PLAYWRIGHT_OTP_DESCRIPTION);
+
+for (const [label, markup] of [
+  ['Cloudflare DNS', dnsCloudflare],
+  ['Namecheap DNS', dnsNamecheap],
+  ['Route 53 DNS', dnsRoute53],
+  ['Playwright email OTP', playwrightOtp],
+]) {
+  assert.match(
+    markup,
+    /No live[\s\S]{0,160}mutation was performed for this content card/,
+    `${label} must state that no live mutation E2E was performed for this content card`,
+  );
+  assert.match(
+    markup,
+    /official .+ documentation/,
+    `${label} must say UI labels/behavior were checked against current official documentation`,
+  );
+}
+
+for (const [label, markup] of [
+  ['Cloudflare DNS', dnsCloudflare],
+  ['Namecheap DNS', dnsNamecheap],
+  ['Route 53 DNS', dnsRoute53],
+]) {
+  assert.match(markup, /\.\/deploy\/dns-records\.sh/, `${label} must start from ./deploy/dns-records.sh`);
+  assert.match(markup, /\.\/deploy\/doctor\.sh/, `${label} must end with ./deploy/doctor.sh`);
+  assert.match(markup, /dig @1\.1\.1\.1/, `${label} must include public-resolver dig checks`);
+  assert.doesNotMatch(
+    markup,
+    /\b(?!1\.1\.1\.1)(?:\d{1,3}\.){3}\d{1,3}\b/,
+    `${label} must not hardcode VPS IPv4 addresses`,
+  );
+}
+
+assert.match(
+  dnsCloudflare,
+  /mail `A`\/`AAAA` record must stay \*\*DNS only\*\*/,
+  'Cloudflare guide must keep mail A/AAAA on DNS only',
+);
+assert.match(
+  dnsCloudflare,
+  /does not proxy SMTP/,
+  'Cloudflare guide must not claim orange-cloud proxy supports SMTP',
+);
+assert.match(
+  dnsCloudflare,
+  /unproxied/,
+  'Cloudflare MX must target the unproxied mail hostname',
+);
+assert.match(
+  dnsCloudflare,
+  /"proxied":false/,
+  'Cloudflare API path must send proxied:false for the mail hostname',
+);
+assert.doesNotMatch(
+  dnsCloudflare,
+  /"proxied"\s*:\s*true/,
+  'Cloudflare guide must not set proxied true on mail records',
+);
+
+assert.match(dnsNamecheap, /BasicDNS/, 'Namecheap guide must name BasicDNS');
+assert.match(dnsNamecheap, /PremiumDNS/, 'Namecheap guide must name PremiumDNS');
+assert.match(dnsNamecheap, /FreeDNS/, 'Namecheap guide must name FreeDNS');
+assert.match(dnsNamecheap, /Custom MX/, 'Namecheap guide must use Custom MX');
+assert.match(dnsNamecheap, /apex host is `@`/i, 'Namecheap apex host must be @');
+assert.match(
+  dnsNamecheap,
+  /relative `mail\._domainkey`(?!\.)/,
+  'Namecheap DKIM Host must be the relative mail._domainkey, not a duplicated full zone',
+);
+assert.match(
+  dnsNamecheap,
+  /TXT Record \| `mail\._domainkey` \|/,
+  'Namecheap DKIM Host field must be mail._domainkey, not a duplicated full zone',
+);
+assert.match(
+  dnsNamecheap,
+  /Email Forwarding/,
+  'Namecheap guide must warn about Email Forwarding / conflicting mail modes',
+);
+
+assert.match(
+  dnsRoute53,
+  /authoritative public hosted zone/,
+  'Route 53 guide must require the authoritative public hosted zone',
+);
+assert.match(
+  dnsRoute53,
+  /Apex \*\*Record name\*\* is blank/,
+  'Route 53 apex Record name must be blank',
+);
+assert.match(
+  dnsRoute53,
+  /priority plus FQDN/,
+  'Route 53 MX value must include priority plus FQDN',
+);
+assert.match(
+  dnsRoute53,
+  /quoted chunks of at most 255 characters/,
+  'Route 53 DKIM TXT must be split into quoted chunks of at most 255 characters',
+);
+assert.match(
+  dnsRoute53,
+  /Elastic IP/,
+  'Route 53 PTR must be an EC2 Elastic IP action',
+);
+assert.match(
+  dnsRoute53,
+  /not a PTR record in the hosted zone/,
+  'Route 53 guide must not treat PTR as a hosted-zone record',
+);
+
+const playwrightCode = fencedCode(playwrightOtp);
+assert.match(playwrightOtp, /request` fixture/, 'Playwright guide must use the isolated request fixture');
+assert.match(playwrightOtp, /APIRequestContext/, 'Playwright guide must name APIRequestContext');
+assert.match(playwrightCode, /request\.post/, 'Playwright example must start POST /v1/messages/wait through request');
+assert.match(playwrightCode, /\/v1\/messages\/wait/, 'Playwright example must call POST /v1/messages/wait');
+assert.match(playwrightCode, /timeoutSec:\s*60/, 'Playwright wait must be bounded');
+assert.match(
+  playwrightCode,
+  /startsWith\('oa_'\)/,
+  'Playwright example must use a scoped oa_ identity token, not an admin key',
+);
+assert.match(playwrightCode, /OAE_IDENTITY_TOKEN/, 'Playwright example must load the identity token from the environment');
+assert.doesNotMatch(
+  playwrightCode,
+  /your-admin-key|API_KEYS/,
+  'Playwright example must not use an admin key',
+);
+assert.match(
+  playwrightOtp,
+  /page\.waitForTimeout\(\)/,
+  'Playwright guide must name page.waitForTimeout() in prose',
+);
+assert.doesNotMatch(
+  playwrightCode,
+  /waitForTimeout/,
+  'Playwright example must not call page.waitForTimeout()',
+);
+const waitCallAt = playwrightCode.indexOf('request.post');
+const failClosedAt = playwrightCode.search(/!mailbox \|\| !expectedSender \|\| !signupUrl/);
+assert.ok(failClosedAt !== -1, 'Playwright example must fail closed when mailbox, expected sender, or signup URL is empty');
+assert.ok(
+  waitCallAt !== -1 && failClosedAt < waitCallAt,
+  'Playwright example must fail closed before starting the wait',
+);
+assert.match(
+  playwrightCode,
+  /toContain\(expectedSender/,
+  'Playwright example must validate expected sender before consuming otp.codes',
+);
+assert.doesNotMatch(
+  playwrightCode,
+  /console\.log/,
+  'Playwright example must not log the mail body or code',
+);
+assert.match(
+  playwrightCode,
+  /expectedSender/,
+  'Playwright example must validate expected sender before consuming otp.codes',
+);
+assert.match(
+  playwrightCode,
+  /link\.protocol !== 'https:'/,
+  'Playwright example must require HTTPS before opening otp.links',
+);
+assert.match(
+  playwrightCode,
+  /link\.hostname !== expectedHost/,
+  'Playwright example must require the exact expected host before opening otp.links',
+);
+assertAppearsBefore(
+  playwrightCode,
+  /request\.post\([\s\S]*?\/v1\/messages\/wait/,
+  /getByRole\('button', \{ name: 'Sign up' \}\)\.click\(\)/,
+  'Playwright example must start request.post(/v1/messages/wait) before the Sign up click',
+);
+assertAppearsBefore(
+  playwrightCode,
+  /toContain\(expectedSender/,
+  /message\.otp\.codes\[0\]/,
+  'Playwright example must call toContain(expectedSender) before message.otp.codes[0]',
+);
+assertAppearsBefore(
+  playwrightCode,
+  /link\.protocol !== 'https:' \|\| link\.hostname !== expectedHost/,
+  /page\.goto\(link\.toString\(\)\)/,
+  'Playwright example must apply the HTTPS+exact-host guard before page.goto(link.toString())',
+);
+assert.match(
+  playwrightOtp,
+  /expected sender/,
+  'Playwright guide must validate expected sender before consuming OTP',
+);
+assert.match(
+  playwrightOtp,
+  /exact expected host/,
+  'Playwright guide must require HTTPS and the exact expected host before navigation',
+);
+assert.match(playwrightOtp, /busy-poll/, 'Playwright guide must forbid busy polling');
+assert.match(playwrightOtp, /traces/, 'Playwright guide must warn that traces can capture short-lived credentials');
+assert.match(playwrightOtp, /videos/, 'Playwright guide must warn that videos can capture short-lived credentials');
+assert.match(playwrightOtp, /screenshots/, 'Playwright guide must warn that screenshots can capture short-lived credentials');
+assert.match(playwrightOtp, /reports/, 'Playwright guide must warn that reports can capture short-lived credentials');
+assert.match(
+  playwrightOtp,
+  /distinct mailbox per worker/,
+  'Playwright guide must require a distinct mailbox per parallel worker or unique correlation',
+);
+assert.match(playwrightOtp, /Never put the admin key/, 'Playwright guide must forbid the admin key');
 assert.match(
   astroConfig,
   /'\/alternatives\/mailslurp': '\/compare#mailslurp'/,
@@ -261,6 +546,11 @@ for (const [label, markup] of [
   ['Connect', connect],
   ['OTP extraction', otp],
   ['MCP hub', mcp],
+  ['DNS setup', dnsSetup],
+  ['Cloudflare DNS', dnsCloudflare],
+  ['Namecheap DNS', dnsNamecheap],
+  ['Route 53 DNS', dnsRoute53],
+  ['Playwright email OTP', playwrightOtp],
 ]) {
   assert.equal(
     markup.includes(JSONLD_MIME),
@@ -272,6 +562,9 @@ for (const [label, markup] of [
 for (const link of REQUIRED_LINKS) {
   assertHasHref(link.markup, link.href, link.source);
 }
+for (const link of OFFICIAL_LINKS) {
+  assertHasHref(link.markup, link.href, link.source);
+}
 
 if (process.argv.includes('--check-rendered')) {
   const renderedByRoute = {
@@ -279,12 +572,21 @@ if (process.argv.includes('--check-rendered')) {
     connect: parse(await readArtifact(ARTIFACTS.connect)),
     mcp: parse(await readArtifact(ARTIFACTS.mcp)),
     otp: parse(await readArtifact(ARTIFACTS.otp)),
+    dnsSetup: parse(await readArtifact(ARTIFACTS.dnsSetup)),
+    dnsCloudflare: parse(await readArtifact(ARTIFACTS.dnsCloudflare)),
+    dnsNamecheap: parse(await readArtifact(ARTIFACTS.dnsNamecheap)),
+    dnsRoute53: parse(await readArtifact(ARTIFACTS.dnsRoute53)),
+    playwrightOtp: parse(await readArtifact(ARTIFACTS.playwrightOtp)),
   };
 
   assertPinnedRenderedMetadata(renderedByRoute.quickstart, 'Quickstart', QUICKSTART_TITLE, QUICKSTART_DESCRIPTION);
   assertPinnedRenderedMetadata(renderedByRoute.connect, 'Connect', CONNECT_TITLE, CONNECT_DESCRIPTION);
   assertPinnedRenderedMetadata(renderedByRoute.otp, 'OTP extraction', OTP_TITLE, OTP_DESCRIPTION);
   assertPinnedRenderedMetadata(renderedByRoute.mcp, '/mcp/', MCP_DOCUMENT_TITLE, MCP_DESCRIPTION, { exactTitle: true });
+  assertPinnedRenderedMetadata(renderedByRoute.dnsCloudflare, 'Cloudflare DNS', DNS_CLOUDFLARE_TITLE, DNS_CLOUDFLARE_DESCRIPTION);
+  assertPinnedRenderedMetadata(renderedByRoute.dnsNamecheap, 'Namecheap DNS', DNS_NAMECHEAP_TITLE, DNS_NAMECHEAP_DESCRIPTION);
+  assertPinnedRenderedMetadata(renderedByRoute.dnsRoute53, 'Route 53 DNS', DNS_ROUTE53_TITLE, DNS_ROUTE53_DESCRIPTION);
+  assertPinnedRenderedMetadata(renderedByRoute.playwrightOtp, 'Playwright email OTP', PLAYWRIGHT_OTP_TITLE, PLAYWRIGHT_OTP_DESCRIPTION);
 
   const mcpCanonicalHrefs = canonicalHrefs(renderedByRoute.mcp);
   assert.equal(
@@ -303,6 +605,11 @@ if (process.argv.includes('--check-rendered')) {
     '/docs/guides/connect-your-agent/': renderedByRoute.connect,
     '/mcp/': renderedByRoute.mcp,
     '/docs/guides/otp-extraction/': renderedByRoute.otp,
+    '/docs/guides/dns-setup/': renderedByRoute.dnsSetup,
+    '/docs/guides/dns-cloudflare/': renderedByRoute.dnsCloudflare,
+    '/docs/guides/dns-namecheap/': renderedByRoute.dnsNamecheap,
+    '/docs/guides/dns-route53/': renderedByRoute.dnsRoute53,
+    '/docs/guides/playwright-email-otp/': renderedByRoute.playwrightOtp,
     '/': parse(await readArtifact('dist/index.html')),
   };
 
@@ -320,12 +627,41 @@ if (process.argv.includes('--check-rendered')) {
     await readArtifact(artifactForHref(link.href));
   }
 
+  for (const link of OFFICIAL_LINKS) {
+    const document = renderedPages[sourceRoute(link.source)];
+    assert.ok(document, `missing rendered route for official link source ${link.source}`);
+    assert.ok(
+      hasRenderedHref(document, link.href),
+      `missing required rendered official link: ${link.source} → ${link.href}`,
+    );
+  }
+
   const sitemap = await readSitemap();
   assert.match(sitemap, /https:\/\/openagent\.email\/mcp\//, 'sitemap is missing /mcp/');
   assert.match(
     sitemap,
     /https:\/\/openagent\.email\/docs\/guides\/otp-extraction\//,
     'sitemap is missing /docs/guides/otp-extraction/',
+  );
+  assert.match(
+    sitemap,
+    /https:\/\/openagent\.email\/docs\/guides\/dns-cloudflare\//,
+    'sitemap is missing /docs/guides/dns-cloudflare/',
+  );
+  assert.match(
+    sitemap,
+    /https:\/\/openagent\.email\/docs\/guides\/dns-namecheap\//,
+    'sitemap is missing /docs/guides/dns-namecheap/',
+  );
+  assert.match(
+    sitemap,
+    /https:\/\/openagent\.email\/docs\/guides\/dns-route53\//,
+    'sitemap is missing /docs/guides/dns-route53/',
+  );
+  assert.match(
+    sitemap,
+    /https:\/\/openagent\.email\/docs\/guides\/playwright-email-otp\//,
+    'sitemap is missing /docs/guides/playwright-email-otp/',
   );
 }
 
@@ -414,7 +750,24 @@ function sourceRoute(source) {
     'OTP extraction': '/docs/guides/otp-extraction/',
     'MCP hub': '/mcp/',
     homepage: '/',
+    'DNS setup': '/docs/guides/dns-setup/',
+    'Cloudflare DNS': '/docs/guides/dns-cloudflare/',
+    'Namecheap DNS': '/docs/guides/dns-namecheap/',
+    'Route 53 DNS': '/docs/guides/dns-route53/',
+    'Playwright email OTP': '/docs/guides/playwright-email-otp/',
   }[source];
+}
+
+function fencedCode(source) {
+  return [...source.matchAll(/```[^\n]*\n([\s\S]*?)```/g)].map((match) => match[1]).join('\n');
+}
+
+function assertAppearsBefore(haystack, earlier, later, message) {
+  const earlierAt = haystack.search(earlier);
+  const laterAt = haystack.search(later);
+  assert.ok(earlierAt !== -1, `${message}: missing earlier pattern ${earlier}`);
+  assert.ok(laterAt !== -1, `${message}: missing later pattern ${later}`);
+  assert.ok(earlierAt < laterAt, message);
 }
 
 function artifactForHref(href) {
