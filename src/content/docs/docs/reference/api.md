@@ -394,7 +394,7 @@ date, body hash) and sets message `source`:
 | `"external"` | Missing header, bad/mismatched HMAC, missing fields, unparseable mail, or any other uncertainty |
 
 This is **fail-closed**: anything not proven internal is `external`. The stamp
-bind envelope fields plus a body digest, so copying a legitimate stamp onto
+binds envelope fields plus a body digest, so copying a legitimate stamp onto
 altered text fails verification.
 
 **Why stamps are not written for every send:** the signing key may fall back to

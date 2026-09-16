@@ -3188,7 +3188,7 @@ async function assertNoCurlBearerOnArgvAcrossContent() {
   let checkedCount = 0;
   for (const entry of entries) {
     if (entry.isFile() && (entry.name.endsWith('.md') || entry.name.endsWith('.mdx'))) {
-      const filePath = new URL(entry.name, new URL(entry.parentPath + '/', 'file://'));
+      const filePath = new URL(entry.name, new URL(entry.path + '/', 'file://'));
       const text = await readFile(filePath, 'utf8');
       assertNoCurlBearerOnArgv(text, entry.name);
       checkedCount++;
@@ -3278,7 +3278,7 @@ function assertMcpClientsChatGPTAndGrokSourceContract(markup) {
   assert.match(markup, /Custom/, 'Grok section must specify Custom connector');
   assert.match(markup, /https:\/\/inbox\.openagent\.email\/mcp/, 'Grok section must specify https://inbox.openagent.email/mcp for Grok');
   assert.match(markup, /OAuth/, 'Grok section must mention OAuth authorization');
-  assert.match(markup, /@<[^>]+>|@/i, 'Grok section must specify @ mention syntax');
+  assert.match(markup, /mention\s+`@<connector-name>`/, 'Grok section must specify @ mention syntax');
 }
 
 

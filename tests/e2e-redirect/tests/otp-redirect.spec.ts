@@ -325,7 +325,11 @@ test.describe('Real-browser OTP redirect regression smoke (web#60)', () => {
     const interceptedUrls: string[] = [];
 
     await context.route('**/*', async (route) => {
-      interceptedUrls.push(route.request().url());
+      // Count navigation requests only: background fetches (favicon etc.)
+      // would also match '**/*' and make the length assertion flaky.
+      if (route.request().isNavigationRequest()) {
+        interceptedUrls.push(route.request().url());
+      }
       await route.continue();
     });
 

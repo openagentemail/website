@@ -11,6 +11,10 @@ export default defineConfig({
   reporter: [['list']],
   use: {
     headless: true,
+    // Certificate checks are relaxed only for the local self-signed fixtures:
+    // every navigation target in these tests is a local fixture URL
+    // (localhost / 127.0.0.1). Playwright has no per-URL narrowing knob, so the
+    // guarantee comes from the specs never navigating anywhere else.
     ignoreHTTPSErrors: true,
     serviceWorkers: 'block',
   },
