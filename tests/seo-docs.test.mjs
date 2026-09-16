@@ -1743,6 +1743,47 @@ assertCurlBearerOffArgvPattern(api, 'API reference', 20);
     'connected-pipe guard must reject printf piped away from the curl that reads stdin config',
   );
 }
+{
+  // 靶向突变 3（闸3 r3）：curl 向后接管到 cat 并把 --config - 挂它身上——
+  // 运算符跨界假绿，命令段字符类必须拒。
+  const onwardPipe = api.replace(
+    /curl -X POST \$API\/v1\/identities \\\n/,
+    'curl -X POST $API/v1/identities | cat --config - \\\n',
+  );
+  assert.notEqual(onwardPipe, api, 'onward-pipe fixture must actually change api.md source');
+  assert.throws(
+    () => assertCurlBearerOffArgvPattern(onwardPipe, 'onward-pipe', 20),
+    /token variable|found \d+/,
+    'guard must reject --config - attached to a command after a pipe operator',
+  );
+}
+{
+  // 靶向突变 4（闸3 r3）：&& 后接 echo --config -——同命令边界假绿。
+  const andEcho = api.replace(
+    /curl -X POST \$API\/v1\/identities \\\n/,
+    'curl -X POST $API/v1/identities && echo --config - \\\n',
+  );
+  assert.notEqual(andEcho, api, 'and-echo fixture must actually change api.md source');
+  assert.throws(
+    () => assertCurlBearerOffArgvPattern(andEcho, 'and-echo', 20),
+    /token variable|found \d+/,
+    'guard must reject --config - appearing after a command separator',
+  );
+}
+{
+  // 靶向突变 5（闸3 r3）：注释掉真实 producer 行——注释不是命令，
+  // 剥注释后连接断裂、token 引用同随注释而去，计数路径必须红。
+  const commentedProducer = api.replace(
+    /(\n)(printf 'header = "Authorization: Bearer %s"\\n')/,
+    '$1# $2',
+  );
+  assert.notEqual(commentedProducer, api, 'commented-producer fixture must actually change api.md source');
+  assert.throws(
+    () => assertCurlBearerOffArgvPattern(commentedProducer, 'commented-producer', 20),
+    /found \d+/,
+    'guard must reject a block whose auth producer exists only in a comment',
+  );
+}
 
 // GitHub #61: make OTP response-shape failures explicit
 assertPlaywrightOtpShapeValidationSourceContract(playwrightCode);
@@ -3239,24 +3280,35 @@ function assertNoCurlBearerOnArgv(markup, label) {
   );
 }
 
-// #62（闸3 r1+r2 P2 修复）：守卫必须逐 bash 块、且按「连接」配对——printf 经 "| \"
-// 续行直接喂给一条 curl 命令、且该 curl 自带 --config -/-K -，才算一个迁移块。
-// 存在性配对（块内同时出现 printf 与 --config）不够：printf|cat >/dev/null 加一条
-// 裸 curl --config - 会假绿（闸3 r2 实证）。含 curl 的块若不满足连接形态，则不得
-// 引用任何 bearer token 变量（含 ${VAR} 形态）；并按文件钉数量 1/2/20。
+// #62（闸3 r1-r3 P2 修复）：守卫必须逐 bash 块、按「连接」配对，且匹配前先剥掉
+// shell 注释——注释不是命令。连接定义：printf 经 "| \" 续行直接喂一条 curl 命令，
+// 该 curl 命令段内（不跨 ;、|、&、#、裸换行——运算符之后是另一条命令）自带
+// --config -/-K -。含 curl 的块不满足连接形态则不得引用任何 bearer token 变量
+// （含 ${VAR} 形态）；按文件钉数量 1/2/20。假绿反例（各轮闸面实证）：printf 灌
+// cat、curl 后接 | cat --config -、&& echo --config -、注释掉关键行——全部必须红。
+function stripShellComments(block) {
+  // 语料中引号内不含 '#'（响应注释行本就是 shell 注释），保守逐行剥离。
+  return block.replace(/(^|\s)#[^\n]*/g, '$1');
+}
+
 function assertCurlBearerOffArgvPattern(markup, label, expectedMigratedBlocks) {
+  // 命令段以 ;、|、#、裸换行为界；& 不入类（URL query 的 &limit=10 合法），
+  // 空格包围的 & / &&（shell 运算符）由后置检查拒。
   const connectedPipe =
-    /printf 'header = "Authorization: Bearer %s"\\n'[^|\n]*\|\s*\\?\s*\n?\s*curl(?:[^;\n]|\\\n)*?(?:--config|-K)\s+-/g;
-  const curlBearerTokenVar = /(?:\$\{|\$)(?:ADMIN_KEY|API_KEYS|IDENTITY_TOKEN|KEY|WORKER_TOKEN)\}?(?![A-Z_])/g;
+    /printf 'header = "Authorization: Bearer %s"\\n'[^|\n]*\|\s*\\?\s*\n?\s*curl(?:[^;|\n#]|\\\n)*?(?:--config|-K)\s+-/g;
+  const shellAmpersand = /\s&{1,2}\s/;
+  const curlBearerTokenVar = /(?:\$\{|\$)(?:ADMIN_KEY|API_KEYS|IDENTITY_TOKEN|KEY|WORKER_TOKEN)\}?(?![A-Za-z0-9_])/g;
   const blocks = [...markup.matchAll(/```bash\n([\s\S]*?)```/g)].map((m) => m[1]);
   let migratedBlocks = 0;
   blocks.forEach((block, index) => {
     if (!/\bcurl\b/.test(block)) return;
-    if ([...block.matchAll(connectedPipe)].length > 0) {
+    const stripped = stripShellComments(block);
+    const connected = [...stripped.matchAll(connectedPipe)].some((m) => !shellAmpersand.test(m[0]));
+    if (connected) {
       migratedBlocks += 1;
       return;
     }
-    const tokenVars = [...block.matchAll(curlBearerTokenVar)].map((m) => m[0]);
+    const tokenVars = [...stripped.matchAll(curlBearerTokenVar)].map((m) => m[0]);
     assert.deepEqual(
       tokenVars,
       [],
