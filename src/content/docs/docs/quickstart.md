@@ -113,6 +113,7 @@ take effect on 465 and 993 without a manual restart.
 ## 6. Create your agent's identity
 
 ```bash
+# Feed the bearer header through curl config on stdin so the token stays off argv.
 printf 'header = "Authorization: Bearer %s"\n' "$API_KEYS" | \
 curl -X POST http://localhost:3100/v1/identities \
   -H "Content-Type: application/json" \

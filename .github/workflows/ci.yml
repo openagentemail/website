@@ -83,4 +83,3 @@ jobs:
         run: |
           cd tests/e2e-redirect
           npm test
-

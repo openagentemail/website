@@ -63,6 +63,7 @@ The response includes the identity's **scoped token, shown exactly once** —
 hand this one to your agent, not the admin key.
 
 ```bash
+# Feed the bearer header through curl config on stdin so the token stays off argv.
 printf 'header = "Authorization: Bearer %s"\n' "$KEY" | \
 curl -X POST $API/v1/identities \
   -H "Content-Type: application/json" \

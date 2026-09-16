@@ -1694,9 +1694,9 @@ for (const link of OFFICIAL_LINKS) {
 
 // GitHub #62: move remaining curl bearer headers off process argv
 await assertNoCurlBearerOnArgvAcrossContent();
-assertCurlBearerOffArgvPattern(quickstart, 'Quickstart');
-assertCurlBearerOffArgvPattern(otp, 'OTP extraction');
-assertCurlBearerOffArgvPattern(api, 'API reference');
+assertCurlBearerOffArgvPattern(quickstart, 'Quickstart', 1);
+assertCurlBearerOffArgvPattern(otp, 'OTP extraction', 2);
+assertCurlBearerOffArgvPattern(api, 'API reference', 20);
 
 // #62 Negative mutations: restoring -H "Authorization: Bearer" or removing stdin config must fail
 {
@@ -1710,9 +1710,23 @@ assertCurlBearerOffArgvPattern(api, 'API reference');
 {
   const withoutConfigStdin = api.replace(/--config\s+-/g, '');
   assert.throws(
-    () => assertCurlBearerOffArgvPattern(withoutConfigStdin, 'mutated-api'),
+    () => assertCurlBearerOffArgvPattern(withoutConfigStdin, 'mutated-api', 20),
     /config/i,
     'assertCurlBearerOffArgvPattern must reject curl snippet without stdin config',
+  );
+}
+{
+  // 闸3 P2 的靶向突变：仅删一个 printf 行（token 变量与 curl 块仍在）——
+  // 整页级"至少一处 --config -"守卫对此盲，逐块配对必须红。
+  const singleBlockAuthLoss = api.replace(
+    /printf 'header = "Authorization: Bearer %s"\\n' "\$[A-Z_]+"\s*\|\s*\\\n/,
+    '',
+  );
+  assert.notEqual(singleBlockAuthLoss, api, 'mutation fixture must actually change api.md source');
+  assert.throws(
+    () => assertCurlBearerOffArgvPattern(singleBlockAuthLoss, 'single-block-loss', 20),
+    /stdin config|token variable|found \d+/,
+    'per-block guard must reject a single block silently losing its auth header',
   );
 }
 
@@ -1867,15 +1881,21 @@ if (process.argv.includes('--check-rendered')) {
   const renderedOtp = await readArtifact(ARTIFACTS.otp);
   const renderedApi = await readArtifact(ARTIFACTS.api);
 
-  for (const [label, html] of [
-    ['Quickstart', renderedQuickstart],
-    ['OTP extraction', renderedOtp],
-    ['API reference', renderedApi],
+  for (const [label, html, expectedConfigCount] of [
+    ['Quickstart', renderedQuickstart, 1],
+    ['OTP extraction', renderedOtp, 2],
+    ['API reference', renderedApi, 20],
   ]) {
     assert.match(
       html,
       /--config\s+-/,
       `Rendered ${label} must contain the --config - pattern`,
+    );
+    // 渲染面数量钉：任一示例段静默丢失迁移（整页仍有他段 --config -）也会红
+    const configCount = [...html.matchAll(/--config\s+-/g)].length;
+    assert.ok(
+      configCount === expectedConfigCount,
+      `Rendered ${label} must contain exactly ${expectedConfigCount} --config - occurrence(s), found ${configCount}`,
     );
     assert.doesNotMatch(
       html,
@@ -3205,16 +3225,33 @@ function assertNoCurlBearerOnArgv(markup, label) {
   );
 }
 
-function assertCurlBearerOffArgvPattern(markup, label) {
-  assert.match(
-    markup,
-    /printf 'header = "Authorization: Bearer %s"\\n'\s*[^|]+\|\s*\\?\s*\n?\s*curl/,
-    `${label} must feed Authorization header through printf into curl stdin config`,
-  );
-  assert.match(
-    markup,
-    /(?:--config|-K)\s+-/,
-    `${label} must read curl config from stdin with --config - or -K -`,
+// #62（闸3 P2 修复）：守卫必须逐 bash 块配对，不能只做整页 match——每个含 curl 的
+// 块要么经 printf|curl --config - 喂 Authorization 头，要么完全不引用 bearer token
+// 变量；并按文件钉住迁移块数量。单段静默丢失认证有两形态：只删 printf 行（token
+// 变量仍在）由配对断言红；整段连头带配置丢失由数量钉红——两者都是整页级守卫的盲区。
+function assertCurlBearerOffArgvPattern(markup, label, expectedMigratedBlocks) {
+  const curlBearerTokenVar = /\$(?:ADMIN_KEY|API_KEYS|IDENTITY_TOKEN|KEY|WORKER_TOKEN)\b/g;
+  const blocks = [...markup.matchAll(/```bash\n([\s\S]*?)```/g)].map((m) => m[1]);
+  let migratedBlocks = 0;
+  blocks.forEach((block, index) => {
+    if (!/\bcurl\b/.test(block)) return;
+    const headerViaStdin =
+      /printf 'header = "Authorization: Bearer %s"\\n'[^|\n]*\|/.test(block) &&
+      /(?:--config|-K)\s+-/.test(block);
+    if (headerViaStdin) {
+      migratedBlocks += 1;
+      return;
+    }
+    const tokenVars = [...block.matchAll(curlBearerTokenVar)].map((m) => m[0]);
+    assert.deepEqual(
+      tokenVars,
+      [],
+      `${label} bash block ${index + 1} references bearer token variable(s) ${tokenVars.join(', ')} but does not feed the Authorization header through printf into curl stdin config`,
+    );
+  });
+  assert.ok(
+    migratedBlocks === expectedMigratedBlocks,
+    `${label} must keep exactly ${expectedMigratedBlocks} migrated bearer-off-argv curl block(s), found ${migratedBlocks}`,
   );
 }
 

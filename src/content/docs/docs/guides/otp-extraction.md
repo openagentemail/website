@@ -53,6 +53,7 @@ here). REST exposes the raw body; MCP fences external/missing-source bodies as
 above.
 
 ```bash
+# Feed the bearer header through curl config on stdin so the token stays off argv.
 printf 'header = "Authorization: Bearer %s"\n' "$KEY" | \
 curl -X POST $API/v1/messages/wait \
   -H "Content-Type: application/json" \
