@@ -31,6 +31,12 @@ To make it enforced rather than advisory: Settings → Branches → add a rule f
 The weekly run exists because of the freshness gate below, which fails closed against the real
 UTC clock rather than only when someone happens to open a pull request.
 
+### Real-browser OTP redirect smoke (web#60)
+
+Real-browser regression smoke tests for the OTP redirect mechanism live in `tests/e2e-redirect/` as an independent subproject with its own `package.json` and lockfile (pinned `@playwright/test: 1.61.1`). This isolates Playwright/Chromium dependencies without altering the main website package scope (#3183). In CI, an independent job `otp-redirect-smoke` executes:
+`cd tests/e2e-redirect && npm ci && npx playwright install --with-deps chromium && npm test`.
+
+
 ## Compare freshness gate
 
 `npm run build` intentionally fails closed when `/compare`'s `Last checked` dates are more than 90 days old, using the build host's UTC clock (which must be synchronized). Within 14 days of expiry it prints a proactive maintenance warning; after 90 days it fails closed. Each compared vendor carries its own date and its own primary sources — AgentMail in `src/data/agentmailSources.js`, MailSlurp in `src/data/mailslurpSources.js` — and each is gated separately, so a stale MailSlurp recheck blocks the build even while the AgentMail date is still fresh. Recheck the official sources, update the comparison facts, and refresh the dates. Use `npm run test:compare-freshness` to run that gate directly; it is a deliberate deployment safeguard, not an optional warning. Its postbuild step parses `dist/compare/index.html` to verify the rendered dates and official source links. When a recheck intentionally changes an official source set, update the matching golden digest (`requiredAgentmailSourcesDigest` or `requiredMailslurpSourcesDigest`) in `tests/compare-facts.test.mjs` with that reviewed change.

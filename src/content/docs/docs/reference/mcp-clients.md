@@ -276,6 +276,31 @@ Edit `~/.kimi-code/mcp.json` (user level) or `.kimi-code/mcp.json` in the projec
 Or run `/mcp-config` in the TUI to add it interactively; `/mcp` shows connection
 status. Tools appear as `mcp__openagentemail__mail_wait_for`, etc.
 
+## ChatGPT
+
+Connect ChatGPT (Pro, Web) via remote OAuth:
+
+1. Enable **Developer mode** in **Settings**.
+2. Create a new app or connector.
+3. Set the MCP URL to `https://inbox.openagent.email/mcp`.
+4. Choose **OAuth** for authentication.
+5. In advanced OAuth settings, the client registration method automatically selects **Client ID Metadata Document (CIMD)**. Keep this default — no token needs to be pasted.
+6. On the authorization page, choosing an identity requires an active **admin session** (owner-only; unprivileged user sessions cannot approve).
+
+:::caution[Disconnect previous connectors before rebinding]
+If the same ChatGPT account previously connected to any OpenAgentEmail connector (including ones using an older URL), creating a new connector reuses the existing grant from the same issuer without prompting for new authorization. You must disconnect the previous connector before rebinding to a different identity.
+:::
+
+## Grok
+
+Connect Grok (Web) via remote OAuth:
+
+1. Go to `grok.com/connectors` and create a new connector.
+2. Select **Custom**.
+3. Set the connector URL to `https://inbox.openagent.email/mcp`.
+4. Follow the prompts to complete OAuth authorization. (The connector details page provides an entry to re-authenticate whenever needed.)
+5. In conversations, mention `@<connector-name>` to call OpenAgentEmail tools.
+
 ## Generic MCP clients
 
 Any client that speaks stdio MCP can run the server the same way:

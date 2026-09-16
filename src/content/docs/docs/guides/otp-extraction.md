@@ -53,8 +53,10 @@ here). REST exposes the raw body; MCP fences external/missing-source bodies as
 above.
 
 ```bash
+printf 'header = "Authorization: Bearer %s"\n' "$KEY" | \
 curl -X POST $API/v1/messages/wait \
-  -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" \
+  -H "Content-Type: application/json" \
+  --config - \
   -d '{"address":"fox-k7d2@example.com","fromContains":"noreply@github.com","subjectContains":"verify","timeoutSec":60}'
 ```
 
@@ -63,8 +65,9 @@ id into the assignment below. Do not hardcode a message id.
 
 ```bash
 export MESSAGE_ID=REPLACE_WITH_WAIT_RESPONSE_ID
+printf 'header = "Authorization: Bearer %s"\n' "$KEY" | \
 curl "$API/v1/messages/$MESSAGE_ID?address=fox-k7d2@example.com" \
-  -H "Authorization: Bearer $KEY"
+  --config -
 ```
 
 Wire-level fields live in the [API reference](/docs/reference/api/).

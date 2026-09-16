@@ -113,9 +113,10 @@ take effect on 465 and 993 without a manual restart.
 ## 6. Create your agent's identity
 
 ```bash
+printf 'header = "Authorization: Bearer %s"\n' "$API_KEY" | \
 curl -X POST http://localhost:3100/v1/identities \
-  -H "Authorization: Bearer $API_KEY" \
   -H "Content-Type: application/json" \
+  --config - \
   -d '{"name":"signup-bot"}'
 ```
 
