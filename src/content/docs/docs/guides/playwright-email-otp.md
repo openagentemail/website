@@ -106,6 +106,9 @@ test('signup waits for the verification email before reading the code', async ({
   const message = await response.json();
 
   expect(parseSingleMailbox(String(message.from))).toBe(parseSingleMailbox(expectedSender));
+  if (!message?.otp?.codes?.[0]) {
+    throw new Error(`OTP response missing message.otp.codes[0] — got: ${JSON.stringify(message).slice(0, 200)}`);
+  }
   const code = message.otp.codes[0] as string;
   expect(code).toBeTruthy();
 
@@ -244,6 +247,9 @@ test('signup opens a trusted HTTPS verification link', async ({ page, request })
   const message = await response.json();
 
   expect(parseSingleMailbox(String(message.from))).toBe(parseSingleMailbox(expectedSender));
+  if (!message?.otp?.links?.[0]) {
+    throw new Error(`OTP response missing message.otp.links[0] — got: ${JSON.stringify(message).slice(0, 200)}`);
+  }
   const link = assertTrustedOtpUrl(message.otp.links[0] as string, expectedHost);
 
   const OTP_REDIRECT_MAX = 5;

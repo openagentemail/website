@@ -63,8 +63,11 @@ The response includes the identity's **scoped token, shown exactly once** —
 hand this one to your agent, not the admin key.
 
 ```bash
+# Feed the bearer header through curl config on stdin so the token stays off argv.
+printf 'header = "Authorization: Bearer %s"\n' "$KEY" | \
 curl -X POST $API/v1/identities \
-  -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" \
+  -H "Content-Type: application/json" \
+  --config - \
   -d '{"name":"signup-bot"}'
 # → 201 {"address":"fox-k7d2@example.com","name":"signup-bot","pushContentTier":1,"token":"oa_…"}
 ```
@@ -81,7 +84,8 @@ adds `pushContentTierWarning` on list/public identity shapes.
 ## `GET /v1/identities` — admin only
 
 ```bash
-curl $API/v1/identities -H "Authorization: Bearer $KEY"
+printf 'header = "Authorization: Bearer %s"\n' "$KEY" | \
+curl $API/v1/identities --config -
 # → 200 {"identities":[{"address":"fox-k7d2@example.com","name":"signup-bot",
 #      "createdAt":"2026-07-26T00:00:00.000Z","pushContentTier":1}]}
 ```
@@ -94,8 +98,9 @@ Rotate an identity's token. The old token stops working immediately; the new
 plaintext is returned once.
 
 ```bash
+printf 'header = "Authorization: Bearer %s"\n' "$KEY" | \
 curl -X POST $API/v1/identities/fox-k7d2@example.com/token \
-  -H "Authorization: Bearer $KEY"
+  --config -
 # → 200 {"address":"fox-k7d2@example.com","token":"oa_…"}
 ```
 
@@ -105,7 +110,8 @@ Delete an identity (and invalidate its token). Its mail stays in the catch-all
 mailbox until the retention sweeper removes it.
 
 ```bash
-curl -X DELETE $API/v1/identities/fox-k7d2@example.com -H "Authorization: Bearer $KEY"
+printf 'header = "Authorization: Bearer %s"\n' "$KEY" | \
+curl -X DELETE $API/v1/identities/fox-k7d2@example.com --config -
 # → 200 {"deleted":true}
 ```
 
@@ -116,8 +122,9 @@ read any address. An identity token may read **only its own** address
 (otherwise `403`).
 
 ```bash
+printf 'header = "Authorization: Bearer %s"\n' "$KEY" | \
 curl $API/v1/identities/fox-k7d2@example.com/push-tier \
-  -H "Authorization: Bearer $KEY"
+  --config -
 # → 200 {"address":"fox-k7d2@example.com","pushContentTier":1}
 ```
 
@@ -141,8 +148,10 @@ Set the push content tier. **Admin key required** — identity tokens get
 `403 {"error":"forbidden: admin key required"}`.
 
 ```bash
+printf 'header = "Authorization: Bearer %s"\n' "$KEY" | \
 curl -X PUT $API/v1/identities/fox-k7d2@example.com/push-tier \
-  -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" \
+  -H "Content-Type: application/json" \
+  --config - \
   -d '{"pushContentTier":2}'
 # → 200 {"address":"fox-k7d2@example.com","pushContentTier":2}
 ```
@@ -169,8 +178,9 @@ List an identity's inbox, newest first. `limit` defaults to 50 (max 200).
 Identity tokens may only list their own address.
 
 ```bash
+printf 'header = "Authorization: Bearer %s"\n' "$KEY" | \
 curl "$API/v1/messages?address=fox-k7d2@example.com&limit=10" \
-  -H "Authorization: Bearer $KEY"
+  --config -
 # → 200 {"messages":[{"id":"42","from":"noreply@github.com","to":"fox-k7d2@example.com",
 #      "subject":"Verify your email","date":"2026-07-26T00:01:00.000Z","seen":false,
 #      "snippet":"Confirm your address by clicking…","hasOtp":true,"source":"external"}]}
@@ -188,8 +198,9 @@ Each summary includes:
 Full message, including extracted OTP codes and links, plus `source`.
 
 ```bash
+printf 'header = "Authorization: Bearer %s"\n' "$KEY" | \
 curl "$API/v1/messages/42?address=fox-k7d2@example.com" \
-  -H "Authorization: Bearer $KEY"
+  --config -
 # → 200 {"id":"42","from":"noreply@github.com","to":"fox-k7d2@example.com",
 #      "subject":"Verify your email","date":"2026-07-26T00:01:00.000Z",
 #      "text":"Your code is 482913 …","html":"<p>Your code is …</p>",
@@ -214,8 +225,10 @@ message, so the unseen count means "not yet handled". Returns 404 when the
 message is not addressed to `address`.
 
 ```bash
+printf 'header = "Authorization: Bearer %s"\n' "$KEY" | \
 curl -X POST $API/v1/messages/42/seen \
-  -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" \
+  -H "Content-Type: application/json" \
+  --config - \
   -d '{"address":"fox-k7d2@example.com","seen":true}'
 # → 200 {"id":"42","seen":true}
 ```
@@ -226,8 +239,10 @@ Long-poll until a matching message arrives. This is the workhorse for automated
 signups: create the identity, trigger the signup, then wait.
 
 ```bash
+printf 'header = "Authorization: Bearer %s"\n' "$KEY" | \
 curl -X POST $API/v1/messages/wait \
-  -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" \
+  -H "Content-Type: application/json" \
+  --config - \
   -d '{"address":"fox-k7d2@example.com","subjectContains":"verify","timeoutSec":180}'
 ```
 
@@ -255,8 +270,10 @@ otherwise `403 {"error":"from is not a known identity"}`. Identity tokens may
 only send as themselves.
 
 ```bash
+printf 'header = "Authorization: Bearer %s"\n' "$KEY" | \
 curl -X POST $API/v1/send \
-  -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" \
+  -H "Content-Type: application/json" \
+  --config - \
   -d '{"from":"fox-k7d2@example.com","to":"friend@example.org",
        "subject":"hello from an agent","text":"sent via openagent.email"}'
 # → 200 {"queued":true,"messageId":"<…@example.com>"}
@@ -292,8 +309,10 @@ With an identity token, omit `from` and the server uses that identity. Admin
 keys must include `from` explicitly.
 
 ```bash
+printf 'header = "Authorization: Bearer %s"\n' "$IDENTITY_TOKEN" | \
 curl -X POST $API/v1/tasks \
-  -H "Authorization: Bearer $IDENTITY_TOKEN" -H "Content-Type: application/json" \
+  -H "Content-Type: application/json" \
+  --config - \
   -d '{"to":"worker@example.com","subject":"Check staging","body":"Run the smoke test.","wait":true}'
 ```
 
@@ -316,7 +335,8 @@ two participants. Admin keys see all task threads. Optional `state` is one of
 `submitted`, `working`, `input-required`, `completed`, or `failed`.
 
 ```bash
-curl "$API/v1/tasks?state=working" -H "Authorization: Bearer $IDENTITY_TOKEN"
+printf 'header = "Authorization: Bearer %s"\n' "$IDENTITY_TOKEN" | \
+curl "$API/v1/tasks?state=working" --config -
 ```
 
 ## `GET /v1/tasks/:id?wait=true`
@@ -328,8 +348,9 @@ appears — clamped by `MCP_MAX_WAIT_SECONDS` (default 60); a long-lived client
 can repeat this call with the same task ID.
 
 ```bash
+printf 'header = "Authorization: Bearer %s"\n' "$IDENTITY_TOKEN" | \
 curl "$API/v1/tasks/0fdc3207-056e-47c1-a65c-b29d39f66b83?wait=true" \
-  -H "Authorization: Bearer $IDENTITY_TOKEN"
+  --config -
 ```
 
 ## `POST /v1/tasks/:id/state`
@@ -340,8 +361,10 @@ updates return `409 {"error":"task_already_terminal"}`. Concurrent
 non-terminal updates use last-writer-wins mailbox order.
 
 ```bash
+printf 'header = "Authorization: Bearer %s"\n' "$WORKER_TOKEN" | \
 curl -X POST $API/v1/tasks/0fdc3207-056e-47c1-a65c-b29d39f66b83/state \
-  -H "Authorization: Bearer $WORKER_TOKEN" -H "Content-Type: application/json" \
+  -H "Content-Type: application/json" \
+  --config - \
   -d '{"state":"completed","body":"Smoke test passed.","result":{"version":"0.4.0","checks":["login","send"]}}'
 ```
 
@@ -401,10 +424,11 @@ at the PRM document below (unlike `/v1/*`, which returns bare JSON without that
 header).
 
 ```bash
+printf 'header = "Authorization: Bearer %s"\n' "$KEY" | \
 curl -X POST $API/mcp \
-  -H "Authorization: Bearer $KEY" \
   -H "Content-Type: application/json" \
   -H "Accept: application/json, text/event-stream" \
+  --config - \
   -d '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}'
 ```
 
@@ -508,8 +532,10 @@ Publish a server-side ntfy notification. Agents never provide an ntfy topic or
 credential. `target` is `user` or `agent:<identity-localpart>`.
 
 ```bash
+printf 'header = "Authorization: Bearer %s"\n' "$KEY" | \
 curl -X POST $API/v1/notify \
-  -H "Authorization: Bearer $KEY" -H "Content-Type: application/json" \
+  -H "Content-Type: application/json" \
+  --config - \
   -d '{"target":"user","title":"Approval needed","message":"Please review the draft","level":"urgent"}'
 # → 200 {"target":"user","title":"Approval needed","level":"urgent"}
 ```
@@ -526,8 +552,9 @@ only pass `self` (or their exact own agent route); they cannot read user or
 other-agent history.
 
 ```bash
+printf 'header = "Authorization: Bearer %s"\n' "$IDENTITY_TOKEN" | \
 curl "$API/v1/notify/messages?topic=self&since=1h" \
-  -H "Authorization: Bearer $IDENTITY_TOKEN"
+  --config -
 # → 200 {"messages":[{"id":"…","time":…,"title":"…","message":"…","priority":3,"tags":[]}]}
 ```
 
@@ -538,7 +565,8 @@ the same self-check used by `./deploy/doctor.sh`. It has the same permission
 rule and independent rate limit as `target:"user"` notifications.
 
 ```bash
-curl -X POST $API/v1/notify/verify -H "Authorization: Bearer $KEY"
+printf 'header = "Authorization: Bearer %s"\n' "$KEY" | \
+curl -X POST $API/v1/notify/verify --config -
 # → 200 {"ok":true}
 ```
 
@@ -550,8 +578,10 @@ URL must exactly match the active `NOTIFY_PUBLIC_URL`, which means the HTTPS
 reverse proxy and a full stack restart must happen first.
 
 ```bash
+printf 'header = "Authorization: Bearer %s"\n' "$ADMIN_KEY" | \
 curl -X POST $API/v1/notify/devices \
-  -H "Authorization: Bearer $ADMIN_KEY" -H "Content-Type: application/json" \
+  -H "Content-Type: application/json" \
+  --config - \
   -d '{"publicUrl":"https://ntfy.example.com"}'
 # → 201 {"serverUrl":"https://ntfy.example.com","username":"phone-…",
 #        "password":"…","topics":{"userAlerts":"user-alerts-x7k2","userLow":"user-low-x7k2"}}

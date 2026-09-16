@@ -11,6 +11,8 @@ const dnsCloudflare = await readFile(new URL('../src/content/docs/docs/guides/dn
 const dnsNamecheap = await readFile(new URL('../src/content/docs/docs/guides/dns-namecheap.md', import.meta.url), 'utf8');
 const dnsRoute53 = await readFile(new URL('../src/content/docs/docs/guides/dns-route53.md', import.meta.url), 'utf8');
 const playwrightOtp = await readFile(new URL('../src/content/docs/docs/guides/playwright-email-otp.md', import.meta.url), 'utf8');
+const api = await readFile(new URL('../src/content/docs/docs/reference/api.md', import.meta.url), 'utf8');
+const mcpClients = await readFile(new URL('../src/content/docs/docs/reference/mcp-clients.md', import.meta.url), 'utf8');
 const mcp = await readFile(new URL('../src/pages/mcp.astro', import.meta.url), 'utf8');
 const homepage = await readFile(new URL('../src/pages/index.astro', import.meta.url), 'utf8');
 const astroConfig = await readFile(new URL('../astro.config.mjs', import.meta.url), 'utf8');
@@ -53,6 +55,8 @@ const ARTIFACTS = {
   dnsNamecheap: 'dist/docs/guides/dns-namecheap/index.html',
   dnsRoute53: 'dist/docs/guides/dns-route53/index.html',
   playwrightOtp: 'dist/docs/guides/playwright-email-otp/index.html',
+  api: 'dist/docs/reference/api/index.html',
+  mcpClients: 'dist/docs/reference/mcp-clients/index.html',
 };
 
 const REQUIRED_LINKS = [
@@ -1688,6 +1692,147 @@ for (const link of OFFICIAL_LINKS) {
   assertHasHref(link.markup, link.href, link.source);
 }
 
+// GitHub #62: move remaining curl bearer headers off process argv
+await assertNoCurlBearerOnArgvAcrossContent();
+assertCurlBearerOffArgvPattern(quickstart, 'Quickstart', 1);
+assertCurlBearerOffArgvPattern(otp, 'OTP extraction', 2);
+assertCurlBearerOffArgvPattern(api, 'API reference', 20);
+
+// #62 Negative mutations: restoring -H "Authorization: Bearer" or removing stdin config must fail
+{
+  const unsafeExample = 'curl -X POST $API/v1/identities -H "Authorization: Bearer $KEY"';
+  assert.throws(
+    () => assertNoCurlBearerOnArgv(unsafeExample, 'unsafe-fixture'),
+    /Authorization:\s*Bearer/i,
+    'assertNoCurlBearerOnArgv must reject -H "Authorization: Bearer"',
+  );
+}
+{
+  const withoutConfigStdin = api.replace(/--config\s+-/g, '');
+  assert.throws(
+    () => assertCurlBearerOffArgvPattern(withoutConfigStdin, 'mutated-api', 20),
+    /config/i,
+    'assertCurlBearerOffArgvPattern must reject curl snippet without stdin config',
+  );
+}
+{
+  // 靶向突变 1：删掉整条 printf 行（token 引用随之而去）——计数 20→19 必须红。
+  const singleBlockAuthLoss = api.replace(
+    /printf 'header = "Authorization: Bearer %s"\\n' "\$[A-Z_]+"\s*\|\s*\\\n/,
+    '',
+  );
+  assert.notEqual(singleBlockAuthLoss, api, 'mutation fixture must actually change api.md source');
+  assert.throws(
+    () => assertCurlBearerOffArgvPattern(singleBlockAuthLoss, 'single-block-loss', 20),
+    /found \d+/,
+    'per-block guard must reject a single block silently losing its auth header',
+  );
+}
+{
+  // 靶向突变 2（闸3 r2 P2 的存在性配对盲区）：printf 改灌 cat >/dev/null、
+  // curl --config - 原样保留——"两件都在"但连接已断、计数不变，存在性配对
+  // 会假绿；连接性配对必须红（token 变量路径或计数路径均可）。
+  const catBypass = api.replace(
+    /('header = "Authorization: Bearer %s"\\n' "[^"]+")\s*\|\s*\\\n(?=curl)/,
+    '$1 | cat >/dev/null \\\n',
+  );
+  assert.notEqual(catBypass, api, 'cat-bypass fixture must actually change api.md source');
+  assert.throws(
+    () => assertCurlBearerOffArgvPattern(catBypass, 'cat-bypass', 20),
+    /token variable|found \d+/,
+    'connected-pipe guard must reject printf piped away from the curl that reads stdin config',
+  );
+}
+{
+  // 靶向突变 3（闸3 r3）：curl 向后接管到 cat 并把 --config - 挂它身上——
+  // 运算符跨界假绿，命令段字符类必须拒。
+  const onwardPipe = api.replace(
+    /curl -X POST \$API\/v1\/identities \\\n/,
+    'curl -X POST $API/v1/identities | cat --config - \\\n',
+  );
+  assert.notEqual(onwardPipe, api, 'onward-pipe fixture must actually change api.md source');
+  assert.throws(
+    () => assertCurlBearerOffArgvPattern(onwardPipe, 'onward-pipe', 20),
+    /token variable|found \d+/,
+    'guard must reject --config - attached to a command after a pipe operator',
+  );
+}
+{
+  // 靶向突变 4（闸3 r3）：&& 后接 echo --config -——同命令边界假绿。
+  const andEcho = api.replace(
+    /curl -X POST \$API\/v1\/identities \\\n/,
+    'curl -X POST $API/v1/identities && echo --config - \\\n',
+  );
+  assert.notEqual(andEcho, api, 'and-echo fixture must actually change api.md source');
+  assert.throws(
+    () => assertCurlBearerOffArgvPattern(andEcho, 'and-echo', 20),
+    /token variable|found \d+/,
+    'guard must reject --config - appearing after a command separator',
+  );
+}
+{
+  // 靶向突变 5（闸3 r3）：注释掉真实 producer 行——注释不是命令，
+  // 剥注释后连接断裂、token 引用同随注释而去，计数路径必须红。
+  const commentedProducer = api.replace(
+    /(\n)(printf 'header = "Authorization: Bearer %s"\\n')/,
+    '$1# $2',
+  );
+  assert.notEqual(commentedProducer, api, 'commented-producer fixture must actually change api.md source');
+  assert.throws(
+    () => assertCurlBearerOffArgvPattern(commentedProducer, 'commented-producer', 20),
+    /found \d+/,
+    'guard must reject a block whose auth producer exists only in a comment',
+  );
+}
+
+// GitHub #61: make OTP response-shape failures explicit
+assertPlaywrightOtpShapeValidationSourceContract(playwrightCode);
+
+// #61 Negative mutations: removing either shape check must fail
+{
+  const withoutCodesCheck = playwrightOtp.replace(
+    /if\s*\(!message\?\.otp\?\.codes\?\.\[0\]\)\s*\{[\s\S]*?\}/,
+    '',
+  );
+  assert.throws(
+    () => assertPlaywrightOtpShapeValidationSourceContract(fencedCode(withoutCodesCheck)),
+    /message\.otp\.codes\[0\]/,
+    'removing message.otp.codes[0] shape check must fail assertPlaywrightOtpShapeValidationSourceContract',
+  );
+}
+{
+  const withoutLinksCheck = playwrightOtp.replace(
+    /if\s*\(!message\?\.otp\?\.links\?\.\[0\]\)\s*\{[\s\S]*?\}/,
+    '',
+  );
+  assert.throws(
+    () => assertPlaywrightOtpShapeValidationSourceContract(fencedCode(withoutLinksCheck)),
+    /message\.otp\.links\[0\]/,
+    'removing message.otp.links[0] shape check must fail assertPlaywrightOtpShapeValidationSourceContract',
+  );
+}
+
+// #3305: mcp-clients ChatGPT and Grok connector sections
+assertMcpClientsChatGPTAndGrokSourceContract(mcpClients);
+
+// #3305 Negative mutations: removing warning or Custom requirement must fail
+{
+  const withoutWarning = mcpClients.replace(/disconnect the previous connector before rebinding/i, '');
+  assert.throws(
+    () => assertMcpClientsChatGPTAndGrokSourceContract(withoutWarning),
+    /disconnect.*previous connector/i,
+    'removing disconnect previous connector warning must fail assertMcpClientsChatGPTAndGrokSourceContract',
+  );
+}
+{
+  const withoutCustom = mcpClients.replace(/Select \*\*Custom\*\*/, '');
+  assert.throws(
+    () => assertMcpClientsChatGPTAndGrokSourceContract(withoutCustom),
+    /Custom/,
+    'removing Grok Custom requirement must fail assertMcpClientsChatGPTAndGrokSourceContract',
+  );
+}
+
 if (process.argv.includes('--check-rendered')) {
   const renderedByRoute = {
     quickstart: parse(await readArtifact(ARTIFACTS.quickstart)),
@@ -1784,6 +1929,101 @@ if (process.argv.includes('--check-rendered')) {
     sitemap,
     /https:\/\/openagent\.email\/docs\/guides\/playwright-email-otp\//,
     'sitemap is missing /docs/guides/playwright-email-otp/',
+  );
+
+  // GitHub #62: rendered curl bearer off argv
+  const renderedQuickstart = await readArtifact(ARTIFACTS.quickstart);
+  const renderedOtp = await readArtifact(ARTIFACTS.otp);
+  const renderedApi = await readArtifact(ARTIFACTS.api);
+
+  for (const [label, html, expectedConfigCount] of [
+    ['Quickstart', renderedQuickstart, 1],
+    ['OTP extraction', renderedOtp, 2],
+    ['API reference', renderedApi, 20],
+  ]) {
+    assert.match(
+      html,
+      /--config\s+-/,
+      `Rendered ${label} must contain the --config - pattern`,
+    );
+    // 渲染面数量钉：任一示例段静默丢失迁移（整页仍有他段 --config -）也会红
+    const configCount = [...html.matchAll(/--config\s+-/g)].length;
+    assert.ok(
+      configCount === expectedConfigCount,
+      `Rendered ${label} must contain exactly ${expectedConfigCount} --config - occurrence(s), found ${configCount}`,
+    );
+    assert.doesNotMatch(
+      html,
+      /-H\s+(&quot;|["'])Authorization:\s*Bearer/i,
+      `Rendered ${label} must not place Authorization: Bearer on curl argv`,
+    );
+  }
+
+  // Rendered negative mutation for #62
+  assert.throws(
+    () => {
+      const mutated = renderedQuickstart + ' curl -H &quot;Authorization: Bearer $KEY&quot;';
+      assert.doesNotMatch(
+        mutated,
+        /-H\s+(&quot;|["'])Authorization:\s*Bearer/i,
+        'Rendered quickstart must not place Authorization: Bearer on curl argv',
+      );
+    },
+    /Authorization:\s*Bearer/i,
+    'Negative mutation: injecting -H "Authorization: Bearer" into rendered HTML must fail',
+  );
+
+  // GitHub #61: rendered OTP response-shape failures
+  const renderedPlaywrightOtp = await readArtifact(ARTIFACTS.playwrightOtp);
+  assert.match(
+    renderedPlaywrightOtp,
+    /OTP response missing message\.otp\.codes\[0\]/,
+    'Rendered Playwright OTP page must contain message.otp.codes[0] error diagnostic',
+  );
+  assert.match(
+    renderedPlaywrightOtp,
+    /OTP response missing message\.otp\.links\[0\]/,
+    'Rendered Playwright OTP page must contain message.otp.links[0] error diagnostic',
+  );
+
+  // Rendered negative mutation for #61
+  assert.throws(
+    () => {
+      const withoutCodesError = renderedPlaywrightOtp.replaceAll('OTP response missing message.otp.codes[0]', '');
+      assert.match(
+        withoutCodesError,
+        /OTP response missing message\.otp\.codes\[0\]/,
+        'Rendered Playwright OTP page must contain message.otp.codes[0] error diagnostic',
+      );
+    },
+    /message\.otp\.codes\[0\] error diagnostic/i,
+    'Negative mutation: removing codes error from rendered HTML must fail',
+  );
+
+  // #3305: rendered mcp-clients ChatGPT & Grok sections
+  const renderedMcpClients = await readArtifact(ARTIFACTS.mcpClients);
+  assert.match(renderedMcpClients, /ChatGPT/, 'Rendered mcp-clients must contain ChatGPT');
+  assert.match(renderedMcpClients, /Grok/, 'Rendered mcp-clients must contain Grok');
+  assert.match(
+    renderedMcpClients,
+    /disconnect the previous connector before rebinding/i,
+    'Rendered mcp-clients must contain disconnect warning callout',
+  );
+  assert.match(renderedMcpClients, /Custom/, 'Rendered mcp-clients must contain Grok Custom');
+  assert.match(renderedMcpClients, /OAuth/, 'Rendered mcp-clients must contain Grok OAuth');
+
+  // Rendered negative mutation for #3305
+  assert.throws(
+    () => {
+      const withoutDisconnect = renderedMcpClients.replaceAll(/disconnect the previous connector before rebinding/gi, '');
+      assert.match(
+        withoutDisconnect,
+        /disconnect the previous connector before rebinding/i,
+        'Rendered mcp-clients must contain disconnect warning callout',
+      );
+    },
+    /disconnect warning callout/i,
+    'Negative mutation: removing disconnect warning from rendered HTML must fail',
   );
 }
 
@@ -3016,6 +3256,134 @@ function assertCloudflareEmailRoutingPrerequisite(markup) {
     'Cloudflare guide must not imply Email Routing delivers to the self-hosted SMTP host',
   );
 }
+
+async function assertNoCurlBearerOnArgvAcrossContent() {
+  const docsDir = new URL('../src/content/docs/', import.meta.url);
+  const entries = await readdir(docsDir, { withFileTypes: true, recursive: true });
+  let checkedCount = 0;
+  for (const entry of entries) {
+    if (entry.isFile() && (entry.name.endsWith('.md') || entry.name.endsWith('.mdx'))) {
+      const filePath = new URL(entry.name, new URL(entry.path + '/', 'file://'));
+      const text = await readFile(filePath, 'utf8');
+      assertNoCurlBearerOnArgv(text, entry.name);
+      checkedCount++;
+    }
+  }
+  assert.ok(checkedCount >= 15, `expected to scan at least 15 doc files; scanned ${checkedCount}`);
+}
+
+function assertNoCurlBearerOnArgv(markup, label) {
+  assert.doesNotMatch(
+    markup,
+    /-H\s+["']Authorization:\s*Bearer/i,
+    `${label} must not place Authorization: Bearer on curl argv`,
+  );
+}
+
+// #62（闸3 r1-r3 P2 修复）：守卫必须逐 bash 块、按「连接」配对，且匹配前先剥掉
+// shell 注释——注释不是命令。连接定义：printf 经 "| \" 续行直接喂一条 curl 命令，
+// 该 curl 命令段内（不跨 ;、|、&、#、裸换行——运算符之后是另一条命令）自带
+// --config -/-K -。含 curl 的块不满足连接形态则不得引用任何 bearer token 变量
+// （含 ${VAR} 形态）；按文件钉数量 1/2/20。假绿反例（各轮闸面实证）：printf 灌
+// cat、curl 后接 | cat --config -、&& echo --config -、注释掉关键行——全部必须红。
+function stripShellComments(block) {
+  // 语料中引号内不含 '#'（响应注释行本就是 shell 注释），保守逐行剥离。
+  return block.replace(/(^|\s)#[^\n]*/g, '$1');
+}
+
+function assertCurlBearerOffArgvPattern(markup, label, expectedMigratedBlocks) {
+  // 命令段以 ;、|、#、裸换行为界；& 不入类（URL query 的 &limit=10 合法），
+  // 空格包围的 & / &&（shell 运算符）由后置检查拒。
+  const connectedPipe =
+    /printf 'header = "Authorization: Bearer %s"\\n'[^|\n]*\|\s*\\?\s*\n?\s*curl(?:[^;|\n#]|\\\n)*?(?:--config|-K)\s+-/g;
+  const shellAmpersand = /\s&{1,2}\s/;
+  const curlBearerTokenVar = /(?:\$\{|\$)(?:ADMIN_KEY|API_KEYS|IDENTITY_TOKEN|KEY|WORKER_TOKEN)\}?(?![A-Za-z0-9_])/g;
+  const blocks = [...markup.matchAll(/```bash\n([\s\S]*?)```/g)].map((m) => m[1]);
+  let migratedBlocks = 0;
+  blocks.forEach((block, index) => {
+    if (!/\bcurl\b/.test(block)) return;
+    const stripped = stripShellComments(block);
+    const connected = [...stripped.matchAll(connectedPipe)].some((m) => !shellAmpersand.test(m[0]));
+    if (connected) {
+      migratedBlocks += 1;
+      return;
+    }
+    const tokenVars = [...stripped.matchAll(curlBearerTokenVar)].map((m) => m[0]);
+    assert.deepEqual(
+      tokenVars,
+      [],
+      `${label} bash block ${index + 1} references bearer token variable(s) ${tokenVars.join(', ')} but does not feed the Authorization header through a connected printf-to-curl stdin config pipe`,
+    );
+  });
+  assert.ok(
+    migratedBlocks === expectedMigratedBlocks,
+    `${label} must keep exactly ${expectedMigratedBlocks} migrated bearer-off-argv curl block(s), found ${migratedBlocks}`,
+  );
+}
+
+function assertPlaywrightOtpShapeValidationSourceContract(code) {
+  assert.match(
+    code,
+    /if\s*\(!message\?\.otp\?\.codes\?\.\[0\]\)\s*\{\s*throw new Error\(`OTP response missing message\.otp\.codes\[0\] — got: \${JSON\.stringify\(message\)\.slice\(0,\s*200\)}`\);\s*\}/,
+    'Playwright example must validate message.otp.codes[0] shape with an actionable diagnostic before consumption',
+  );
+  assert.match(
+    code,
+    /if\s*\(!message\?\.otp\?\.links\?\.\[0\]\)\s*\{\s*throw new Error\(`OTP response missing message\.otp\.links\[0\] — got: \${JSON\.stringify\(message\)\.slice\(0,\s*200\)}`\);\s*\}/,
+    'Playwright example must validate message.otp.links[0] shape with an actionable diagnostic before consumption',
+  );
+  assertAppearsBefore(
+    code,
+    /!message\?\.otp\?\.codes\?\.\[0\]/,
+    /const code = message\.otp\.codes\[0\]/,
+    'Playwright example must validate message.otp.codes[0] shape before reading code',
+  );
+  assertAppearsBefore(
+    code,
+    /!message\?\.otp\?\.links\?\.\[0\]/,
+    /const link = assertTrustedOtpUrl/,
+    'Playwright example must validate message.otp.links[0] shape before calling assertTrustedOtpUrl',
+  );
+}
+
+function assertMcpClientsChatGPTAndGrokSourceContract(markup) {
+  assert.match(markup, /## ChatGPT/, 'mcp-clients must include ## ChatGPT');
+  assert.match(markup, /## Grok/, 'mcp-clients must include ## Grok');
+  assertAppearsBefore(
+    markup,
+    /## Kimi Code/,
+    /## ChatGPT/,
+    '## ChatGPT must appear after ## Kimi Code',
+  );
+  assertAppearsBefore(
+    markup,
+    /## ChatGPT/,
+    /## Grok/,
+    '## Grok must appear after ## ChatGPT',
+  );
+  assertAppearsBefore(
+    markup,
+    /## Grok/,
+    /## Generic MCP clients/,
+    '## Generic MCP clients must appear after ## Grok',
+  );
+
+  // ChatGPT requirements
+  assert.match(markup, /Developer mode/, 'ChatGPT section must require Developer mode in Settings');
+  assert.match(markup, /https:\/\/inbox\.openagent\.email\/mcp/, 'ChatGPT section must specify https://inbox.openagent.email/mcp');
+  assert.match(markup, /OAuth/, 'ChatGPT section must specify OAuth authentication');
+  assert.match(markup, /Client ID Metadata Document \(CIMD\)/, 'ChatGPT section must specify CIMD registration method');
+  assert.match(markup, /admin session/, 'ChatGPT section must specify admin session is required for identity approval');
+  assert.match(markup, /disconnect the previous connector before rebinding/i, 'ChatGPT section must warn to disconnect previous connector before rebinding');
+
+  // Grok requirements
+  assert.match(markup, /grok\.com\/connectors/, 'Grok section must direct to grok.com/connectors');
+  assert.match(markup, /Custom/, 'Grok section must specify Custom connector');
+  assert.match(markup, /https:\/\/inbox\.openagent\.email\/mcp/, 'Grok section must specify https://inbox.openagent.email/mcp for Grok');
+  assert.match(markup, /OAuth/, 'Grok section must mention OAuth authorization');
+  assert.match(markup, /mention\s+`@<connector-name>`/, 'Grok section must specify @ mention syntax');
+}
+
 
 function artifactForHref(href) {
   const path = href.split('#')[0].replace(/\/$/, '');
