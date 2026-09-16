@@ -1716,8 +1716,7 @@ assertCurlBearerOffArgvPattern(api, 'API reference', 20);
   );
 }
 {
-  // 闸3 P2 的靶向突变：仅删一个 printf 行（token 变量与 curl 块仍在）——
-  // 整页级"至少一处 --config -"守卫对此盲，逐块配对必须红。
+  // 靶向突变 1：删掉整条 printf 行（token 引用随之而去）——计数 20→19 必须红。
   const singleBlockAuthLoss = api.replace(
     /printf 'header = "Authorization: Bearer %s"\\n' "\$[A-Z_]+"\s*\|\s*\\\n/,
     '',
@@ -1725,8 +1724,23 @@ assertCurlBearerOffArgvPattern(api, 'API reference', 20);
   assert.notEqual(singleBlockAuthLoss, api, 'mutation fixture must actually change api.md source');
   assert.throws(
     () => assertCurlBearerOffArgvPattern(singleBlockAuthLoss, 'single-block-loss', 20),
-    /stdin config|token variable|found \d+/,
+    /found \d+/,
     'per-block guard must reject a single block silently losing its auth header',
+  );
+}
+{
+  // 靶向突变 2（闸3 r2 P2 的存在性配对盲区）：printf 改灌 cat >/dev/null、
+  // curl --config - 原样保留——"两件都在"但连接已断、计数不变，存在性配对
+  // 会假绿；连接性配对必须红（token 变量路径或计数路径均可）。
+  const catBypass = api.replace(
+    /('header = "Authorization: Bearer %s"\\n' "[^"]+")\s*\|\s*\\\n(?=curl)/,
+    '$1 | cat >/dev/null \\\n',
+  );
+  assert.notEqual(catBypass, api, 'cat-bypass fixture must actually change api.md source');
+  assert.throws(
+    () => assertCurlBearerOffArgvPattern(catBypass, 'cat-bypass', 20),
+    /token variable|found \d+/,
+    'connected-pipe guard must reject printf piped away from the curl that reads stdin config',
   );
 }
 
@@ -3225,20 +3239,20 @@ function assertNoCurlBearerOnArgv(markup, label) {
   );
 }
 
-// #62（闸3 P2 修复）：守卫必须逐 bash 块配对，不能只做整页 match——每个含 curl 的
-// 块要么经 printf|curl --config - 喂 Authorization 头，要么完全不引用 bearer token
-// 变量；并按文件钉住迁移块数量。单段静默丢失认证有两形态：只删 printf 行（token
-// 变量仍在）由配对断言红；整段连头带配置丢失由数量钉红——两者都是整页级守卫的盲区。
+// #62（闸3 r1+r2 P2 修复）：守卫必须逐 bash 块、且按「连接」配对——printf 经 "| \"
+// 续行直接喂给一条 curl 命令、且该 curl 自带 --config -/-K -，才算一个迁移块。
+// 存在性配对（块内同时出现 printf 与 --config）不够：printf|cat >/dev/null 加一条
+// 裸 curl --config - 会假绿（闸3 r2 实证）。含 curl 的块若不满足连接形态，则不得
+// 引用任何 bearer token 变量（含 ${VAR} 形态）；并按文件钉数量 1/2/20。
 function assertCurlBearerOffArgvPattern(markup, label, expectedMigratedBlocks) {
-  const curlBearerTokenVar = /\$(?:ADMIN_KEY|API_KEYS|IDENTITY_TOKEN|KEY|WORKER_TOKEN)\b/g;
+  const connectedPipe =
+    /printf 'header = "Authorization: Bearer %s"\\n'[^|\n]*\|\s*\\?\s*\n?\s*curl(?:[^;\n]|\\\n)*?(?:--config|-K)\s+-/g;
+  const curlBearerTokenVar = /(?:\$\{|\$)(?:ADMIN_KEY|API_KEYS|IDENTITY_TOKEN|KEY|WORKER_TOKEN)\}?(?![A-Z_])/g;
   const blocks = [...markup.matchAll(/```bash\n([\s\S]*?)```/g)].map((m) => m[1]);
   let migratedBlocks = 0;
   blocks.forEach((block, index) => {
     if (!/\bcurl\b/.test(block)) return;
-    const headerViaStdin =
-      /printf 'header = "Authorization: Bearer %s"\\n'[^|\n]*\|/.test(block) &&
-      /(?:--config|-K)\s+-/.test(block);
-    if (headerViaStdin) {
+    if ([...block.matchAll(connectedPipe)].length > 0) {
       migratedBlocks += 1;
       return;
     }
@@ -3246,7 +3260,7 @@ function assertCurlBearerOffArgvPattern(markup, label, expectedMigratedBlocks) {
     assert.deepEqual(
       tokenVars,
       [],
-      `${label} bash block ${index + 1} references bearer token variable(s) ${tokenVars.join(', ')} but does not feed the Authorization header through printf into curl stdin config`,
+      `${label} bash block ${index + 1} references bearer token variable(s) ${tokenVars.join(', ')} but does not feed the Authorization header through a connected printf-to-curl stdin config pipe`,
     );
   });
   assert.ok(
