@@ -10,7 +10,7 @@ const ownerSource = 'components/JsonLd.astro';
 const ownerMarker = 'JsonLd';
 const expectedBlocks = new Map([['index.html', 2], ['compare/index.html', 1]]);
 const expectedTotalBlocks = 3;
-const baselinePayloadDigest = '818928a42d5b1b9f181c2c864ac7676114379cede6d6b8290d4de44af584df34';
+const baselinePayloadDigest = 'b5e8c35958b50eeb54187f760c6d3698b74eb2f66f659f4152b786a38cd89758';
 
 // The owner marker and source rule guard regressions and accidental misuse. They do not
 // defend against a malicious contributor, who could forge the marker and edit this test.
@@ -98,7 +98,7 @@ if (process.argv.includes('--check-rendered')) {
 
   const payloadRows = assertRenderedOwnership(renderedBySurface);
   const digest = createHash('sha256').update(JSON.stringify(payloadRows)).digest('hex');
-  assert.equal(digest, baselinePayloadDigest, 'The three parsed JSON-LD payloads must remain semantically equal to the 11d636a baseline');
+  assert.equal(digest, baselinePayloadDigest, 'The three parsed JSON-LD payloads must remain semantically equal to the pinned baseline (#251 positioning sync)');
 
   const compareDocument = parse(renderedBySurface.get('compare/index.html'));
   const compareHead = descendants(compareDocument).find((node) => node.nodeName === 'head');

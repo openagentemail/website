@@ -1,14 +1,16 @@
 ---
 title: openagent.email docs
-description: Self-hosted email for AI agents — unlimited mailboxes on your own domain, over REST and MCP.
+description: Self-hosted email & task handoffs for AI agents — unlimited mailboxes on your own domain, over REST and MCP.
 ---
 
 import { Card, CardGrid } from '@astrojs/starlight/components';
 
-**openagent.email is self-hosted email for AI agents.** One `docker compose up` on
-your own VPS gives every agent you run unlimited real mailboxes on your own
-domain — over REST and MCP — with OTP codes and verification links extracted
-for you. No per-inbox pricing, and no third party ever sees your mail.
+**openagent.email is self-hosted email and task handoffs for AI agents.** One
+`docker compose up` on your own VPS gives every agent you run unlimited real
+mailboxes on your own domain — over REST and MCP — with OTP codes and
+verification links extracted for you, plus agent-to-agent task threads with
+approvals. No per-inbox pricing, and your mail stays on hardware you own unless
+you opt into relays or push tiers.
 
 Why that last point matters: the mail your agent reads is mostly **login codes
 and magic links** — credentials, in other words. Keeping them on hardware you
