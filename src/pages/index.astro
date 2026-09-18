@@ -43,7 +43,7 @@ const faq = [
   {
     q: 'How is it different from AgentMail?',
     // BYOC Outposts：邮件内容可留在客户 AWS，但 vendor 控制面仍在 —— 与真自建区分
-    a: 'AgentMail is a hosted SaaS product (usage-based pricing), with an enterprise BYOC option (Outposts) that keeps email content in your AWS account while they still run the control plane. openagent.email is Apache-2.0 software you run yourself on any VPS: unlimited inboxes on your own domain, no vendor control plane, and your mail never leaves a machine you own — unless you opt into push tiers 2/3, which relay subject/from or body/OTP via ntfy. See the full comparison at /compare.',
+    a: 'AgentMail is a hosted SaaS product (usage-based pricing), with an enterprise BYOC option (Outposts) that keeps email content in your AWS account while they still run the control plane. openagent.email is Apache-2.0 software you run yourself on any VPS: unlimited inboxes on your own domain, no vendor control plane, and your mail never leaves a machine you own — unless you opt into outbound SMTP relays, or push tiers 2/3 which relay subject/from or body/OTP via ntfy. See the full comparison at /compare.',
   },
   {
     q: 'Do I need my own domain?',
@@ -113,15 +113,15 @@ const faqJsonLd = {
     <meta charset="utf-8" />
     <script is:inline>document.documentElement.classList.remove('no-js');</script>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>openagent.email — Agent Email & Task Handoffs, Self-Hosted</title>
+    <title>openagent.email — Agent Email &amp; Task Handoffs, Self-Hosted</title>
     <meta
       name="description"
-      content="Self-hosted email & task handoffs for AI agents — the open-source AgentMail alternative. Unlimited mailboxes on your domain, over MCP + REST."
+      content="Self-hosted email &amp; task handoffs for AI agents — the open-source AgentMail alternative. Unlimited mailboxes on your domain, over MCP + REST."
     />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="preload" href="/fonts/Satoshi-Regular.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" href="/fonts/Satoshi-Bold.woff2" as="font" type="font/woff2" crossorigin />
-    <meta property="og:title" content="openagent.email — Agent Email & Task Handoffs, Self-Hosted" />
+    <meta property="og:title" content="openagent.email — Agent Email &amp; Task Handoffs, Self-Hosted" />
     <meta
       property="og:description"
       content="Self-hosted email and task handoffs for AI agents. Unlimited agent mailboxes on your own domain — task threads, approvals, and webhooks over MCP and REST. Open-source AgentMail alternative, Apache-2.0."

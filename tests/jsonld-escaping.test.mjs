@@ -10,7 +10,7 @@ const ownerSource = 'components/JsonLd.astro';
 const ownerMarker = 'JsonLd';
 const expectedBlocks = new Map([['index.html', 2], ['compare/index.html', 1]]);
 const expectedTotalBlocks = 3;
-const baselinePayloadDigest = 'b5e8c35958b50eeb54187f760c6d3698b74eb2f66f659f4152b786a38cd89758';
+const baselinePayloadDigest = '6fa72fecf0f1d10b93a7b36780799f9758fa74ffdb9f7f22f3286bd225d491e6';
 
 // The owner marker and source rule guard regressions and accidental misuse. They do not
 // defend against a malicious contributor, who could forge the marker and edit this test.
