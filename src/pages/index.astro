@@ -216,8 +216,8 @@ const faqJsonLd = {
           openagent.email is Apache-2.0 software you run yourself: agent mailboxes on your own
           domain, over MCP and REST, with OTP and link extraction and no per-inbox fees. A $5 VPS
           is enough; a hosted service is optional if you would rather not run a server. Mail stays
-          on a machine you own unless you opt into push tiers 2/3, which relay subject/from or
-          body/OTP via ntfy.
+          on a machine you own unless you opt into outbound SMTP relays, or push tiers 2/3 which
+          relay subject/from or body/OTP via ntfy.
         </p>
       </div>
     </section>
@@ -697,8 +697,8 @@ const faqJsonLd = {
             <p class="tagline">
               Self-hosted email &amp; task handoffs for AI agents. Unlimited inboxes on your own domain — your mail
               never leaves a machine you own
-              <small title="Push tiers 2/3 relay subject/from or body/OTP via ntfy">
-                — unless you opt into push tiers 2/3
+              <small title="Outbound SMTP relays for sending; push tiers 2/3 relay subject/from or body/OTP via ntfy">
+                — unless you opt into relays or push tiers 2/3
               </small>.
             </p>
           </div>
