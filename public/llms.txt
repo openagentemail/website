@@ -1,6 +1,6 @@
 # openagent.email
 
-> Apache-2.0 self-hosted email for AI agents: unlimited inboxes on your own domain, with MCP and REST, OTP and link extraction, and no per-inbox fees.
+> Apache-2.0 self-hosted email & task handoffs for AI agents: unlimited inboxes on your own domain, with MCP and REST, OTP and link extraction, agent-to-agent task threads with approvals, and no per-inbox fees.
 
 The site publishes HTML documentation only. This file is a selected map of those pages, not a Markdown mirror of the site.
 

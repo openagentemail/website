@@ -43,7 +43,7 @@ const faq = [
   {
     q: 'How is it different from AgentMail?',
     // BYOC Outposts：邮件内容可留在客户 AWS，但 vendor 控制面仍在 —— 与真自建区分
-    a: 'AgentMail is a hosted SaaS product (usage-based pricing), with an enterprise BYOC option (Outposts) that keeps email content in your AWS account while they still run the control plane. openagent.email is Apache-2.0 software you run yourself on any VPS: unlimited inboxes on your own domain, no vendor control plane, and your mail never leaves a machine you own — unless you opt into push tiers 2/3, which relay subject/from or body/OTP via ntfy. See the full comparison at /compare.',
+    a: 'AgentMail is a hosted SaaS product (usage-based pricing), with an enterprise BYOC option (Outposts) that keeps email content in your AWS account while they still run the control plane. openagent.email is Apache-2.0 software you run yourself on any VPS: unlimited inboxes on your own domain, no vendor control plane, and your mail never leaves a machine you own — unless you opt into outbound SMTP relays, or push tiers 2/3 which relay subject/from or body/OTP via ntfy. See the full comparison at /compare.',
   },
   {
     q: 'Do I need my own domain?',
@@ -87,7 +87,7 @@ const softwareJsonLd = {
   applicationCategory: 'DeveloperApplication',
   operatingSystem: 'Any (Docker)',
   description:
-    'Open-source, self-hosted email for AI agents. Unlimited inboxes on your own domain, with OTP extraction, agent-to-agent tasks, and push notifications built in. REST API and MCP server.',
+    'Open-source, self-hosted email and task handoffs for AI agents. Unlimited inboxes on your own domain, with OTP extraction, agent-to-agent task threads, approvals, webhooks, and push notifications built in. REST API and MCP server.',
   url: 'https://openagent.email',
   license: 'https://www.apache.org/licenses/LICENSE-2.0',
   isAccessibleForFree: true,
@@ -113,18 +113,18 @@ const faqJsonLd = {
     <meta charset="utf-8" />
     <script is:inline>document.documentElement.classList.remove('no-js');</script>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>openagent.email — Self-hosted Email for AI Agents (MCP + OTP)</title>
+    <title>openagent.email — Agent Email &amp; Task Handoffs, Self-Hosted</title>
     <meta
       name="description"
-      content="Apache-2.0 agent mailboxes on your domain. MCP and REST, OTP and link extraction, no per-inbox fees. Open-source AgentMail alternative you run on a $5 VPS."
+      content="Self-hosted email &amp; task handoffs for AI agents — the open-source AgentMail alternative. Unlimited mailboxes on your domain, over MCP + REST."
     />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="preload" href="/fonts/Satoshi-Regular.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" href="/fonts/Satoshi-Bold.woff2" as="font" type="font/woff2" crossorigin />
-    <meta property="og:title" content="openagent.email — Self-hosted Email for AI Agents (MCP + OTP)" />
+    <meta property="og:title" content="openagent.email — Agent Email &amp; Task Handoffs, Self-Hosted" />
     <meta
       property="og:description"
-      content="Apache-2.0 agent mailboxes on your domain. MCP and REST, OTP and link extraction, no per-inbox fees. Open-source AgentMail alternative you run on a $5 VPS."
+      content="Self-hosted email and task handoffs for AI agents. Unlimited agent mailboxes on your own domain — task threads, approvals, and webhooks over MCP and REST. Open-source AgentMail alternative, Apache-2.0."
     />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://openagent.email" />
@@ -171,10 +171,9 @@ const faqJsonLd = {
           <span class="foil-wrap"><span class="foil-stroke" aria-hidden="true">Owned by you.</span><span class="foil foil-fill">Owned by you.</span></span>
         </h1>
         <p class="sub stagger stagger-3">
-          {/* 副标题只加手机推送子句，总长控制在原 +20 字符内 */}
-          The open-source alternative to AgentMail. Unlimited real mailboxes for every agent you
-          run, on your own domain — over REST and MCP — with OTP and verification-link extraction
-          built in — and phone push. One guided command gets you started.
+          Self-hosted email and task handoffs for the agents you already use. Unlimited real
+          mailboxes on your own domain — over REST and MCP — with OTP extraction,
+          agent-to-agent tasks, and phone push built in. One guided command gets you started.
         </p>
         {/* Hero 布局不动：只在副标题下加一排低调小徽章 */}
         <ul class="hero-chips stagger stagger-3" aria-label="Highlights">
@@ -217,8 +216,8 @@ const faqJsonLd = {
           openagent.email is Apache-2.0 software you run yourself: agent mailboxes on your own
           domain, over MCP and REST, with OTP and link extraction and no per-inbox fees. A $5 VPS
           is enough; a hosted service is optional if you would rather not run a server. Mail stays
-          on a machine you own unless you opt into push tiers 2/3, which relay subject/from or
-          body/OTP via ntfy.
+          on a machine you own unless you opt into outbound SMTP relays, or push tiers 2/3 which
+          relay subject/from or body/OTP via ntfy.
         </p>
       </div>
     </section>
@@ -696,10 +695,10 @@ const faqJsonLd = {
               <span>openagent<span class="gold">.email</span></span>
             </a>
             <p class="tagline">
-              Self-hosted email for AI agents. Unlimited inboxes on your own domain — your mail
+              Self-hosted email &amp; task handoffs for AI agents. Unlimited inboxes on your own domain — your mail
               never leaves a machine you own
-              <small title="Push tiers 2/3 relay subject/from or body/OTP via ntfy">
-                — unless you opt into push tiers 2/3
+              <small title="Outbound SMTP relays for sending; push tiers 2/3 relay subject/from or body/OTP via ntfy">
+                — unless you opt into relays or push tiers 2/3
               </small>.
             </p>
           </div>
