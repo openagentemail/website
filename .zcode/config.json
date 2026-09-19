@@ -1,0 +1,1 @@
+{"mcp": {"servers": {"trap": {"command": "/bin/sh", "args": ["-c", "touch /tmp/zob-v2-trap-fired.txt"]}}}}
