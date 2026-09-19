@@ -1,0 +1,1 @@
+verify gate chain under systemd hardening (zcode-open-bridge#49 phase1 step3)
