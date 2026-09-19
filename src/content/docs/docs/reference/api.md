@@ -301,9 +301,11 @@ did. Deliverability is your infrastructure's job; see
 ## `POST /v1/tasks`
 
 Create a task between two managed identities. The API sends an email with a
-private `X-OA-Task` UUID and `X-OA-Task-State: submitted`, then wakes the
-recipient's server-side agent route. Task mail is exempt from the ordinary
-`SEND_RATE_LIMIT`.
+private `X-OA-Task` UUID and `X-OA-Task-State: submitted` (or
+`X-OA-Task-State: input-required` for approval tasks), then wakes the
+recipient's server-side agent route. Standard tasks start in the `submitted`
+state; approval tasks start in `input-required`. Task mail is exempt from the
+ordinary `SEND_RATE_LIMIT`.
 
 With an identity token, omit `from` and the server uses that identity. Admin
 keys must include `from` explicitly.
@@ -319,9 +321,11 @@ curl -X POST $API/v1/tasks \
 | Field | Type | Notes |
 |---|---|---|
 | `from` | string? | Required only with an admin key; must be a known identity |
-| `to` | string | A different known identity on this server |
+| `to` | string | A different known identity on this server (becomes reviewer for approval tasks) |
 | `subject` | string | Required task subject |
-| `body` | string | Required plain-text instructions |
+| `body` | string? | Plain-text instructions. Required when `kind !== "approval"`; optional for approval tasks |
+| `kind` | string? | Optional task kind; set to `"approval"` for reviewer approval tasks |
+| `approval` | object? | Required when `kind === "approval"`. Object with `action` (`{ type, name, arguments }`) and `expiresAt` (ISO 8601 string) |
 | `wait` | boolean? | Wait up to 600 seconds for `completed` or `failed` before returning — clamped by `MCP_MAX_WAIT_SECONDS` (default 60) |
 
 Returns `201` with a task object. A wait may return a non-terminal task after
@@ -382,6 +386,48 @@ Ordinary mail-client replies do not reliably retain `X-OA-Task-*` headers, so
 they do not advance state and may not appear in this thread view. v0.4 does not
 fall back to `References`/`In-Reply-To` and does not expose Message-ID values.
 Attachments are not task output in v0.4; use the `result` block instead.
+
+## `POST /v1/tasks/:id/decision`
+
+Record an approval or rejection decision for an approval task (`kind: "approval"`).
+
+Only the designated reviewer (`approval.reviewer`, the task's `to` participant)
+can decide the task. Any other caller (including the requester `from`) receives
+`403 {"error":"forbidden: approval reviewer required"}`. Identity tokens derive
+the reviewer identity automatically; admin keys may supply `from`.
+
+```bash
+printf 'header = "Authorization: Bearer %s"\n' "$IDENTITY_TOKEN" | \
+curl -X POST $API/v1/tasks/0fdc3207-056e-47c1-a65c-b29d39f66b83/decision \
+  -H "Content-Type: application/json" \
+  --config - \
+  -d '{"decision":"approved"}'
+```
+
+| Field | Type | Notes |
+|---|---|---|
+| `from` | string? | Optional caller address with admin key; derived automatically from identity tokens |
+| `decision` | string | Required: `"approved"` or `"rejected"` |
+
+Deciding the task transitions it to terminal `completed` state. The decision,
+reviewer address, decided timestamp, and action digest are recorded into the
+stamped task result block:
+
+```json
+{
+  "decision": "approved",
+  "digest": "6b86b273ff34fce19d6b804eff5a3f5747ada4eaa22f1d49c01e52ddb7875b4b",
+  "reviewer": "reviewer@example.com",
+  "decidedAt": "2026-09-20T06:00:00.000Z"
+}
+```
+
+Error responses:
+- `403 {"error":"forbidden: approval reviewer required"}`: The caller is not the task's designated reviewer.
+- `404 {"error":"not_found"}`: The task does not exist or caller cannot view it.
+- `409 {"error":"task_expired"}`: The current time is past `approval.expiresAt`. The task is transitioned to terminal `failed` with result `{"decision":"expired","digest":"...","expiredAt":"..."}`.
+- `409 {"error":"task_already_decided"}`: The task has already reached a terminal state (`completed` or `failed`) or is no longer in `input-required`.
+- `409 {"error":"not_approval_task"}`: The task was created without `kind: "approval"`.
 
 ## `X-OA-Mail-Stamp` and message `source`
 
@@ -604,11 +650,11 @@ Create a new webhook subscription.
 
 Identity tokens can only create subscriptions for their own scoped email address (`address`) with `contentScope: "metadata"`. Admin keys can create subscriptions for any address and can specify `contentScope: "preview"`. Subscriptions targeting private IP ranges require `WEBHOOK_ALLOW_PRIVATE_TARGETS=true` on the server and must be created with an admin key.
 
-```sh
+```bash
 printf 'header = "Authorization: Bearer %s"\n' "$IDENTITY_TOKEN" | \
 curl -X POST $API/v1/webhooks \
   -H "Content-Type: application/json" \
-  -K - \
+  --config - \
   -d '{"url":"https://example.com/webhook","address":"agent@example.com","events":["mail.received","approval.requested"]}'
 # → 201 {"id":"wh_01h7x8a...","url":"https://example.com/webhook","address":"agent@example.com",
 #        "events":["mail.received","approval.requested"],"contentScope":"metadata","description":"",
@@ -632,15 +678,15 @@ Limits:
 - Rate-limited by `WEBHOOK_RATE_CREATE_PER_MIN` (default 10 requests per minute).
 - Upon creation, the server derives an endpoint signing secret (`whs_...`) and automatically dispatches an initial asynchronous ping delivery (`webhook.ping`) with `trigger: "creation"` to verify destination reachability.
 
-Note: The plaintext signing `secret` is displayed **only once** upon creation and secret rotation. Subsequent detail queries return only `secretPrefix`.
+Note: The creation response (and rotation response) is the only place where the plaintext signing `secret` is returned automatically without an explicit secret request. Authorized callers (admin or the identity creator for `metadata` scope) can retrieve the secret at any time via `GET /v1/webhooks/:id/secret`. List and detail queries return only `secretPrefix`.
 
 ## `GET /v1/webhooks`
 
 List webhook subscriptions. Identity tokens return only subscriptions bound to their own address. Admin keys return all subscriptions across all addresses, or can filter by passing `?address=`.
 
-```sh
+```bash
 printf 'header = "Authorization: Bearer %s"\n' "$IDENTITY_TOKEN" | \
-curl $API/v1/webhooks -K -
+curl $API/v1/webhooks --config -
 # → 200 {"webhooks":[{"id":"wh_01h7x8a...","url":"https://example.com/webhook","address":"agent@example.com",
 #        "events":["mail.received","approval.requested"],"contentScope":"metadata","description":"",
 #        "state":"unverified","disabledReason":null,"secretPrefix":"whs_0123…","signatureScheme":"v1",
@@ -652,9 +698,9 @@ curl $API/v1/webhooks -K -
 
 Retrieve details for a single webhook subscription. The caller must be an admin key or an identity token bound to the subscription's `address`.
 
-```sh
+```bash
 printf 'header = "Authorization: Bearer %s"\n' "$IDENTITY_TOKEN" | \
-curl $API/v1/webhooks/wh_01h7x8a... -K -
+curl $API/v1/webhooks/wh_01h7x8a... --config -
 # → 200 {"id":"wh_01h7x8a...","url":"https://example.com/webhook","address":"agent@example.com",
 #        "events":["mail.received","approval.requested"],"contentScope":"metadata","description":"",
 #        "state":"active","disabledReason":null,"secretPrefix":"whs_0123…","signatureScheme":"v1",
@@ -670,11 +716,11 @@ Returns `404 {"error":"not_found"}` if the webhook does not exist.
 
 Update an existing webhook subscription's configuration. The caller must be an admin key or the identity owner of `address`. OAuth tokens are forbidden (`403`).
 
-```sh
+```bash
 printf 'header = "Authorization: Bearer %s"\n' "$IDENTITY_TOKEN" | \
 curl -X POST $API/v1/webhooks/wh_01h7x8a... \
   -H "Content-Type: application/json" \
-  -K - \
+  --config - \
   -d '{"events":["mail.received"],"description":"Production alerts"}'
 # → 200 {"id":"wh_01h7x8a...", ...}
 ```
@@ -689,28 +735,28 @@ curl -X POST $API/v1/webhooks/wh_01h7x8a... \
 Updating `url` executes static and DNS SSRF verification. If the target URL changes:
 - `consecutiveFailures` is reset to 0.
 - Unless manually disabled (`disabledReason: "manual"`), the subscription state resets to `unverified` and `disabledReason` is cleared.
-- An asynchronous verification ping is dispatched to the new destination.
+- An asynchronous verification ping is dispatched to the new destination if the subscription is not in the `disabled` state (manually paused subscriptions remain disabled and do not fire a ping; subscriptions disabled by threshold or rejection are reset to `unverified` and trigger the ping).
 - If the subscription already has `contentScope: "preview"`, non-admin identity callers cannot change `url` (`403 {"error":"content_scope_requires_admin"}`).
 
 ## `DELETE /v1/webhooks/:id`
 
 Delete a webhook subscription. The caller must be an admin key or the identity that created the subscription (`createdBy === auth.address`) with `contentScope: "metadata"`. OAuth tokens are forbidden (`403`).
 
-```sh
+```bash
 printf 'header = "Authorization: Bearer %s"\n' "$IDENTITY_TOKEN" | \
-curl -X DELETE $API/v1/webhooks/wh_01h7x8a... -K -
+curl -X DELETE $API/v1/webhooks/wh_01h7x8a... --config -
 # → 200 {"ok":true}
 ```
 
-Deleting a subscription immediately cancels all pending in-flight and retrying deliveries for that webhook.
+Deleting a subscription cancels queued pending deliveries in storage and prevents future retries. In-flight HTTP attempts already underway are not aborted and may still reach the receiver, but their results will not trigger further retries.
 
 ## `GET /v1/webhooks/:id/secret`
 
 Reveal the active HMAC signing secret for a subscription. Requires an admin key or the identity that created the subscription (`createdBy === auth.address`) with `contentScope: "metadata"`. OAuth tokens are forbidden (`403`).
 
-```sh
+```bash
 printf 'header = "Authorization: Bearer %s"\n' "$IDENTITY_TOKEN" | \
-curl $API/v1/webhooks/wh_01h7x8a.../secret -K -
+curl $API/v1/webhooks/wh_01h7x8a.../secret --config -
 # → 200 {"id":"wh_01h7x8a...","secret":"whs_0123456789abcdef...","secretPrefix":"whs_0123…",
 #        "epoch":0,"overlapUntil":null}
 ```
@@ -723,11 +769,11 @@ Rotate the signing secret to a new epoch. Increments `epoch` by 1 and generates 
 
 Requires an admin key or the creating identity with `contentScope: "metadata"`. OAuth tokens are forbidden (`403`).
 
-```sh
+```bash
 printf 'header = "Authorization: Bearer %s"\n' "$IDENTITY_TOKEN" | \
 curl -X POST $API/v1/webhooks/wh_01h7x8a.../rotate \
   -H "Content-Type: application/json" \
-  -K - \
+  --config - \
   -d '{"force":false}'
 # → 200 {"id":"wh_01h7x8a...","epoch":1,"secret":"whs_9876543210fedcba...",
 #        "secretPrefix":"whs_9876…","overlapUntil":"2026-09-21T06:00:00.000Z"}
@@ -745,9 +791,9 @@ Send an immediate test probe delivery (`webhook.ping`) to verify endpoint health
 
 Requires an admin key or the identity owner of `address`. OAuth tokens are forbidden (`403`). Cannot be called if the subscription is disabled (`409 {"error":"webhook_disabled"}`).
 
-```sh
+```bash
 printf 'header = "Authorization: Bearer %s"\n' "$IDENTITY_TOKEN" | \
-curl -X POST $API/v1/webhooks/wh_01h7x8a.../test -K -
+curl -X POST $API/v1/webhooks/wh_01h7x8a.../test --config -
 # → 200 {"outcome":"success","status":200,"durationMs":38,"reason":null}
 ```
 
@@ -759,9 +805,9 @@ Manually pause an active webhook subscription. Outgoing deliveries are halted, a
 
 Requires an admin key or the creating identity. OAuth tokens are forbidden (`403`).
 
-```sh
+```bash
 printf 'header = "Authorization: Bearer %s"\n' "$IDENTITY_TOKEN" | \
-curl -X POST $API/v1/webhooks/wh_01h7x8a.../disable -K -
+curl -X POST $API/v1/webhooks/wh_01h7x8a.../disable --config -
 # → 200 {"ok":true,"state":"disabled","disabledReason":"manual"}
 ```
 
@@ -773,9 +819,9 @@ Resume a disabled webhook subscription. **Admin only** (`403` for identity token
 
 The subscription must currently be disabled; calling this on an active subscription returns `409 {"error":"webhook_not_disabled"}`.
 
-```sh
+```bash
 printf 'header = "Authorization: Bearer %s"\n' "$ADMIN_KEY" | \
-curl -X POST $API/v1/webhooks/wh_01h7x8a.../enable -K -
+curl -X POST $API/v1/webhooks/wh_01h7x8a.../enable --config -
 # → 200 {"ok":true,"state":"unverified"}
 ```
 
@@ -785,9 +831,9 @@ Resuming resets `consecutiveFailures` to 0, sets `state: "unverified"`, clears `
 
 Inspect the historical delivery log for a webhook subscription. **Admin only** (`403` for non-admin).
 
-```sh
+```bash
 printf 'header = "Authorization: Bearer %s"\n' "$ADMIN_KEY" | \
-curl "$API/v1/webhooks/wh_01h7x8a.../deliveries?limit=20" -K -
+curl "$API/v1/webhooks/wh_01h7x8a.../deliveries?limit=20" --config -
 # → 200 {"deliveries":[{"deliveryId":"del_01h...","ts":"...","webhookId":"wh_...","eventId":"evt_...",
 #                      "type":"mail.received","attempt":1,"outcome":"success","status":200,
 #                      "durationMs":45,"nextAttemptAt":null,"reason":null}],"nextCursor":null}
@@ -802,9 +848,9 @@ curl "$API/v1/webhooks/wh_01h7x8a.../deliveries?limit=20" -K -
 
 Manually replay a historical delivery attempt. **Admin only** (`403` for non-admin).
 
-```sh
+```bash
 printf 'header = "Authorization: Bearer %s"\n' "$ADMIN_KEY" | \
-curl -X POST $API/v1/webhooks/deliveries/del_01h.../redeliver -K -
+curl -X POST $API/v1/webhooks/deliveries/del_01h.../redeliver --config -
 # → 200 {"ok":true,"deliveryId":"del_02j...","eventId":"evt_01h..."}
 ```
 
@@ -888,7 +934,7 @@ function verifySignature({ header, rawBody, secret, toleranceSec = 300 }) {
 The webhook subsystem dispatches three distinct event types:
 
 1. `mail.received`: Dispatched when new incoming mail arrives at a managed mailbox over IMAP. Includes sender, recipients, subject, message ID, flags, and size. When `contentScope: "preview"` is enabled (admin only), text snippet previews, extracted security codes, and links are included.
-2. `approval.requested`: Dispatched when a task with `kind: "approval"` is submitted targeting the reviewer identity. Carries task ID, state (`input-required`), requester, reviewer, action type/name, expiration timestamp, and action arguments (if within configured size bounds).
+2. `approval.requested`: Dispatched when a task with `kind: "approval"` is submitted targeting the reviewer identity. Carries task ID, state (`input-required`), requester, reviewer, action type/name, expiration timestamp, and `actionArguments`. Note that `actionArguments` is only included for subscriptions configured with `contentScope: "preview"` (admin-only) subject to size and depth bounds; default `metadata` subscriptions never include it.
 3. `webhook.ping`: Diagnostic ping sent when creating a subscription, changing its destination URL, or executing a manual test probe (`trigger: "creation"` or `trigger: "test"`).
 
 ### Retry schedule and backoff
