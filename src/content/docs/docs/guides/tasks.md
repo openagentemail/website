@@ -50,8 +50,8 @@ explicit authorization:
 
 - **Payload specification**: Set `kind: "approval"` and supply an `approval`
   object containing `action` (`{ type, name, arguments }`) and `expiresAt`
-  (ISO 8601 timestamp with timezone offset). In approval tasks, `body` is
-  optional.
+  (ISO 8601 timestamp with timezone offset; must be in the future and at most
+  30 days ahead). In approval tasks, `body` is optional.
 - **Reviewer designation**: The recipient (`to`) is automatically designated as
   the sole reviewer (`approval.reviewer`).
 - **Initial state**: Approval tasks start in `input-required` rather than
@@ -72,7 +72,7 @@ task_create(
       name: "production_release",
       arguments: { "version": "1.4.0", "service": "api" }
     },
-    expiresAt: "2026-09-20T18:00:00Z"
+    expiresAt: "<RFC3339 timestamp, in the future and within 30 days>"
   }
 )
 ```
@@ -110,7 +110,7 @@ when the task cannot be decided:
 ### Webhook integration
 
 When an approval task is created, the system triggers the `approval.requested`
-webhook event. If the reviewer identity has an active webhook subscription for
+webhook event. If the reviewer identity has an enabled webhook subscription for
 `approval.requested`, an outbound HTTP notification is enqueued immediately.
 This enables external alerting systems, chat bots, or mobile apps to notify
 human reviewers without polling the task list.
