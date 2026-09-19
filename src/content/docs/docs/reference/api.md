@@ -592,6 +592,348 @@ topics using this one account; it has no access to any agent topic. The
 [phone notification guide](/docs/guides/phone-notifications/) has the public
 proxy and iOS/Android steps.
 
+## Webhooks
+
+Outbound webhooks deliver real-time HTTP POST notifications to external endpoints when events occur (such as incoming mail or task approval requests). Webhooks are disabled by default (`WEBHOOKS_ENABLED=false`). When enabled, subscriptions can be created and managed per identity address or globally with an admin key.
+
+All webhook endpoints require `WEBHOOKS_ENABLED=true` in server configuration; when disabled, requests return `404 {"error":"webhooks_disabled"}`. OAuth access tokens may read subscriptions but are forbidden from mutating them or revealing signing secrets (`403`).
+
+## `POST /v1/webhooks`
+
+Create a new webhook subscription.
+
+Identity tokens can only create subscriptions for their own scoped email address (`address`) with `contentScope: "metadata"`. Admin keys can create subscriptions for any address and can specify `contentScope: "preview"`. Subscriptions targeting private IP ranges require `WEBHOOK_ALLOW_PRIVATE_TARGETS=true` on the server and must be created with an admin key.
+
+```sh
+printf 'header = "Authorization: Bearer %s"\n' "$IDENTITY_TOKEN" | \
+curl -X POST $API/v1/webhooks \
+  -H "Content-Type: application/json" \
+  -K - \
+  -d '{"url":"https://example.com/webhook","address":"agent@example.com","events":["mail.received","approval.requested"]}'
+# → 201 {"id":"wh_01h7x8a...","url":"https://example.com/webhook","address":"agent@example.com",
+#        "events":["mail.received","approval.requested"],"contentScope":"metadata","description":"",
+#        "state":"unverified","secret":"whs_0123456789abcdef...","secretPrefix":"whs_0123…",
+#        "signatureScheme":"v1","timestampToleranceSec":300,"createdAt":"2026-09-20T06:00:00.000Z"}
+```
+
+| Field | Type | Notes |
+|---|---|---|
+| `url` | string | Destination HTTPS URL (max 2048 chars). Must resolve to a permitted IP address. |
+| `address` | string | Email address of the managed identity to observe. |
+| `events` | string[] | Non-empty array of unique event names: `mail.received`, `approval.requested`. |
+| `contentScope` | string? | `'metadata'` (default) or `'preview'`. `'preview'` requires an admin key. |
+| `description` | string? | Optional description (max 1000 chars, default `""`). |
+
+Headers:
+- `Idempotency-Key` (optional): Client idempotency token (max 128 chars). Replays return the cached response with `secret: null`.
+
+Limits:
+- Server capacity is governed by `WEBHOOK_MAX_SUBSCRIPTIONS` (default 16 server-wide) and `WEBHOOK_MAX_PER_ADDRESS` (default 4 per address). Exceeding these returns `409 {"error":"webhook_limit_reached"}`.
+- Rate-limited by `WEBHOOK_RATE_CREATE_PER_MIN` (default 10 requests per minute).
+- Upon creation, the server derives an endpoint signing secret (`whs_...`) and automatically dispatches an initial asynchronous ping delivery (`webhook.ping`) with `trigger: "creation"` to verify destination reachability.
+
+Note: The plaintext signing `secret` is displayed **only once** upon creation and secret rotation. Subsequent detail queries return only `secretPrefix`.
+
+## `GET /v1/webhooks`
+
+List webhook subscriptions. Identity tokens return only subscriptions bound to their own address. Admin keys return all subscriptions across all addresses, or can filter by passing `?address=`.
+
+```sh
+printf 'header = "Authorization: Bearer %s"\n' "$IDENTITY_TOKEN" | \
+curl $API/v1/webhooks -K -
+# → 200 {"webhooks":[{"id":"wh_01h7x8a...","url":"https://example.com/webhook","address":"agent@example.com",
+#        "events":["mail.received","approval.requested"],"contentScope":"metadata","description":"",
+#        "state":"unverified","disabledReason":null,"secretPrefix":"whs_0123…","signatureScheme":"v1",
+#        "timestampToleranceSec":300,"createdAt":"2026-09-20T06:00:00.000Z","updatedAt":"2026-09-20T06:00:00.000Z",
+#        "rotatedAt":null,"consecutiveFailures":0,"privateTargetGranted":false,"lastDelivery":null}]}
+```
+
+## `GET /v1/webhooks/:id`
+
+Retrieve details for a single webhook subscription. The caller must be an admin key or an identity token bound to the subscription's `address`.
+
+```sh
+printf 'header = "Authorization: Bearer %s"\n' "$IDENTITY_TOKEN" | \
+curl $API/v1/webhooks/wh_01h7x8a... -K -
+# → 200 {"id":"wh_01h7x8a...","url":"https://example.com/webhook","address":"agent@example.com",
+#        "events":["mail.received","approval.requested"],"contentScope":"metadata","description":"",
+#        "state":"active","disabledReason":null,"secretPrefix":"whs_0123…","signatureScheme":"v1",
+#        "timestampToleranceSec":300,"createdAt":"...","updatedAt":"...","rotatedAt":null,
+#        "consecutiveFailures":0,"privateTargetGranted":false,
+#        "lastDelivery":{"deliveryId":"del_...","ts":"...","attempt":1,"outcome":"success",
+#                        "status":200,"durationMs":42,"reason":null}}
+```
+
+Returns `404 {"error":"not_found"}` if the webhook does not exist.
+
+## `POST /v1/webhooks/:id`
+
+Update an existing webhook subscription's configuration. The caller must be an admin key or the identity owner of `address`. OAuth tokens are forbidden (`403`).
+
+```sh
+printf 'header = "Authorization: Bearer %s"\n' "$IDENTITY_TOKEN" | \
+curl -X POST $API/v1/webhooks/wh_01h7x8a... \
+  -H "Content-Type: application/json" \
+  -K - \
+  -d '{"events":["mail.received"],"description":"Production alerts"}'
+# → 200 {"id":"wh_01h7x8a...", ...}
+```
+
+| Field | Type | Notes |
+|---|---|---|
+| `url` | string? | New destination URL (max 2048 chars). |
+| `events` | string[]? | New non-empty list of event types. |
+| `contentScope` | string? | `'metadata'` or `'preview'`. Changing to `'preview'` requires an admin key. |
+| `description` | string? | New description string. |
+
+Updating `url` executes static and DNS SSRF verification. If the target URL changes:
+- `consecutiveFailures` is reset to 0.
+- Unless manually disabled (`disabledReason: "manual"`), the subscription state resets to `unverified` and `disabledReason` is cleared.
+- An asynchronous verification ping is dispatched to the new destination.
+- If the subscription already has `contentScope: "preview"`, non-admin identity callers cannot change `url` (`403 {"error":"content_scope_requires_admin"}`).
+
+## `DELETE /v1/webhooks/:id`
+
+Delete a webhook subscription. The caller must be an admin key or the identity that created the subscription (`createdBy === auth.address`) with `contentScope: "metadata"`. OAuth tokens are forbidden (`403`).
+
+```sh
+printf 'header = "Authorization: Bearer %s"\n' "$IDENTITY_TOKEN" | \
+curl -X DELETE $API/v1/webhooks/wh_01h7x8a... -K -
+# → 200 {"ok":true}
+```
+
+Deleting a subscription immediately cancels all pending in-flight and retrying deliveries for that webhook.
+
+## `GET /v1/webhooks/:id/secret`
+
+Reveal the active HMAC signing secret for a subscription. Requires an admin key or the identity that created the subscription (`createdBy === auth.address`) with `contentScope: "metadata"`. OAuth tokens are forbidden (`403`).
+
+```sh
+printf 'header = "Authorization: Bearer %s"\n' "$IDENTITY_TOKEN" | \
+curl $API/v1/webhooks/wh_01h7x8a.../secret -K -
+# → 200 {"id":"wh_01h7x8a...","secret":"whs_0123456789abcdef...","secretPrefix":"whs_0123…",
+#        "epoch":0,"overlapUntil":null}
+```
+
+The response includes `Cache-Control: no-store` to prevent caching of sensitive credentials.
+
+## `POST /v1/webhooks/:id/rotate`
+
+Rotate the signing secret to a new epoch. Increments `epoch` by 1 and generates a new secret.
+
+Requires an admin key or the creating identity with `contentScope: "metadata"`. OAuth tokens are forbidden (`403`).
+
+```sh
+printf 'header = "Authorization: Bearer %s"\n' "$IDENTITY_TOKEN" | \
+curl -X POST $API/v1/webhooks/wh_01h7x8a.../rotate \
+  -H "Content-Type: application/json" \
+  -K - \
+  -d '{"force":false}'
+# → 200 {"id":"wh_01h7x8a...","epoch":1,"secret":"whs_9876543210fedcba...",
+#        "secretPrefix":"whs_9876…","overlapUntil":"2026-09-21T06:00:00.000Z"}
+```
+
+Dual-signing overlap:
+- `overlapUntil` is set to current time plus `WEBHOOK_ROTATION_OVERLAP_MS` (default `86400000` ms = 24 hours).
+- During this overlap window, all outgoing deliveries carry signatures for **both** the new epoch and the preceding epoch in the `X-OAE-Signature` header (`v1=<new>,v1=<prev>`).
+- If a rotation window is already open, further rotations fail with `409 {"error":"rotation_window_open","overlapUntil":"..."}` unless `force: true` is passed.
+- Supports optional `Idempotency-Key` header (replays return cached response with `secret: null`).
+
+## `POST /v1/webhooks/:id/test`
+
+Send an immediate test probe delivery (`webhook.ping`) to verify endpoint health and signature configuration.
+
+Requires an admin key or the identity owner of `address`. OAuth tokens are forbidden (`403`). Cannot be called if the subscription is disabled (`409 {"error":"webhook_disabled"}`).
+
+```sh
+printf 'header = "Authorization: Bearer %s"\n' "$IDENTITY_TOKEN" | \
+curl -X POST $API/v1/webhooks/wh_01h7x8a.../test -K -
+# → 200 {"outcome":"success","status":200,"durationMs":38,"reason":null}
+```
+
+The test delivery sends a `webhook.ping` event with `data.trigger: "test"`. Ping attempts are capped at 3 attempts (`MAX_PING_ATTEMPTS = 3`). Test probes are rate-limited by `WEBHOOK_RATE_TEST_PER_MIN` (default 3 per minute; returns `429` when exceeded).
+
+## `POST /v1/webhooks/:id/disable`
+
+Manually pause an active webhook subscription. Outgoing deliveries are halted, and queued attempts are cancelled.
+
+Requires an admin key or the creating identity. OAuth tokens are forbidden (`403`).
+
+```sh
+printf 'header = "Authorization: Bearer %s"\n' "$IDENTITY_TOKEN" | \
+curl -X POST $API/v1/webhooks/wh_01h7x8a.../disable -K -
+# → 200 {"ok":true,"state":"disabled","disabledReason":"manual"}
+```
+
+This operation is idempotent: if the subscription is already disabled, it returns `200` with the existing state and reason without re-modifying the record.
+
+## `POST /v1/webhooks/:id/enable` — admin only
+
+Resume a disabled webhook subscription. **Admin only** (`403` for identity tokens).
+
+The subscription must currently be disabled; calling this on an active subscription returns `409 {"error":"webhook_not_disabled"}`.
+
+```sh
+printf 'header = "Authorization: Bearer %s"\n' "$ADMIN_KEY" | \
+curl -X POST $API/v1/webhooks/wh_01h7x8a.../enable -K -
+# → 200 {"ok":true,"state":"unverified"}
+```
+
+Resuming resets `consecutiveFailures` to 0, sets `state: "unverified"`, clears `disabledReason`, and immediately dispatches an asynchronous ping to verify destination reachability.
+
+## `GET /v1/webhooks/:id/deliveries` — admin only
+
+Inspect the historical delivery log for a webhook subscription. **Admin only** (`403` for non-admin).
+
+```sh
+printf 'header = "Authorization: Bearer %s"\n' "$ADMIN_KEY" | \
+curl "$API/v1/webhooks/wh_01h7x8a.../deliveries?limit=20" -K -
+# → 200 {"deliveries":[{"deliveryId":"del_01h...","ts":"...","webhookId":"wh_...","eventId":"evt_...",
+#                      "type":"mail.received","attempt":1,"outcome":"success","status":200,
+#                      "durationMs":45,"nextAttemptAt":null,"reason":null}],"nextCursor":null}
+```
+
+| Parameter | Type | Notes |
+|---|---|---|
+| `limit` | integer? | Number of records to return (1 to 100, default 20). |
+| `cursor` | string? | Opaque cursor token for forward pagination (max 1024 chars). Invalid cursor returns `400 {"error":"invalid_cursor"}`. |
+
+## `POST /v1/webhooks/deliveries/:deliveryId/redeliver` — admin only
+
+Manually replay a historical delivery attempt. **Admin only** (`403` for non-admin).
+
+```sh
+printf 'header = "Authorization: Bearer %s"\n' "$ADMIN_KEY" | \
+curl -X POST $API/v1/webhooks/deliveries/del_01h.../redeliver -K -
+# → 200 {"ok":true,"deliveryId":"del_02j...","eventId":"evt_01h..."}
+```
+
+The server fetches the referenced delivery record, checks that the target webhook subscription is not disabled, retrieves the underlying email message or task approval, and enqueues a new delivery job preserving the original `eventId`.
+
+Possible errors:
+- `404 {"error":"delivery_not_found"}`: Delivery ID does not exist in logs.
+- `404 {"error":"webhook_not_found"}`: Associated webhook subscription was deleted.
+- `404 {"error":"message_not_found"}` / `task_not_found`: Underlying source entity is no longer in storage.
+- `409 {"error":"webhook_disabled"}`: Webhook subscription is currently disabled.
+- `409 {"error":"delivery_not_replayable"}`: Delivery record cannot be replayed.
+- `409 {"error":"stale_message_generation"}` / `uidvalidity_required`: IMAP mailbox generation mismatch.
+
+## Webhook signature verification
+
+All outbound HTTP delivery POST requests include the `X-OAE-Signature` header. Receivers must verify this signature to confirm that requests originated from openagent.email and were not altered or delayed.
+
+### Header format
+
+```text
+X-OAE-Signature: t=<unix-timestamp>,v1=<signature-hex>[,v1=<additional-signature-hex>]
+```
+
+- `t`: Integer Unix timestamp in seconds (`Math.floor(Date.now() / 1000)`) representing when the signature was created.
+- `v1`: Lower-case hexadecimal HMAC-SHA256 signature calculated over the payload. If secret rotation or root key migration is in progress, multiple comma-separated `v1=` signatures are included.
+
+### Verification procedure
+
+1. **Extract timestamp and signatures**: Parse the `X-OAE-Signature` header by splitting on commas. Extract the integer `t` value and all `v1` signature strings. If `t` or `v1` is missing, reject the request.
+2. **Check timestamp tolerance**: Compute `|nowSec - t|`. If the difference exceeds `WEBHOOK_TIMESTAMP_TOLERANCE_SEC` (default **300 seconds** / 5 minutes), reject the request as expired (`timestamp_out_of_range`) to defend against replay attacks.
+3. **Construct signed payload**: Concatenate the string `t`, a literal dot `.`, and the raw UTF-8 request body bytes:
+   ```text
+   signedPayload = `${t}.${rawRequestBody}`
+   ```
+   **Do not** parse or re-serialize JSON before verifying; the exact raw wire body bytes must be used.
+4. **Compute HMAC-SHA256**:
+   - The signing key is the exact 68-character ASCII string of the displayed secret (`whs_<64-hex>`). The `whs_` prefix is part of the HMAC key body (`Buffer.from(secret, 'utf8')`).
+   - Calculate `HMAC-SHA256(key=signingKey, data=signedPayload)` and format as a lower-case hexadecimal string.
+5. **Constant-time comparison**: Compare the computed hex digest against each candidate `v1=` signature using a constant-time comparison function (such as Node.js `crypto.timingSafeEqual`). If any signature matches, the request is authentic.
+
+```javascript
+import crypto from 'node:crypto';
+
+function verifySignature({ header, rawBody, secret, toleranceSec = 300 }) {
+  if (!header) return false;
+  const parts = header.split(',').map((p) => p.trim());
+  let t = null;
+  const signatures = [];
+  for (const part of parts) {
+    const [k, v] = part.split('=');
+    if (k === 't') t = parseInt(v, 10);
+    else if (k === 'v1') signatures.push(v);
+  }
+  if (!t || signatures.length === 0) return false;
+
+  const nowSec = Math.floor(Date.now() / 1000);
+  if (Math.abs(nowSec - t) > toleranceSec) return false;
+
+  const signedPayload = `${t}.${rawBody}`;
+  const signingKey = Buffer.from(secret, 'utf8');
+  const expectedSig = crypto
+    .createHmac('sha256', signingKey)
+    .update(signedPayload, 'utf8')
+    .digest('hex');
+  const expectedBuf = Buffer.from(expectedSig, 'utf8');
+
+  return signatures.some((sig) => {
+    const candidateBuf = Buffer.from(sig, 'utf8');
+    return (
+      candidateBuf.length === expectedBuf.length &&
+      crypto.timingSafeEqual(candidateBuf, expectedBuf)
+    );
+  });
+}
+```
+
+## Webhook delivery semantics
+
+### Event types
+
+The webhook subsystem dispatches three distinct event types:
+
+1. `mail.received`: Dispatched when new incoming mail arrives at a managed mailbox over IMAP. Includes sender, recipients, subject, message ID, flags, and size. When `contentScope: "preview"` is enabled (admin only), text snippet previews, extracted security codes, and links are included.
+2. `approval.requested`: Dispatched when a task with `kind: "approval"` is submitted targeting the reviewer identity. Carries task ID, state (`input-required`), requester, reviewer, action type/name, expiration timestamp, and action arguments (if within configured size bounds).
+3. `webhook.ping`: Diagnostic ping sent when creating a subscription, changing its destination URL, or executing a manual test probe (`trigger: "creation"` or `trigger: "test"`).
+
+### Retry schedule and backoff
+
+Delivery failures are retried automatically with a deterministic schedule:
+
+- **11 attempts across 72 hours**: Non-ping events are attempted up to 11 times (`MAX_RETRY_SCHEDULE_ATTEMPTS = 11`, `WEBHOOK_MAX_ATTEMPTS = 11`) spanning a 72-hour horizon (`RETRY_HORIZON_SEC = 259200`).
+- **Cumulative attempt offsets**:
+  - Attempt 1: Immediate (`0s`)
+  - Attempt 2: `+5s`
+  - Attempt 3: `+5m` (`300s`)
+  - Attempt 4: `+30m` (`1,800s`)
+  - Attempt 5: `+2h` (`7,200s`)
+  - Attempt 6: `+5h` (`18,000s`)
+  - Attempt 7: `+10h` (`36,000s`)
+  - Attempt 8: `+20h` (`72,000s`)
+  - Attempt 9: `+34h` (`122,400s`)
+  - Attempt 10: `+48h` (`172,800s`)
+  - Attempt 11: `+72h` (`259,200s`, pinned)
+- **Ping cap**: `webhook.ping` deliveries are capped at 3 attempts (`MAX_PING_ATTEMPTS = 3`: immediate, +5s, +5m).
+- **Jitter**: Each retry interval is randomized by **±10% non-cumulative jitter** applied to the gap between consecutive steps (`gap * (rand() * 0.2 - 0.1)`). Attempt 11 is pinned to exactly +72h unjittered.
+- **HTTP 429 Retry-After**: If the remote server returns HTTP `429` with a valid `Retry-After` header between 1 and 3600 seconds, the delivery engine respects the delay and clamps the next attempt into the schedule.
+
+### Circuit breaker and automatic disablement
+
+- Each subscription maintains a `consecutiveFailures` counter.
+- If consecutive delivery attempts fail and reach `WEBHOOK_DISABLE_THRESHOLD` (default **10**), the circuit breaker trips:
+  - The subscription is automatically disabled: `state: "disabled"`, `disabledReason: "threshold"`.
+  - All remaining queued deliveries for this subscription are discarded.
+- To recover, an administrator must call `POST /v1/webhooks/:id/enable` (or update the endpoint URL via `POST /v1/webhooks/:id`). Enabling resets `consecutiveFailures` to 0, transitions state to `unverified`, and fires a creation test ping.
+
+### SSRF protection and network constraints
+
+- **Connection-time DNS pinning**: Webhook deliveries use socket-level connection hooks (`pinnedFetch`). The target hostname is resolved at connect time, and every returned IP is verified against blocked private, loopback, link-local, and multicast CIDRs. This neutralizes DNS-rebinding Time-of-Check to Time-of-Use (TOCTOU) exploits.
+- **Redirects forbidden**: HTTP `3xx` redirects are unconditionally rejected (`redirect_forbidden`) to prevent endpoints from pivoting into internal network assets.
+- **Allowed ports**: Destination ports are restricted by `WEBHOOK_ALLOWED_PORTS` (default `443` only).
+- **Private network targets**: Delivering to private IP addresses (RFC 1918 / loopback) is blocked by default. It requires server setting `WEBHOOK_ALLOW_PRIVATE_TARGETS=true` (default `false`) and must be explicitly authorized with an admin key.
+
+### Bounded payloads and timeouts
+
+- **Payload ceiling**: Outbound webhook request bodies are capped at `WEBHOOK_PAYLOAD_MAX_BYTES` (default **16,384 bytes** / 16 KiB). If a payload exceeds this limit, fields are dropped in deterministic order (preview links → security codes → text previews → CC → To → Subject → from name). If the envelope still exceeds the limit, delivery fails closed.
+- **Approval argument bounds**: In `approval.requested` events, action arguments are bounded by `WEBHOOK_APPROVAL_ARGS_MAX_BYTES` (default **4,096 bytes**) and maximum JSON nesting depth `WEBHOOK_APPROVAL_ARGS_MAX_DEPTH` (default **4**).
+- **Timeouts and buffers**: Remote endpoint responses are capped at `WEBHOOK_RESPONSE_MAX_BYTES` (default **4,096 bytes**) to prevent buffer exhaustion. Each delivery attempt has a wall-clock timeout of `WEBHOOK_DELIVERY_TIMEOUT_MS` (default **10,000 ms** / 10 seconds).
+- **Concurrency**: Delivery dispatching is throttled by per-subscription and process-wide worker concurrency pools (`WEBHOOK_MAX_CONCURRENT` default 8).
+
 ## Status codes
 
 | Code | Meaning |

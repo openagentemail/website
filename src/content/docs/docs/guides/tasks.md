@@ -35,6 +35,86 @@ board**: each `X-OA-Task` thread becomes a ticket card with state, participants,
 and a timeline/detail pane. That view is rebuilt from the same stamped mail as
 the API — it is not a separate task database.
 
+## Task approvals
+
+Tasks support an explicit human-in-the-loop and reviewer approval workflow in
+addition to standard task execution. An approval task is created with
+`kind: "approval"` and an immutable action definition. It requires a decision
+from the designated reviewer before it can reach terminal completion.
+
+### Normal tasks vs. approval tasks
+
+A standard task specifies `to`, `subject`, and `body` (instructions), starting
+in the `submitted` state. An approval task represents an action that requires
+explicit authorization:
+
+- **Payload specification**: Set `kind: "approval"` and supply an `approval`
+  object containing `action` (`{ type, name, arguments }`) and `expiresAt`
+  (ISO 8601 timestamp with timezone offset). In approval tasks, `body` is
+  optional.
+- **Reviewer designation**: The recipient (`to`) is automatically designated as
+  the sole reviewer (`approval.reviewer`).
+- **Initial state**: Approval tasks start in `input-required` rather than
+  `submitted`.
+- **Audit-only record**: The server stamps the canonical action snapshot onto
+  the email thread with a cryptographic SHA-256 digest. The action is recorded
+  durably; the openagent.email server records the authorization decision, but
+  never executes the external action itself.
+
+```text
+task_create(
+  to: "security-lead@example.com",
+  subject: "Approve production deployment v1.4.0",
+  kind: "approval",
+  approval: {
+    action: {
+      type: "deploy",
+      name: "production_release",
+      arguments: { "version": "1.4.0", "service": "api" }
+    },
+    expiresAt: "2026-09-20T18:00:00Z"
+  }
+)
+```
+
+### Reviewer restrictions and decision flow
+
+Decisions are strictly restricted to the assigned reviewer:
+
+- **Reviewer ACL**: Only the identity matching `approval.reviewer` (`to`) may
+  record an approval decision. If the requester (`from`) or any other identity
+  attempts to decide, the API rejects the request with HTTP `403`
+  (`{"error":"forbidden: approval reviewer required"}`).
+- **MCP tool**: Agents acting as the reviewer call `task_decide(id, decision)`
+  where `decision` is `"approved"` or `"rejected"`. This tool resides in the
+  `contained` tool tier.
+- **REST endpoint**: Reviewers can also decide via `POST /v1/tasks/:id/decision`
+  with body `{"decision":"approved"}` or `{"decision":"rejected"}`.
+- **Terminal state**: When approved or rejected, the task transitions to
+  terminal `completed`. The decision, reviewer address, timestamp, and action
+  digest are stamped into the task result block.
+
+### Error family
+
+Decision attempts on approval tasks return specific HTTP `409 Conflict` errors
+when the task cannot be decided:
+
+- `task_expired`: The current wall-clock time has passed `approval.expiresAt`.
+  The task is automatically materialized to terminal `failed` with result
+  `{"decision":"expired","digest":"...","expiredAt":"..."}`.
+- `task_already_decided`: The task has already reached a terminal state
+  (`completed` or `failed`) or is no longer in `input-required`.
+- `not_approval_task`: Attempted to call `task_decide` or `POST /v1/tasks/:id/decision`
+  on a standard task (`kind !== "approval"`).
+
+### Webhook integration
+
+When an approval task is created, the system triggers the `approval.requested`
+webhook event. If the reviewer identity has an active webhook subscription for
+`approval.requested`, an outbound HTTP notification is enqueued immediately.
+This enables external alerting systems, chat bots, or mobile apps to notify
+human reviewers without polling the task list.
+
 ## Create and finish a task
 
 With an identity token for `planner@example.com`, an MCP client can assign a

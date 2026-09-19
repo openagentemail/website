@@ -11,7 +11,9 @@ normal protected API, while a notification only says that action may be needed.
 The default is a server-only loop. It supports `notify_verify`, manual
 agent/user notifications, and mail-arrival alerts without opening ntfy to the
 internet. [Phone delivery](/docs/guides/phone-notifications/) is optional and
-uses a separate public HTTPS hostname. Webhooks are not part of this feature.
+uses a separate public HTTPS hostname. Webhooks are not part of this feature —
+see [Webhooks](/docs/reference/api/#webhooks) for the separate webhook
+subsystem.
 
 ## Bring it up safely
 
