@@ -1,0 +1,1 @@
+verify gate chain after MCP-off (zcode-open-bridge#49 phase1 step2)
