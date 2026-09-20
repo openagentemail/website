@@ -656,7 +656,271 @@ topics using this one account; it has no access to any agent topic. The
 [phone notification guide](/docs/guides/phone-notifications/) has the public
 proxy and iOS/Android steps.
 
+## Webhooks
+
+> **How to read this section**
+>
+> **Who this section is for.** There is nothing to compile or deploy to receive webhooks. This section is for developers integrating a webhook receiver into an application; you do not need to read the server source. Every *Normative* statement below is generated from, and cited against, the implementation.
+>
+> **Normative vs Explanatory layers:**
+> - **Normative**: Formal interface contracts (endpoints, request/response fields, event types, configuration defaults, and wire error codes). Where documentation and implementation conflict, the Normative layer and actual server behavior govern.
+> - **Explanatory**: Observable behavior descriptions and receiver guidance. This layer describes externally visible outcomes and is non-normative.
+>
+> **Authorization premise (applies to all endpoints below).** Unless stated otherwise, every authorization statement in this section describes tokens **without** a persisted `scopes` array — unscoped identity tokens and OAuth tokens derived from unscoped identities. Scope-carrying tokens (an identity token with a `scopes` array — even an empty one — or an OAuth token whose identity has one) are default-denied: the server's operation-policy table (`OPERATION_POLICIES`) defines no webhook operations, so every `/v1/webhooks*` request from such a token is rejected with `403 {"error":"forbidden: insufficient_scope"}` — **including read-only requests**.
+
+Outbound webhooks deliver real-time HTTP POST notifications to external endpoints when events occur (such as incoming mail or task approval requests). Webhooks are disabled by default (`WEBHOOKS_ENABLED=false`). When enabled, subscriptions can be created and managed per identity address or globally with an admin key.
+
+Webhook endpoints require `WEBHOOKS_ENABLED=true` in server configuration; when disabled, requests return `404 {"error":"webhooks_disabled"}`. Enabling webhooks additionally requires an explicit `TASK_SIGNING_SECRET` of at least 32 characters; existing installations relying on the fallback to `SMTP_PASS` cannot enable webhooks without setting `TASK_SIGNING_SECRET` explicitly, or server startup will abort with a configuration error. OAuth access tokens may read subscriptions but are forbidden from mutating them or revealing signing secrets (`403`).
+
+## `POST /v1/webhooks`
+
+Create a new webhook subscription.
+
+Identity tokens can only create subscriptions for their own scoped email address (`address`) with `contentScope: "metadata"`. Admin keys can create subscriptions for any address and can specify `contentScope: "preview"`. Subscriptions targeting private IP ranges require `WEBHOOK_ALLOW_PRIVATE_TARGETS=true` on the server, `OAE_PUBLIC_EDGE=false`, and must be created with an admin key.
+
+```bash
+printf 'header = "Authorization: Bearer %s"\n' "$IDENTITY_TOKEN" | \
+curl -X POST $API/v1/webhooks \
+  -H "Content-Type: application/json" \
+  --config - \
+  -d '{"url":"https://example.com/webhook","address":"agent@example.com","events":["mail.received","approval.requested"]}'
+# → 201 {"id":"whk_01h7x8a...","url":"https://example.com/webhook","address":"agent@example.com",
+#        "events":["mail.received","approval.requested"],"contentScope":"metadata","description":"",
+#        "state":"unverified","secret":"whs_0123456789abcdef...","secretPrefix":"whs_0123…",
+#        "signatureScheme":"v1","timestampToleranceSec":300,"createdAt":"2026-09-20T06:00:00.000Z"}
+```
+
+| Field | Type | Notes |
+|---|---|---|
+| `url` | string | Destination HTTPS URL (max 2048 chars). Must use `https:` (or `http:` with private target authorization), cannot contain query string, fragment, or userinfo, port must be in `WEBHOOK_ALLOWED_PORTS` (default 443), and hostname must resolve to a permitted IP address. |
+| `address` | string | Email address of the managed identity to observe. |
+| `events` | string[] | Non-empty array of unique event names: `mail.received`, `approval.requested`. |
+| `contentScope` | string? | `'metadata'` (default) or `'preview'`. `'preview'` requires an admin key. |
+| `description` | string? | Optional description (max 1000 chars, default `""`). |
+
+Headers:
+- `Idempotency-Key` (optional): Client idempotency token (max 128 chars). Replays return the cached response with `secret: null`.
+
+Limits:
+- Server capacity is governed by `WEBHOOK_MAX_SUBSCRIPTIONS` (default 16 server-wide) and `WEBHOOK_MAX_PER_ADDRESS` (default 4 per address). Exceeding these returns `409 {"error":"webhook_limit_reached"}`.
+- Rate-limited by `WEBHOOK_RATE_CREATE_PER_MIN` (default 10 requests per minute per caller; returns `429 {"error":"rate_limited","retryAfterSec":...}` when exceeded).
+- Upon creation, the server derives an endpoint signing secret (`whs_...`) and automatically dispatches an initial asynchronous ping delivery (`webhook.ping`) with `trigger: "creation"` to verify destination reachability. This ping shares the `WEBHOOK_RATE_TEST_PER_MIN` bucket with `POST /v1/webhooks/:id/test`. When that bucket is exhausted at creation or retarget time, the ping is queued for a delayed re-check (`WEBHOOK_POOL_RETRY_MS`, default 5000 ms); it is attempted over HTTP if the bucket has capacity by then, and is recorded with `reason: "probe_rate_limited"` (no HTTP attempt) only if the bucket is still exhausted at that re-check.
+
+Valid destination quick reference:
+Target URLs are evaluated against a three-tier validation ladder before acceptance:
+1. **Protocol and syntax constraints**: Destination URLs must be valid URLs (max 2048 characters) without query strings (`?`), fragments (`#`), or user credentials (`user:pass@`). The port must be explicitly listed in `WEBHOOK_ALLOWED_PORTS` (default `443` only). The hostname must be a DNS hostname; IP literals are forbidden unless private targets are enabled.
+2. **Private target authorization**: Targeting private IP addresses (RFC 1918, CGNAT `100.64.0.0/10`, loopback, or IPv6 ULA `fd00::/8`) requires server configuration `WEBHOOK_ALLOW_PRIVATE_TARGETS=true` **and** `OAE_PUBLIC_EDGE=false` (when `OAE_PUBLIC_EDGE=true`, private targets are disabled server-wide regardless of `WEBHOOK_ALLOW_PRIVATE_TARGETS`). Furthermore, private-target subscriptions must be created or updated with an **admin key** (identity callers attempting to target private addresses receive `400 {"error":"webhook_target_forbidden"}`).
+3. **HTTP scheme constraints**: The `http:` scheme is permitted **only** when private targets are allowed as above, and requires **every** resolved IP address of the target hostname to be private or loopback. If any resolved IP is public, the endpoint is rejected with `webhook_target_forbidden`.
+
+Validation errors:
+- `400 {"error":"invalid_request","details":[...]}`: Payload schema validation failed before destination resolution (for example, malformed URL syntax, URL length exceeding 2048 characters, or missing required fields).
+- `400 {"error":"invalid_webhook_url"}`: URL resolution failed after passing schema validation (unsupported scheme, userinfo, query string, fragment, port not in `WEBHOOK_ALLOWED_PORTS`, or DNS lookup failure).
+- `400 {"error":"webhook_target_forbidden"}`: Target IP address violates SSRF policy, or an unprivileged identity attempted to configure a private network target, or an HTTP endpoint resolved to non-private addresses.
+
+Note: The creation response (and rotation response) is the only place where the plaintext signing `secret` is returned automatically without an explicit secret request. Authorized callers (admin or the identity creator for `metadata` scope) can retrieve the secret at any time via `GET /v1/webhooks/:id/secret`. List and detail queries return only `secretPrefix`.
+
+*(Outbound event payload contracts and delivery semantics are documented in the delivery-semantics slice).*
+
+## `GET /v1/webhooks`
+
+List webhook subscriptions. Identity tokens return subscriptions bound to their own address. Admin keys return subscriptions across addresses, or can filter by passing `?address=`.
+
+```bash
+printf 'header = "Authorization: Bearer %s"\n' "$IDENTITY_TOKEN" | \
+curl $API/v1/webhooks --config -
+# → 200 {"webhooks":[{"id":"whk_01h7x8a...","url":"https://example.com/webhook","address":"agent@example.com",
+#        "events":["mail.received","approval.requested"],"contentScope":"metadata","description":"",
+#        "state":"unverified","disabledReason":null,"secretPrefix":"whs_0123…","signatureScheme":"v1",
+#        "timestampToleranceSec":300,"createdAt":"2026-09-20T06:00:00.000Z","updatedAt":"2026-09-20T06:00:00.000Z",
+#        "rotatedAt":null,"consecutiveFailures":0,"privateTargetGranted":false,"lastDelivery":null}]}
+```
+
+Rate-limited by the shared webhook read bucket (also used by subscription detail and delivery-log reads; `WEBHOOK_RATE_CREATE_PER_MIN`, default 10 requests per minute per caller; returns `429 {"error":"rate_limited","retryAfterSec":...}` when exceeded).
+
+## `GET /v1/webhooks/:id`
+
+Retrieve details for a single webhook subscription. The caller must be an admin key or an identity token bound to the subscription's `address`.
+
+```bash
+printf 'header = "Authorization: Bearer %s"\n' "$IDENTITY_TOKEN" | \
+curl $API/v1/webhooks/whk_01h7x8a... --config -
+# → 200 {"id":"whk_01h7x8a...","url":"https://example.com/webhook","address":"agent@example.com",
+#        "events":["mail.received","approval.requested"],"contentScope":"metadata","description":"",
+#        "state":"enabled","disabledReason":null,"secretPrefix":"whs_0123…","signatureScheme":"v1",
+#        "timestampToleranceSec":300,"createdAt":"...","updatedAt":"...","rotatedAt":null,
+#        "consecutiveFailures":0,"privateTargetGranted":false,
+#        "lastDelivery":{"deliveryId":"dlv_...","ts":"...","attempt":1,"outcome":"success",
+#                        "status":200,"durationMs":42,"reason":null}}
+```
+
+Returns `404 {"error":"not_found"}` if the webhook does not exist. Rate-limited by the shared webhook read bucket (also used by the subscription list and delivery-log reads; `WEBHOOK_RATE_CREATE_PER_MIN`, default 10 requests per minute per caller; returns `429 {"error":"rate_limited","retryAfterSec":...}` when exceeded).
+
+## `POST /v1/webhooks/:id`
+
+Update an existing webhook subscription's configuration. The caller must be an admin key or the identity owner of `address`. OAuth tokens are forbidden (`403`).
+
+```bash
+printf 'header = "Authorization: Bearer %s"\n' "$IDENTITY_TOKEN" | \
+curl -X POST $API/v1/webhooks/whk_01h7x8a... \
+  -H "Content-Type: application/json" \
+  --config - \
+  -d '{"events":["mail.received"],"description":"Production alerts"}'
+# → 200 {"id":"whk_01h7x8a...", ...}
+```
+
+| Field | Type | Notes |
+|---|---|---|
+| `url` | string? | New destination URL (max 2048 chars; subject to the same protocol, port, syntax, and IP constraints as creation). |
+| `events` | string[]? | Non-empty array of unique event names: `mail.received`, `approval.requested`. |
+| `contentScope` | string? | `'metadata'` or `'preview'`. Changing to `'preview'` requires an admin key. |
+| `description` | string? | Optional description (max 1000 chars). |
+
+The update payload schema is evaluated with `.strict()`; unrecognized fields return `400 {"error":"invalid_request","details":[...]}`. Rate-limited by `WEBHOOK_RATE_CREATE_PER_MIN` (default 10 requests per minute per caller, shared with subscription creation; returns `429 {"error":"rate_limited","retryAfterSec":...}` when exceeded).
+
+Updating `url` executes static and DNS SSRF verification. If the target URL changes:
+- `consecutiveFailures` is reset to 0.
+- Unless manually disabled (`disabledReason: "manual"`), the subscription state resets to `unverified` and `disabledReason` is cleared.
+- An asynchronous verification ping is dispatched to the new destination if the subscription is not in the `disabled` state (manually paused subscriptions remain disabled and do not fire a ping; subscriptions disabled by threshold or rejection are reset to `unverified` and trigger the ping). This ping shares the `WEBHOOK_RATE_TEST_PER_MIN` bucket with `POST /v1/webhooks/:id/test`. When that bucket is exhausted at creation or retarget time, the ping is queued for a delayed re-check (`WEBHOOK_POOL_RETRY_MS`, default 5000 ms); it is attempted over HTTP if the bucket has capacity by then, and is recorded with `reason: "probe_rate_limited"` (no HTTP attempt) only if the bucket is still exhausted at that re-check.
+- If the subscription already has `contentScope: "preview"`, non-admin identity callers cannot change `url` (`403 {"error":"content_scope_requires_admin"}`).
+
+## `DELETE /v1/webhooks/:id`
+
+Delete a webhook subscription. The caller must be an admin key or the identity that created the subscription (`createdBy === auth.address`) with `contentScope: "metadata"`. OAuth tokens are forbidden (`403`).
+
+```bash
+printf 'header = "Authorization: Bearer %s"\n' "$IDENTITY_TOKEN" | \
+curl -X DELETE $API/v1/webhooks/whk_01h7x8a... --config -
+# → 200 {"ok":true}
+```
+
+Deleting a subscription cancels queued pending deliveries in storage and prevents future retries. In-flight HTTP attempts already underway are not aborted and may still reach the receiver, but their results will not trigger further retries.
+
+## `GET /v1/webhooks/:id/secret`
+
+Reveal the active HMAC signing secret for a subscription. Requires an admin key or the identity that created the subscription (`createdBy === auth.address`) with `contentScope: "metadata"`. OAuth tokens are forbidden (`403`).
+
+```bash
+printf 'header = "Authorization: Bearer %s"\n' "$IDENTITY_TOKEN" | \
+curl $API/v1/webhooks/whk_01h7x8a.../secret --config -
+# → 200 {"id":"whk_01h7x8a...","secret":"whs_0123456789abcdef...","secretPrefix":"whs_0123…",
+#        "epoch":0,"overlapUntil":null}
+```
+
+The response includes `Cache-Control: no-store` to prevent caching of sensitive credentials.
+
+## `POST /v1/webhooks/:id/rotate`
+
+Rotate the signing secret to a new epoch. Increments `epoch` by 1 and generates a new secret.
+
+Requires an admin key or the creating identity with `contentScope: "metadata"`. OAuth tokens are forbidden (`403`).
+
+```bash
+printf 'header = "Authorization: Bearer %s"\n' "$IDENTITY_TOKEN" | \
+curl -X POST $API/v1/webhooks/whk_01h7x8a.../rotate \
+  -H "Content-Type: application/json" \
+  --config - \
+  -d '{"force":false}'
+# → 200 {"id":"whk_01h7x8a...","epoch":1,"secret":"whs_9876543210fedcba...",
+#        "secretPrefix":"whs_9876…","overlapUntil":"2026-09-21T06:00:00.000Z"}
+```
+
+Dual-signing overlap:
+- `overlapUntil` is set to the current time plus `WEBHOOK_ROTATION_OVERLAP_MS` (default `86400000` ms = 24 hours) only when `WEBHOOK_ROTATION_OVERLAP_MS > 0`. When configured to `0`, `overlapUntil` is `null`.
+- Endpoint-rotation dual signing occurs only while an active overlap window is open (`overlapUntil` is non-null and the current server timestamp is before `overlapUntil`): during this window, outgoing deliveries add a signature for the preceding epoch in the `X-OAE-Signature` header (`v1=<new>,v1=<prev>`).
+- Root-key rotation is an independent second signature source: when `WEBHOOK_SIGNING_SECRET_PREVIOUS` is configured, every outgoing delivery additionally carries a signature derived from that previous root signing key, regardless of `overlapUntil`.
+- The two mechanisms compose, so the `X-OAE-Signature` header carries 1, 2, or 3 `v1=` signatures: 1 when neither is active, 2 when exactly one is active (a configured previous root key, or an open overlap window), 3 when both are active. If `WEBHOOK_ROTATION_OVERLAP_MS` is `0`, `overlapUntil` is `null` and the endpoint-rotation signature is omitted, but a configured previous root key still adds its signature.
+- If an active rotation window is already open, further rotations fail with `409 {"error":"rotation_window_open","overlapUntil":"..."}` unless `force: true` is passed.
+- Supports optional `Idempotency-Key` header (replays return cached response with `secret: null`).
+- Rate-limited by an independent rotation bucket (`WEBHOOK_RATE_TEST_PER_MIN`, default 3 requests per minute per caller; returns `429 {"error":"rate_limited","retryAfterSec":...}` when exceeded).
+
+## `POST /v1/webhooks/:id/test`
+
+Send an immediate test probe delivery (`webhook.ping`) to verify endpoint health and signature configuration.
+
+Requires an admin key or the identity owner of `address`. OAuth tokens are forbidden (`403`). Cannot be called if the subscription is disabled (`409 {"error":"webhook_disabled"}`).
+
+```bash
+printf 'header = "Authorization: Bearer %s"\n' "$IDENTITY_TOKEN" | \
+curl -X POST $API/v1/webhooks/whk_01h7x8a.../test --config -
+# → 200 {"deliveryId":"dlv_01h...","outcome":"success","status":200,"reason":null}
+```
+
+The test delivery sends a `webhook.ping` event with `data.trigger: "test"`. Ping attempts are capped at `MAX_PING_ATTEMPTS` attempts (default 3, scheduled at base offsets: immediate, +5s, +5m). Retry times are jittered by up to ±10% of the gap between consecutive offsets, and a valid `Retry-After` on a `429` response can delay the next attempt further. Test probes are rate-limited by `WEBHOOK_RATE_TEST_PER_MIN` (default 3 requests per minute per caller; returns `429 {"error":"rate_limited","retryAfterSec":...}` when exceeded).
+
+## `POST /v1/webhooks/:id/disable`
+
+Manually pause an enabled webhook subscription. Pausing a subscription cancels queued pending deliveries in storage and prevents future retries. In-flight HTTP attempts already underway are not aborted and may still reach the receiver, but their results will not trigger further retries.
+
+Requires an admin key or the creating identity. OAuth tokens are forbidden (`403`).
+
+```bash
+printf 'header = "Authorization: Bearer %s"\n' "$IDENTITY_TOKEN" | \
+curl -X POST $API/v1/webhooks/whk_01h7x8a.../disable --config -
+# → 200 {"ok":true,"state":"disabled","disabledReason":"manual"}
+```
+
+This operation is idempotent: if the subscription is already disabled, it returns `200` with the existing state and reason without re-modifying the record.
+
+## `POST /v1/webhooks/:id/enable` — admin only
+
+Resume a disabled webhook subscription. **Admin only** (`403` for identity tokens).
+
+The subscription must currently be disabled; calling this on an enabled subscription returns `409 {"error":"webhook_not_disabled"}`.
+
+```bash
+printf 'header = "Authorization: Bearer %s"\n' "$ADMIN_KEY" | \
+curl -X POST $API/v1/webhooks/whk_01h7x8a.../enable --config -
+# → 200 {"ok":true,"state":"unverified"}
+```
+
+Resuming resets `consecutiveFailures` to 0, sets `state: "unverified"`, clears `disabledReason`, and immediately dispatches an asynchronous ping to verify destination reachability. This ping shares the `WEBHOOK_RATE_TEST_PER_MIN` bucket with `POST /v1/webhooks/:id/test`. When that bucket is exhausted at enable time, the ping is queued for a delayed re-check (`WEBHOOK_POOL_RETRY_MS`, default 5000 ms); it is attempted over HTTP if the bucket has capacity by then, and is recorded with `reason: "probe_rate_limited"` (no HTTP attempt) only if the bucket is still exhausted at that re-check.
+
+## `GET /v1/webhooks/:id/deliveries` — admin only
+
+Inspect the historical delivery log for a webhook subscription. **Admin only** (`403` for non-admin). Rate-limited by the shared webhook read bucket (also used by the subscription list and detail reads; `WEBHOOK_RATE_CREATE_PER_MIN`, default 10 requests per minute per caller; returns `429 {"error":"rate_limited","retryAfterSec":...}` when exceeded). The read-rate check runs before the admin check, so an over-limit caller may receive `429` instead of `403`.
+
+```bash
+printf 'header = "Authorization: Bearer %s"\n' "$ADMIN_KEY" | \
+curl "$API/v1/webhooks/whk_01h7x8a.../deliveries?limit=20" --config -
+# → 200 {"deliveries":[{"deliveryId":"dlv_01h...","ts":"...","webhookId":"whk_...","eventId":"evt_...",
+#                      "type":"mail.received","attempt":1,"outcome":"success","status":200,
+#                      "durationMs":45,"nextAttemptAt":null,"reason":null}]}
+# (nextCursor appears only when more results follow)
+```
+
+| Parameter | Type | Notes |
+|---|---|---|
+| `limit` | integer? | Number of records to return (1 to 100, default 20). |
+| `cursor` | string? | Opaque cursor token for forward pagination (max 1024 chars). An invalid cursor—or a cursor pointing to a record evicted from the memory index—returns `400 {"error":"invalid_cursor"}` (callers must restart pagination from the first page without a cursor). |
+
+The response returns `{"deliveries": [...]}`. When additional pages remain, the response includes `nextCursor` as an opaque string token. When no more pages follow, `nextCursor` is omitted entirely rather than returned as `null`.
+
+## `POST /v1/webhooks/deliveries/:deliveryId/redeliver` — admin only
+
+Manually replay a historical delivery attempt. **Admin only** (`403` for non-admin).
+
+```bash
+printf 'header = "Authorization: Bearer %s"\n' "$ADMIN_KEY" | \
+curl -X POST $API/v1/webhooks/deliveries/dlv_01h.../redeliver --config -
+# → 200 {"ok":true,"deliveryId":"dlv_02j...","eventId":"evt_01h..."}
+```
+
+The server fetches the referenced delivery record, checks that the target webhook subscription is not disabled, retrieves the underlying email message or task approval, and enqueues a new delivery job preserving the original `eventId`.
+
+Possible errors:
+- `404 {"error":"delivery_not_found"}`: Delivery record does not exist in the active delivery log index (either an unknown delivery ID or evicted from memory when log volume exceeds `WEBHOOK_LOG_MAX_ROWS`, default **100,000**; evicted records persist on disk but cannot be queried or replayed via the API).
+- `404 {"error":"webhook_not_found"}`: Associated webhook subscription was deleted.
+- `404 {"error":"message_not_found"}`: Underlying mail message is no longer in storage. *(Note: If the underlying approval task is missing during replay, the server currently raises an unmapped error resulting in `500 {"error":"internal_error"}` rather than `task_not_found`).*
+- `409 {"error":"webhook_disabled"}`: Webhook subscription is currently disabled.
+- `409 {"error":"delivery_not_replayable"}`: Delivery record cannot be replayed.
+- `409 {"error":"stale_message_generation"}`: IMAP mailbox generation UIDVALIDITY changed since original delivery.
+- `409 {"error":"uidvalidity_required"}`: Historical delivery row lacks UIDVALIDITY tracking required for safe mailbox replay.
+
+*(Webhook signature verification and outbound delivery semantics are documented in subsequent slices).*
+
 ## Status codes
+
+> **Layer:** Normative — generated from, and cited against, the implementation.
 
 | Code | Meaning |
 |---|---|
@@ -666,3 +930,4 @@ proxy and iOS/Android steps.
 | `408` | `wait` timed out |
 | `429` | Send rate limit hit — back off `retryAfterSec` |
 | `5xx` | Mailserver unreachable or internal error — check `docker compose logs api` |
+
