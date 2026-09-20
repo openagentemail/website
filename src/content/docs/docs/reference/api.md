@@ -670,7 +670,7 @@ proxy and iOS/Android steps.
 
 Outbound webhooks deliver real-time HTTP POST notifications to external endpoints when events occur (such as incoming mail or task approval requests). Webhooks are disabled by default (`WEBHOOKS_ENABLED=false`). When enabled, subscriptions can be created and managed per identity address or globally with an admin key.
 
-Deliveries are dispatched only to subscriptions whose `events` list includes the event type and that are not in the `disabled` state. A successful delivery attempt from the `unverified` state transitions the subscription to `enabled`.
+Business-event deliveries (`mail.received`, `approval.requested`) are dispatched only to subscriptions whose `events` list includes the event type and that are not in the `disabled` state; diagnostic pings (`webhook.ping`) are dispatched regardless of the `events` list. A successful delivery attempt from the `unverified` state transitions the subscription to `enabled`.
 
 Webhook endpoints require `WEBHOOKS_ENABLED=true` in server configuration; when disabled, requests return `404 {"error":"webhooks_disabled"}`. Enabling webhooks additionally requires an explicit `TASK_SIGNING_SECRET` of at least 32 characters; existing installations relying on the fallback to `SMTP_PASS` cannot enable webhooks without setting `TASK_SIGNING_SECRET` explicitly, or server startup will abort with a configuration error. OAuth access tokens may read subscriptions but are forbidden from mutating them or revealing signing secrets (`403`).
 
@@ -958,11 +958,18 @@ function verifySignature({ header, rawBody, secret, toleranceSec = 300 }) {
   let t = null;
   const signatures = [];
   for (const part of parts) {
-    const [k, v] = part.split('=');
-    if (k === 't') t = parseInt(v, 10);
-    else if (k === 'v1') signatures.push(v);
+    const eq = part.indexOf('=');
+    if (eq === -1) continue;
+    const k = part.slice(0, eq);
+    const v = part.slice(eq + 1);
+    if (k === 't') {
+      const parsed = Number.parseInt(v, 10);
+      if (Number.isFinite(parsed) && parsed >= 0) t = parsed;
+    } else if (k === 'v1' && v.length > 0) {
+      signatures.push(v);
+    }
   }
-  if (!t || signatures.length === 0) return false;
+  if (t === null || signatures.length === 0) return false;
 
   const nowSec = Math.floor(Date.now() / 1000);
   if (Math.abs(nowSec - t) > toleranceSec) return false;

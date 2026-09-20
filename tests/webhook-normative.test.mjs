@@ -34,6 +34,7 @@ const SOURCE_FILES = {
   webhookRoutes: 'packages/api/src/routes/webhooks.ts',
   delivery: 'packages/api/src/lib/webhook-delivery.ts',
   store: 'packages/api/src/lib/webhook-store.ts',
+  sink: 'packages/api/src/lib/webhook-sink.ts',
   signing: 'packages/api/src/lib/webhook-signing.ts',
 };
 
@@ -301,9 +302,17 @@ if (!isSourceMode) {
     // 5. the scope-policy table must still define no webhook operation (premise depends on it)
     const policies = src.scopePolicy.match(/export const OPERATION_POLICIES[^=]*= \[([\s\S]*?)\];/);
     if (!policies) assert.fail('WEBHOOK-NORMATIVE/PARSE: OPERATION_POLICIES not found');
-    const paths = [...policies[1].matchAll(/path === '([^']+)'/g)].map((m) => m[1]);
-    if (paths.length === 0) assert.fail('WEBHOOK-NORMATIVE/PARSE: no path literals found in OPERATION_POLICIES');
-    for (const p of paths) assert.ok(!p.startsWith('/v1/webhooks'), `MISMATCH: OPERATION_POLICIES now matches ${p} — the section premise is stale`);
+    const matcherBodies = [...policies[1].matchAll(/matches:\s*\([^)]*\)\s*=>\s*([^\n]+)/g)].map((m) => m[1]);
+    const policyIds = [...policies[1].matchAll(/\bid:/g)].length;
+    if (matcherBodies.length === 0) assert.fail('WEBHOOK-NORMATIVE/PARSE: no matcher bodies found in OPERATION_POLICIES');
+    assert.equal(matcherBodies.length, policyIds, 'WEBHOOK-NORMATIVE/PARSE: some OPERATION_POLICIES entries have an unparsed matcher form');
+    // Text-level gate: a matcher that targets /v1/webhooks without naming it cannot be detected here.
+    for (const body of matcherBodies) {
+      assert.ok(!/webhook/i.test(body), `MISMATCH: OPERATION_POLICIES matcher references webhooks: ${body.trim()}`);
+      for (const lit of [...body.matchAll(/'([^']*)'/g)].map((m) => m[1])) {
+        assert.ok(!lit.startsWith('/v1/webhooks'), `MISMATCH: OPERATION_POLICIES matcher path ${lit} — the section premise is stale`);
+      }
+    }
 
     // 6. delivery-semantics env defaults ↔ config schema (B2)
     for (const [env, value] of Object.entries(SEMANTICS_ENV_DEFAULTS)) {
@@ -365,7 +374,20 @@ if (!isSourceMode) {
     );
     assert.ok(src.signing.includes('timingSafeEqual'), 'MISMATCH: timingSafeEqual constant-time check missing in signing');
 
-    // 11. report-only: source error literals the section does not document
+    // 11. dispatch-filter assertions (D3 statements)
+    assert.ok(
+      /state !== 'disabled' && s\.events\.includes\('mail\.received'\)/.test(src.sink),
+      'MISMATCH: mail.received dispatch filter (state + events) not found in webhook-sink',
+    );
+    assert.ok(
+      /events\.includes\('approval\.requested'\)/.test(src.sink),
+      'MISMATCH: approval.requested dispatch filter (events) not found in webhook-sink',
+    );
+    const creationPingFn = src.delivery.match(/export function fireCreationPing\([\s\S]*?\n\}/);
+    if (!creationPingFn) assert.fail('WEBHOOK-NORMATIVE/PARSE: fireCreationPing not found');
+    assert.ok(!creationPingFn[0].includes('events.includes'), 'MISMATCH: fireCreationPing now filters by events — the ping exception claim is stale');
+
+    // 12. report-only: source error literals the section does not document
     //    (direction rule: doc-claims-absent-in-source = hard fail; source-lacks-in-doc = report)
     const sourceLiterals = new Set([...allSource.matchAll(/[{,]\s*error:\s*'([^'\n]+)'/g)].map((m) => m[1]));
     const documented = new Set(DOC_LITERALS);
