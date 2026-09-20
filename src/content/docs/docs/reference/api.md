@@ -955,7 +955,7 @@ Delivery outcomes determine whether failures are retried automatically:
 - **Permanent failures (no retry)**: HTTP `3xx` redirects (`redirect_forbidden`), responses exceeding `WEBHOOK_RESPONSE_MAX_BYTES` (`response_too_large`), and client errors (HTTP `4xx` responses, including `400`, `401`, `403`, and `404`, excluding `408` and `429`) are classified as `permanent` failures. They are recorded directly to dead-letter storage and are not retried automatically.
 - **Idempotency requirement**: Because retry attempts and manual redeliveries dispatch with the original stable top-level event `id`, receivers **must deduplicate deliveries idempotently by this `id`**.
 
-- **Retry horizon and attempts**: Non-ping events are attempted up to `MAX_RETRY_SCHEDULE_ATTEMPTS` (default `11` attempts, governed by `WEBHOOK_MAX_ATTEMPTS`) spanning a 72-hour horizon (`RETRY_HORIZON_SEC = 259200`). The 11th attempt is pinned to the horizon boundary itself, and a job waking after that boundary is recorded as `retry_horizon_exceeded` without an HTTP delivery.
+- **Retry horizon and attempts**: Non-ping events are attempted up to `MAX_RETRY_SCHEDULE_ATTEMPTS` (default `11` attempts, governed by `WEBHOOK_MAX_ATTEMPTS`) spanning a 72-hour horizon (`RETRY_HORIZON_SEC = 259200`). The 11th attempt is pinned to the horizon boundary itself, and a job waking after that boundary is recorded as `retry_horizon_exceeded` without an HTTP delivery. After a process restart, pending deliveries are re-evaluated against the horizon using the original event's generation time; in particular, a manual redelivery of an event generated more than 72 hours earlier is recorded as `retry_horizon_exceeded` without an HTTP delivery.
 - **Cumulative attempt offsets**:
   - Attempt 1: Immediate (`0s`)
   - Attempt 2: `+5s`
@@ -976,12 +976,12 @@ Delivery outcomes determine whether failures are retried automatically:
 
 > **Layer:** Explanatory — observable behaviour only; not normative.
 
-- Each subscription maintains a `consecutiveFailures` counter.
+- Each subscription maintains a `consecutiveFailures` counter, reset to 0 by a successful delivery attempt.
 - **Failures counting toward circuit breaking**: Qualifying delivery attempts resulting in `retryable` or `permanent` outcomes increment `consecutiveFailures` (`refused`, `deferred`, and `pending` outcomes do not increment the counter). Diagnostic pings (`webhook.ping`) follow two rules:
   - A ping failure while the subscription is in the `unverified` state does not increment the counter (preventing initial setup and validation probes from tripping the breaker).
   - A ping failure with a permanent outcome does not increment the counter, regardless of subscription state. A retryable ping failure on an enabled subscription increments the counter and can advance the subscription toward threshold disablement.
 - If consecutive qualifying delivery attempts fail and reach `WEBHOOK_DISABLE_THRESHOLD` (default **10**), the circuit breaker trips:
-  - The subscription is automatically disabled (state: `"disabled"`, disabledReason: `"threshold"`). Deliveries already queued are not discarded: when a queued delivery wakes, it checks the subscription state and exits without sending if the subscription is still disabled. If the subscription has been re-enabled by the time it wakes, that delivery is sent.
+  - The subscription is automatically disabled (state: `"disabled"`, disabledReason: `"threshold"`). Deliveries already queued are not discarded: when a queued delivery wakes, it checks the subscription state and exits without sending if the subscription is still disabled. If the subscription has been re-enabled by the time it wakes, that delivery is sent. (Queue preservation applies within a single process run: after a restart, a pending delivery whose subscription is still disabled at boot is recorded as `webhook_disabled` without delivery, even if the subscription is re-enabled later.)
 - **Immediate disablement on `refused` attempts**: A delivery attempt whose target resolves to a blocked address range is classified `refused` (`ssrf_refused`) and disables the subscription immediately (state: `"disabled"`, disabledReason: `"refused"`), without waiting for the `consecutiveFailures` threshold. Manual test probes and redeliveries follow the same rule.
 - To recover a disabled subscription:
   - **Resume without URL change (`POST /v1/webhooks/:id/enable`)**: Admin only (`403` for identity callers). Calling this resets `consecutiveFailures` to 0, sets `state: "unverified"`, clears `disabledReason`, and dispatches an asynchronous ping.
