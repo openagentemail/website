@@ -67,8 +67,83 @@ const CONFIG_DEFAULTS = {
   WEBHOOK_RATE_TEST_PER_MIN: { value: '3', doc: 'default 3 requests per minute per caller' },
 };
 
-const DOC_EVENTS = ['mail.received', 'approval.requested'];
+const DOC_EVENTS = ['mail.received', 'approval.requested', 'webhook.ping'];
 const PING_ATTEMPTS_DOC = '`MAX_PING_ATTEMPTS` attempts (default 3, scheduled at base offsets: immediate, +5s, +5m). Retry times are jittered by up to ±10% of the gap between consecutive offsets, and a valid `Retry-After` on a `429` response can delay the next attempt further.';
+
+// B2 delivery-semantics goldens (six subsections of `## Webhook delivery semantics`).
+const SEMANTICS_HEADINGS = [
+  '### Outbound envelope',
+  '### Event types',
+  '### Retry schedule and backoff',
+  '### Circuit breaker and automatic disablement',
+  '### SSRF protection and network constraints',
+  '### Bounded payloads and timeouts',
+];
+
+const SEMANTICS_GOLDENS = [
+  '| `id` | string |',
+  '| `type` | string |',
+  '| `payloadVersion` | string |',
+  '| `createdAt` | string |',
+  '| `domain` | string |',
+  '`from` (`{ address }`, or `{ address, name }` when the sender display name is present)',
+  '`uidValidity` (nullable)',
+  '`expiresInSec` (nullable)',
+  'are included when present',
+  'Attempt 1: Immediate (`0s`)',
+  'Attempt 2: `+5s`',
+  'Attempt 3: `+5m` (`300s`)',
+  'Attempt 4: `+30m` (`1,800s`)',
+  'Attempt 5: `+2h` (`7,200s`)',
+  'Attempt 6: `+5h` (`18,000s`)',
+  'Attempt 7: `+10h` (`36,000s`)',
+  'Attempt 8: `+20h` (`72,000s`)',
+  'Attempt 9: `+34h` (`122,400s`)',
+  'Attempt 10: `+48h` (`172,800s`)',
+  'Attempt 11: `+72h` (`259,200s`, pinned at the horizon boundary; normally not delivered — see the retry-horizon note above)',
+  '`webhook.ping` deliveries are capped at `MAX_PING_ATTEMPTS` attempts (default `3`: immediate, +5s, +5m)',
+  '`WEBHOOK_DISABLE_THRESHOLD` (default **10**)',
+  '`WEBHOOK_PAYLOAD_MAX_BYTES` (default **16,384 bytes** / 16 KiB)',
+  '`WEBHOOK_APPROVAL_ARGS_MAX_BYTES` (default **4,096 bytes**)',
+  '`WEBHOOK_APPROVAL_ARGS_MAX_DEPTH` (default **4**)',
+  '`WEBHOOK_RESPONSE_MAX_BYTES` (default **4,096 bytes**)',
+  '`WEBHOOK_DELIVERY_TIMEOUT_MS` (default **10,000 ms** / 10 seconds)',
+  '`WEBHOOK_MAX_CONCURRENT` (default 8)',
+  'Immediate disablement on `refused` attempts',
+  '(`ssrf_refused`)',
+  'does not increment the counter, regardless of subscription state',
+  'one in-flight attempt per subscription',
+];
+
+const SEMANTICS_ENV_DEFAULTS = {
+  WEBHOOK_MAX_ATTEMPTS: '11',
+  WEBHOOK_DISABLE_THRESHOLD: '10',
+  WEBHOOK_PAYLOAD_MAX_BYTES: '16384',
+  WEBHOOK_APPROVAL_ARGS_MAX_BYTES: '4096',
+  WEBHOOK_APPROVAL_ARGS_MAX_DEPTH: '4',
+  WEBHOOK_RESPONSE_MAX_BYTES: '4096',
+  WEBHOOK_DELIVERY_TIMEOUT_MS: '10000',
+  WEBHOOK_MAX_CONCURRENT: '8',
+};
+
+const RETRY_OFFSETS_FULL = ['0', '5', '300', '1800', '7200', '18000', '36000', '72000', '122400', '172800', '259200'];
+
+function semanticsSectionOf(doc) {
+  const start = doc.indexOf('\n## Webhook delivery semantics\n');
+  assert.ok(start >= 0, 'api.md must contain the `## Webhook delivery semantics` section');
+  const end = doc.indexOf('\n## Status codes', start);
+  assert.ok(end > start, 'the delivery-semantics section must precede `## Status codes`');
+  return doc.slice(start, end);
+}
+
+function assertSemanticsGoldens(sem) {
+  for (const h of SEMANTICS_HEADINGS) {
+    assert.ok(sem.includes(h), `delivery-semantics heading missing: ${h}`);
+  }
+  for (const g of SEMANTICS_GOLDENS) {
+    assert.ok(sem.includes(g), `delivery-semantics golden missing: ${g}`);
+  }
+}
 
 function sectionOf(doc) {
   const start = doc.indexOf('\n## Webhooks\n');
@@ -131,21 +206,25 @@ function assertDocFragments(sec) {
 
 if (!isSourceMode) {
   test('webhook section normative goldens (doc-side)', async () => {
-    const sec = sectionOf(await readFile(API_URL, 'utf8'));
+    const doc = await readFile(API_URL, 'utf8');
+    const sec = sectionOf(doc);
     assertDocLiterals(sec);
     assertDocFragments(sec);
+    assertSemanticsGoldens(semanticsSectionOf(doc));
   });
 } else {
   test('webhook section normative claims match the implementation (--check-source)', async () => {
-    const [sec, src] = await Promise.all([
-      readFile(API_URL, 'utf8').then(sectionOf),
+    const [doc, src] = await Promise.all([
+      readFile(API_URL, 'utf8'),
       loadSources(),
     ]);
+    const sec = sectionOf(doc);
     const allSource = Object.values(src).join('\n');
 
     // 1. doc-side goldens first (same as default mode), then doc → source byte check
     assertDocLiterals(sec);
     assertDocFragments(sec);
+    assertSemanticsGoldens(semanticsSectionOf(doc));
     for (const lit of DOC_LITERALS) {
       assert.ok(
         allSource.includes(`'${lit}'`),
@@ -190,7 +269,41 @@ if (!isSourceMode) {
       'MISMATCH: OPERATION_POLICIES now contains a webhook entry — the section premise is stale',
     );
 
-    // 6. report-only: source error literals the section does not document
+    // 6. delivery-semantics env defaults ↔ config schema (B2)
+    for (const [env, value] of Object.entries(SEMANTICS_ENV_DEFAULTS)) {
+      const m = src.config.match(new RegExp(`${env}\\s*:[^\\n]*?default\\(\\s*(?:'([^']+)'|(\\d+))\\s*\\)`));
+      if (!m) assert.fail(`WEBHOOK-NORMATIVE/PARSE: config default not found for ${env}`);
+      const actual = m[1] ?? m[2];
+      assert.equal(actual, value, `MISMATCH: ${env} default — doc=${value} source=${actual}`);
+    }
+
+    // 7. full retry ladder + horizon + attempt cap (B2)
+    assert.deepEqual(
+      nums.slice(0, 11),
+      RETRY_OFFSETS_FULL,
+      `MISMATCH: retry ladder — doc=[${RETRY_OFFSETS_FULL.join(',')}] source=[${nums.slice(0, 11).join(',')}]`,
+    );
+    const maxAttemptsAll = src.delivery.match(/export const MAX_RETRY_SCHEDULE_ATTEMPTS = (\d+);/);
+    if (!maxAttemptsAll) assert.fail('WEBHOOK-NORMATIVE/PARSE: MAX_RETRY_SCHEDULE_ATTEMPTS not found');
+    assert.equal(maxAttemptsAll[1], '11', `MISMATCH: MAX_RETRY_SCHEDULE_ATTEMPTS — doc=11 source=${maxAttemptsAll[1]}`);
+    const horizon = src.delivery.match(/export const RETRY_HORIZON_SEC = (\d+);/);
+    if (!horizon) assert.fail('WEBHOOK-NORMATIVE/PARSE: RETRY_HORIZON_SEC not found');
+    assert.equal(horizon[1], '259200', `MISMATCH: RETRY_HORIZON_SEC — doc=259200 source=${horizon[1]}`);
+
+    // 8. envelope base fields + ping payload keys + refused reason (B2)
+    const envelope = src.delivery.match(/export type WebhookEnvelopeBase = \{([\s\S]*?)\};/);
+    if (!envelope) assert.fail('WEBHOOK-NORMATIVE/PARSE: WebhookEnvelopeBase not found');
+    for (const f of ['id', 'type', 'payloadVersion', 'createdAt', 'domain']) {
+      assert.ok(new RegExp(`\\b${f}\\s*:`).test(envelope[1]), `MISMATCH: WebhookEnvelopeBase field missing: ${f}`);
+    }
+    const pingFn = src.delivery.match(/export function formatPingPayload\([\s\S]*?\n\}/);
+    if (!pingFn) assert.fail('WEBHOOK-NORMATIVE/PARSE: formatPingPayload not found');
+    for (const k of ["object: 'webhook'", 'webhookId', 'trigger']) {
+      assert.ok(pingFn[0].includes(k), `MISMATCH: formatPingPayload missing ${k}`);
+    }
+    assert.ok(src.delivery.includes("reason: 'ssrf_refused'"), 'MISMATCH: ssrf_refused reason literal not in delivery source');
+
+    // 9. report-only: source error literals the section does not document
     //    (direction rule: doc-claims-absent-in-source = hard fail; source-lacks-in-doc = report)
     const sourceLiterals = new Set([...allSource.matchAll(/[{,]\s*error:\s*'([^'\n]+)'/g)].map((m) => m[1]));
     const documented = new Set(DOC_LITERALS);

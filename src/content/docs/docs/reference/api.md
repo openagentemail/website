@@ -916,7 +916,97 @@ Possible errors:
 - `409 {"error":"stale_message_generation"}`: IMAP mailbox generation UIDVALIDITY changed since original delivery.
 - `409 {"error":"uidvalidity_required"}`: Historical delivery row lacks UIDVALIDITY tracking required for safe mailbox replay.
 
-*(Webhook signature verification and outbound delivery semantics are documented in subsequent slices).*
+*(Webhook signature verification is documented in a subsequent slice).*
+
+## Webhook delivery semantics
+
+### Outbound envelope
+
+> **Layer:** Normative — generated from, and cited against, the implementation.
+
+Outbound webhook delivery HTTP POST requests carry a JSON body consisting of five standardized envelope fields wrapping event-specific `data`:
+
+| Field | Type | Description |
+|---|---|---|
+| `id` | string | Stable event identifier (prefixed `evt_`). Retried attempts and manual redeliveries of the same event retain this exact `id`. |
+| `type` | string | Event type identifier: `'mail.received'`, `'approval.requested'`, or `'webhook.ping'`. |
+| `payloadVersion` | string | Wire schema format version (`'v1'`). |
+| `createdAt` | string | ISO 8601 UTC timestamp recording when the event was generated on the server. |
+| `domain` | string | Server domain originating the delivery. |
+| `data` | object | Event-specific data object containing the event payload fields. |
+
+### Event types
+
+> **Layer:** Normative — generated from, and cited against, the implementation.
+
+The webhook subsystem dispatches event types defined by `WebhookEventType`:
+
+1. `mail.received`: Dispatched when incoming mail arrives at a managed mailbox over IMAP. The `data` object includes `object` (`"mail"`), `address`, `messageId`, `cursor`, `uid`, `uidValidity` (nullable), `receivedAt`, `from` (`{ address }`, or `{ address, name }` when the sender display name is present), `to`, `cc`, `subject`, `sizeBytes`, `hasAttachments`, `unread`, `containsSecurityCode`, and `containsLink`. When `contentScope: "preview"` is enabled (admin only), `textPreview`, `securityCodes`, and `links` are included when present.
+2. `approval.requested`: Dispatched when a task with `kind: "approval"` is submitted targeting the reviewer identity. The `data` object includes `object` (`"approval"`), `taskId`, `taskState` (`"input-required"`), `from`, `to`, `reviewer`, `subject`, `createdAt`, `expiresAt`, `expiresInSec` (nullable), `digest`, `actionType`, and `actionName`. When `contentScope: "preview"` is enabled (admin only), `actionArguments` is included subject to size and depth bounds; default `metadata` subscriptions do not include it.
+3. `webhook.ping`: Diagnostic ping sent when creating a subscription, re-enabling a disabled subscription, changing its destination URL, or executing a manual test probe (`trigger: "creation"` or `trigger: "test"`). Changing the URL of a subscription that remains disabled (manually paused, `disabledReason: "manual"`) leaves it disabled and does not send a ping. The `data` object includes `object` (`"webhook"`), `webhookId`, and `trigger`.
+
+### Retry schedule and backoff
+
+> **Layer:** Normative — generated from, and cited against, the implementation.
+
+Delivery outcomes determine whether failures are retried automatically:
+
+- **Retryable failures**: Network errors, connection timeouts, HTTP `408`, HTTP `429`, and HTTP `5xx` responses are classified as `retryable` and are retried automatically on a deterministic backoff ladder.
+- **Permanent failures (no retry)**: HTTP `3xx` redirects (`redirect_forbidden`), responses exceeding `WEBHOOK_RESPONSE_MAX_BYTES` (`response_too_large`), and client errors (HTTP `4xx` responses, including `400`, `401`, `403`, and `404`, excluding `408` and `429`) are classified as `permanent` failures. They are recorded directly to dead-letter storage and are not retried automatically.
+- **Idempotency requirement**: Because retry attempts and manual redeliveries dispatch with the original stable top-level event `id`, receivers **must deduplicate deliveries idempotently by this `id`**.
+
+- **Retry horizon and attempts**: Non-ping events are attempted up to `MAX_RETRY_SCHEDULE_ATTEMPTS` (default `11` attempts, governed by `WEBHOOK_MAX_ATTEMPTS`) spanning a 72-hour horizon (`RETRY_HORIZON_SEC = 259200`). The 11th attempt is pinned to the horizon boundary itself, and a job waking after that boundary is recorded as `retry_horizon_exceeded` without an HTTP delivery. After a process restart, pending deliveries are re-evaluated against the horizon using the original event's generation time; in particular, a manual redelivery of an event generated more than 72 hours earlier is recorded as `retry_horizon_exceeded` without an HTTP delivery.
+- **Cumulative attempt offsets**:
+  - Attempt 1: Immediate (`0s`)
+  - Attempt 2: `+5s`
+  - Attempt 3: `+5m` (`300s`)
+  - Attempt 4: `+30m` (`1,800s`)
+  - Attempt 5: `+2h` (`7,200s`)
+  - Attempt 6: `+5h` (`18,000s`)
+  - Attempt 7: `+10h` (`36,000s`)
+  - Attempt 8: `+20h` (`72,000s`)
+  - Attempt 9: `+34h` (`122,400s`)
+  - Attempt 10: `+48h` (`172,800s`)
+  - Attempt 11: `+72h` (`259,200s`, pinned at the horizon boundary; normally not delivered — see the retry-horizon note above)
+- **Ping cap**: `webhook.ping` deliveries are capped at `MAX_PING_ATTEMPTS` attempts (default `3`: immediate, +5s, +5m).
+- **Jitter**: Each attempt's cumulative offset is shifted by **±10% non-cumulative jitter** of that step's nominal gap (`gap * (rand() * 0.2 - 0.1)`); adjacent attempts jitter independently, so the interval between two consecutive attempts can deviate from its nominal length by more than ±10%. Attempt 11 is pinned to exactly +72h unjittered.
+- **HTTP 429 Retry-After**: If the remote server returns HTTP `429` with a valid `Retry-After` header between 1 and 3600 seconds, the delivery engine respects the delay and clamps the next attempt into the schedule. (The retry scheduled by a manual test probe (`POST /v1/webhooks/:id/test`) is an exception: it uses the base ping offsets and does not apply `Retry-After`.)
+
+### Circuit breaker and automatic disablement
+
+> **Layer:** Explanatory — observable behaviour only; not normative.
+
+- Each subscription maintains a `consecutiveFailures` counter, reset to 0 by a successful delivery attempt.
+- **Failures counting toward circuit breaking**: Qualifying delivery attempts resulting in `retryable` or `permanent` outcomes increment `consecutiveFailures` (`refused`, `deferred`, and `pending` outcomes do not increment the counter). Diagnostic pings (`webhook.ping`) follow two rules:
+  - A ping failure while the subscription is in the `unverified` state does not increment the counter (preventing initial setup and validation probes from tripping the breaker).
+  - A ping failure with a permanent outcome does not increment the counter, regardless of subscription state. A retryable ping failure on an enabled subscription increments the counter and can advance the subscription toward threshold disablement.
+- If consecutive qualifying delivery attempts fail and reach `WEBHOOK_DISABLE_THRESHOLD` (default **10**), the circuit breaker trips:
+  - The subscription is automatically disabled (state: `"disabled"`, disabledReason: `"threshold"`). Deliveries already queued are not discarded: when a queued delivery wakes, it checks the subscription state and exits without sending if the subscription is still disabled. If the subscription has been re-enabled by the time it wakes, that delivery is sent. (Queue preservation applies within a single process run: after a restart, a pending delivery whose subscription is still disabled at boot is recorded as `webhook_disabled` without delivery, even if the subscription is re-enabled later.)
+- **Immediate disablement on `refused` attempts**: A delivery attempt whose target resolves to a blocked address range is classified `refused` (`ssrf_refused`) and disables the subscription immediately (state: `"disabled"`, disabledReason: `"refused"`), without waiting for the `consecutiveFailures` threshold. Manual test probes and redeliveries follow the same rule.
+- To recover a disabled subscription:
+  - **Resume without URL change (`POST /v1/webhooks/:id/enable`)**: Admin only (`403` for identity callers). Calling this resets `consecutiveFailures` to 0, sets `state: "unverified"`, clears `disabledReason`, and dispatches an asynchronous ping.
+  - **Update destination URL (`POST /v1/webhooks/:id`)**: Available to an admin key or the identity owner of `address` (admin-only for subscriptions that already have `contentScope: "preview"`; identity callers receive `403 {"error":"content_scope_requires_admin"}`). Changing `url` on a subscription disabled by threshold (`disabledReason: "threshold"`) resets `consecutiveFailures` to 0, transitions state to `unverified`, clears `disabledReason`, and fires a verification ping. (Subscriptions manually paused with `disabledReason: "manual"` remain disabled when updating `url`).
+
+### SSRF protection and network constraints
+
+> **Layer:** Explanatory — observable behaviour only; not normative.
+
+- **Connection-time DNS pinning**: Webhook deliveries pin resolved IP addresses at connection time. The target hostname is resolved when connecting, and each returned IP address is verified against blocked private, loopback, link-local, and multicast ranges. This neutralizes DNS-rebinding Time-of-Check to Time-of-Use (TOCTOU) risks.
+- **Redirects forbidden**: HTTP `3xx` redirects are rejected (`redirect_forbidden`) to prevent endpoints from pivoting into internal network assets.
+- **Allowed ports**: Destination ports are restricted by `WEBHOOK_ALLOWED_PORTS` (default `443` only).
+- **Private network targets**: Delivering to private IP addresses (RFC 1918 / loopback) is blocked by default. It requires server setting `WEBHOOK_ALLOW_PRIVATE_TARGETS=true` (default `false`), `OAE_PUBLIC_EDGE=false`, and must be authorized with an admin key.
+
+### Bounded payloads and timeouts
+
+> **Layer:** Normative — generated from, and cited against, the implementation.
+
+- **Payload ceiling**: Outbound webhook request bodies are capped at `WEBHOOK_PAYLOAD_MAX_BYTES` (default **16,384 bytes** / 16 KiB). If a payload exceeds this limit, fields are shed in deterministic order per event type before failing closed (`payload_too_large`):
+  - **`mail.received`**: In `preview` scope, drops `links` → `securityCodes` → `textPreview`; then across both scopes empties `cc` (`[]`) → `to` (`[]`) → `subject` (`""`) → drops `from.name`.
+  - **`approval.requested`**: In `preview` scope, drops `actionArguments` first (dropped whole); then across both scopes empties `subject` (`""`).
+  - If the envelope still exceeds the limit after shedding droppable fields, delivery fails closed.
+- **Approval argument bounds**: In `approval.requested` events, action arguments are bounded by `WEBHOOK_APPROVAL_ARGS_MAX_BYTES` (default **4,096 bytes**) and maximum JSON nesting depth `WEBHOOK_APPROVAL_ARGS_MAX_DEPTH` (default **4**).
+- **Timeouts and buffers**: Remote endpoint responses are capped at `WEBHOOK_RESPONSE_MAX_BYTES` (default **4,096 bytes**) to prevent buffer exhaustion. Each delivery attempt has a wall-clock timeout of `WEBHOOK_DELIVERY_TIMEOUT_MS` (default **10,000 ms** / 10 seconds).
+- **Concurrency**: Delivery dispatching admits at most one in-flight attempt per subscription, and at most `WEBHOOK_MAX_CONCURRENT` (default 8) attempts in flight process-wide.
 
 ## Status codes
 
@@ -930,4 +1020,3 @@ Possible errors:
 | `408` | `wait` timed out |
 | `429` | Send rate limit hit — back off `retryAfterSec` |
 | `5xx` | Mailserver unreachable or internal error — check `docker compose logs api` |
-
