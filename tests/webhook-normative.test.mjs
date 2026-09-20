@@ -192,7 +192,7 @@ if (!isSourceMode) {
 
     // 6. report-only: source error literals the section does not document
     //    (direction rule: doc-claims-absent-in-source = hard fail; source-lacks-in-doc = report)
-    const sourceLiterals = new Set([...allSource.matchAll(/error:\s*'([^']+)'/g)].map((m) => m[1]));
+    const sourceLiterals = new Set([...allSource.matchAll(/[{,]\s*error:\s*'([^'\n]+)'/g)].map((m) => m[1]));
     const documented = new Set(DOC_LITERALS);
     const undocumented = [...sourceLiterals].filter((l) => !documented.has(l)).sort();
     if (undocumented.length > 0) {
