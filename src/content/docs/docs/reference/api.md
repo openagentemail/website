@@ -665,6 +665,8 @@ proxy and iOS/Android steps.
 > **Normative vs Explanatory layers:**
 > - **Normative**: Formal interface contracts (endpoints, request/response fields, event types, configuration defaults, and wire error codes). Where documentation and implementation conflict, the Normative layer and actual server behavior govern.
 > - **Explanatory**: Observable behavior descriptions and receiver guidance. This layer describes externally visible outcomes and is non-normative.
+>
+> **Authorization premise (applies to all endpoints below).** Unless stated otherwise, every authorization statement in this section describes tokens **without** a persisted `scopes` array — unscoped identity tokens and OAuth tokens derived from unscoped identities. Scope-carrying tokens (an identity token with a `scopes` array — even an empty one — or an OAuth token whose identity has one) are default-denied: the server's operation-policy table (`OPERATION_POLICIES`) defines no webhook operations, so every `/v1/webhooks*` request from such a token is rejected with `403 {"error":"forbidden:insufficient_scope"}` — **including read-only requests**.
 
 Outbound webhooks deliver real-time HTTP POST notifications to external endpoints when events occur (such as incoming mail or task approval requests). Webhooks are disabled by default (`WEBHOOKS_ENABLED=false`). When enabled, subscriptions can be created and managed per identity address or globally with an admin key.
 
