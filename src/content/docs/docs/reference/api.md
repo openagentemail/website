@@ -702,7 +702,7 @@ Headers:
 Limits:
 - Server capacity is governed by `WEBHOOK_MAX_SUBSCRIPTIONS` (default 16 server-wide) and `WEBHOOK_MAX_PER_ADDRESS` (default 4 per address). Exceeding these returns `409 {"error":"webhook_limit_reached"}`.
 - Rate-limited by `WEBHOOK_RATE_CREATE_PER_MIN` (default 10 requests per minute per caller; returns `429 {"error":"rate_limited","retryAfterSec":...}` when exceeded).
-- Upon creation, the server derives an endpoint signing secret (`whs_...`) and automatically dispatches an initial asynchronous ping delivery (`webhook.ping`) with `trigger: "creation"` to verify destination reachability. This ping shares the `WEBHOOK_RATE_TEST_PER_MIN` bucket with `POST /v1/webhooks/:id/test`. When that bucket is exhausted, the ping is not attempted over HTTP and is recorded with `reason: "probe_rate_limited"`.
+- Upon creation, the server derives an endpoint signing secret (`whs_...`) and automatically dispatches an initial asynchronous ping delivery (`webhook.ping`) with `trigger: "creation"` to verify destination reachability. This ping shares the `WEBHOOK_RATE_TEST_PER_MIN` bucket with `POST /v1/webhooks/:id/test`. When that bucket is exhausted at creation or retarget time, the ping is queued for a delayed re-check (`WEBHOOK_POOL_RETRY_MS`, default 5000 ms); it is attempted over HTTP if the bucket has capacity by then, and is recorded with `reason: "probe_rate_limited"` (no HTTP attempt) only if the bucket is still exhausted at that re-check.
 
 Valid destination quick reference:
 Target URLs are evaluated against a three-tier validation ladder before acceptance:
@@ -778,7 +778,7 @@ The update payload schema is evaluated with `.strict()`; unrecognized fields ret
 Updating `url` executes static and DNS SSRF verification. If the target URL changes:
 - `consecutiveFailures` is reset to 0.
 - Unless manually disabled (`disabledReason: "manual"`), the subscription state resets to `unverified` and `disabledReason` is cleared.
-- An asynchronous verification ping is dispatched to the new destination if the subscription is not in the `disabled` state (manually paused subscriptions remain disabled and do not fire a ping; subscriptions disabled by threshold or rejection are reset to `unverified` and trigger the ping). This ping shares the `WEBHOOK_RATE_TEST_PER_MIN` bucket with `POST /v1/webhooks/:id/test`. When that bucket is exhausted, the ping is not attempted over HTTP and is recorded with `reason: "probe_rate_limited"`.
+- An asynchronous verification ping is dispatched to the new destination if the subscription is not in the `disabled` state (manually paused subscriptions remain disabled and do not fire a ping; subscriptions disabled by threshold or rejection are reset to `unverified` and trigger the ping). This ping shares the `WEBHOOK_RATE_TEST_PER_MIN` bucket with `POST /v1/webhooks/:id/test`. When that bucket is exhausted at creation or retarget time, the ping is queued for a delayed re-check (`WEBHOOK_POOL_RETRY_MS`, default 5000 ms); it is attempted over HTTP if the bucket has capacity by then, and is recorded with `reason: "probe_rate_limited"` (no HTTP attempt) only if the bucket is still exhausted at that re-check.
 - If the subscription already has `contentScope: "preview"`, non-admin identity callers cannot change `url` (`403 {"error":"content_scope_requires_admin"}`).
 
 ## `DELETE /v1/webhooks/:id`
