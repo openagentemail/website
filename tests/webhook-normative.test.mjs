@@ -100,7 +100,7 @@ const SEMANTICS_GOLDENS = [
   'Attempt 8: `+20h` (`72,000s`)',
   'Attempt 9: `+34h` (`122,400s`)',
   'Attempt 10: `+48h` (`172,800s`)',
-  'Attempt 11: `+72h` (`259,200s`, pinned)',
+  'Attempt 11: `+72h` (`259,200s`, pinned at the horizon boundary; normally not delivered — see the retry-horizon note above)',
   '`webhook.ping` deliveries are capped at `MAX_PING_ATTEMPTS` attempts (default `3`: immediate, +5s, +5m)',
   '`WEBHOOK_DISABLE_THRESHOLD` (default **10**)',
   '`WEBHOOK_PAYLOAD_MAX_BYTES` (default **16,384 bytes** / 16 KiB)',
