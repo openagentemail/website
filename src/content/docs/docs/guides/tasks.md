@@ -127,6 +127,7 @@ When an approval task is created, the system triggers the `approval.requested`
 webhook event. If the reviewer identity has a non-disabled webhook subscription
 (`unverified` or `enabled`) for `approval.requested`, an outbound HTTP notification
 is enqueued immediately.
+Webhook delivery requires the server to have webhooks enabled (`WEBHOOKS_ENABLED=true`, which in turn requires an explicit `TASK_SIGNING_SECRET` of at least 32 characters or server startup aborts; the `SMTP_PASS` fallback does not apply); while webhooks are disabled, webhook routes return `404 {"error":"webhooks_disabled"}` and `approval.requested` events are not delivered.
 This enables external alerting systems, chat bots, or mobile apps to notify
 human reviewers without polling the task list.
 
