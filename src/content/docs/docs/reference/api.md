@@ -443,7 +443,7 @@ Error responses:
 - `403 {"error":"forbidden: approval reviewer required"}`: The caller is authorized to view the task but is not the task's designated reviewer (for example, the requester `from`).
 - `404 {"error":"not_found"}`: The task does not exist, or the caller is an unrelated identity not permitted to view it.
 - `409 {"error":"task_expired"}`: The current time is past `approval.expiresAt`. The task is transitioned to terminal `failed` with result `{"decision":"expired","digest":"...","expiredAt":"..."}`.
-- `409 {"error":"task_already_decided"}`: The task has already reached a terminal state (`completed` or `failed`) or is no longer in `input-required`.
+- `409 {"error":"task_already_decided"}`: The task has already reached a terminal state (`completed` by a prior decision, or `failed` for reasons other than expiry) or is no longer in `input-required`. Tasks materialized to `failed` due to expiry continue to return `task_expired` rather than `task_already_decided`.
 - `409 {"error":"not_approval_task"}`: The task was created without `kind: "approval"`.
 
 ## `X-OA-Mail-Stamp` and message `source`

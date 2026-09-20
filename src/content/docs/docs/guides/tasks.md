@@ -101,7 +101,7 @@ Decisions are strictly restricted to the assigned reviewer:
 Decision attempts on approval tasks return specific errors when the task cannot
 be decided. Error transport differs between callers:
 
-- **REST API (`POST /v1/tasks/:id/decision`)**: Returns an HTTP `409 Conflict` status code with JSON body `{"error":"<code>"}`.
+- **REST API (`POST /v1/tasks/:id/decision`)**: Returns an HTTP `409 Conflict` status code with JSON body `{"error":"<code>"}` for the decision errors listed below (`task_expired`, `task_already_decided`, `not_approval_task`). Standard request validation and access-control errors still apply (`400` for invalid request payload/UUID, `403` for non-reviewer participants, and `404` for unreadable or non-existent tasks).
 - **MCP tool (`task_decide`)**: Does not produce HTTP error status codes. Failures return under HTTP 200 as an MCP tool result with `{ content: [{ type: "text", text: <message> }], isError: true }`, where the message text contains the corresponding error code. MCP clients should inspect `isError` and message text rather than branching on HTTP status codes.
 
 Common error codes:
