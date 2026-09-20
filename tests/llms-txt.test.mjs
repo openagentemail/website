@@ -169,12 +169,12 @@ test('package.json wires source and rendered llms.txt gates', async () => {
   assert.equal(pkg.scripts['posttest:seo-docs-rendered'], undefined);
   assert.equal(
     pkg.scripts.prebuild,
-    'npm run test:compare-freshness && npm run test:hosted-checkout && npm run test:mail-security-docs && npm run test:iphone-mail-guide && npm run test:jsonld && npm run test:seo-docs && npm run test:llms-txt',
+    'npm run test:compare-freshness && npm run test:hosted-checkout && npm run test:mail-security-docs && npm run test:iphone-mail-guide && npm run test:jsonld && npm run test:seo-docs && npm run test:llms-txt && npm run test:mcp-tools && npm run test:mcp-tools-upstream',
     'prebuild must preserve prior gates and append test:llms-txt',
   );
   assert.equal(
     pkg.scripts.postbuild,
-    'npm run test:compare-rendered && npm run test:jsonld-rendered && npm run test:seo-docs-rendered && npm run test:llms-txt-rendered',
+    'npm run test:compare-rendered && npm run test:jsonld-rendered && npm run test:seo-docs-rendered && npm run test:llms-txt-rendered && npm run test:mcp-tools-rendered',
     'postbuild must preserve prior gates and append test:llms-txt-rendered',
   );
 });

@@ -2,6 +2,7 @@
 import Legal from '../layouts/Legal.astro';
 import EnvelopeOrbit from '../components/EnvelopeOrbit.astro';
 import PaperPlane from '../components/PaperPlane.astro';
+import { MCP_TOOLS } from '../data/mcp-tools.js';
 ---
 
 <Legal
@@ -22,7 +23,7 @@ import PaperPlane from '../components/PaperPlane.astro';
       <p class="tagline">Apache-2.0 open source. Runs on your own server.</p>
       <ul>
         <li>Unlimited agent mailboxes on your own domain</li>
-        <li>REST API + MCP server (15 tools)</li>
+        <li>REST API + MCP server ({MCP_TOOLS.length} tools)</li>
         <li>Dashboard, phone push notifications, agent tasks</li>
         <li>One-command install, ~5 minutes on any VPS</li>
       </ul>
