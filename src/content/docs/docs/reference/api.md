@@ -943,7 +943,7 @@ The webhook subsystem dispatches event types defined by `WebhookEventType`:
 
 1. `mail.received`: Dispatched when incoming mail arrives at a managed mailbox over IMAP. The `data` object includes `object` (`"mail"`), `address`, `messageId`, `cursor`, `uid`, `uidValidity` (nullable), `receivedAt`, `from` (`{ address }`, or `{ address, name }` when the sender display name is present), `to`, `cc`, `subject`, `sizeBytes`, `hasAttachments`, `unread`, `containsSecurityCode`, and `containsLink`. When `contentScope: "preview"` is enabled (admin only), `textPreview`, `securityCodes`, and `links` are included when present.
 2. `approval.requested`: Dispatched when a task with `kind: "approval"` is submitted targeting the reviewer identity. The `data` object includes `object` (`"approval"`), `taskId`, `taskState` (`"input-required"`), `from`, `to`, `reviewer`, `subject`, `createdAt`, `expiresAt`, `expiresInSec` (nullable), `digest`, `actionType`, and `actionName`. When `contentScope: "preview"` is enabled (admin only), `actionArguments` is included subject to size and depth bounds; default `metadata` subscriptions do not include it.
-3. `webhook.ping`: Diagnostic ping sent when creating a subscription, changing its destination URL, or executing a manual test probe (`trigger: "creation"` or `trigger: "test"`). Changing the URL of a subscription that remains disabled (manually paused, `disabledReason: "manual"`) leaves it disabled and does not send a ping. The `data` object includes `object` (`"webhook"`), `webhookId`, and `trigger`.
+3. `webhook.ping`: Diagnostic ping sent when creating a subscription, re-enabling a disabled subscription, changing its destination URL, or executing a manual test probe (`trigger: "creation"` or `trigger: "test"`). Changing the URL of a subscription that remains disabled (manually paused, `disabledReason: "manual"`) leaves it disabled and does not send a ping. The `data` object includes `object` (`"webhook"`), `webhookId`, and `trigger`.
 
 ### Retry schedule and backoff
 
@@ -969,8 +969,8 @@ Delivery outcomes determine whether failures are retried automatically:
   - Attempt 10: `+48h` (`172,800s`)
   - Attempt 11: `+72h` (`259,200s`, pinned at the horizon boundary; normally not delivered — see the retry-horizon note above)
 - **Ping cap**: `webhook.ping` deliveries are capped at `MAX_PING_ATTEMPTS` attempts (default `3`: immediate, +5s, +5m).
-- **Jitter**: Each retry interval is randomized by **±10% non-cumulative jitter** applied to the gap between consecutive steps (`gap * (rand() * 0.2 - 0.1)`). Attempt 11 is pinned to exactly +72h unjittered.
-- **HTTP 429 Retry-After**: If the remote server returns HTTP `429` with a valid `Retry-After` header between 1 and 3600 seconds, the delivery engine respects the delay and clamps the next attempt into the schedule.
+- **Jitter**: Each attempt's cumulative offset is shifted by **±10% non-cumulative jitter** of that step's nominal gap (`gap * (rand() * 0.2 - 0.1)`); adjacent attempts jitter independently, so the interval between two consecutive attempts can deviate from its nominal length by more than ±10%. Attempt 11 is pinned to exactly +72h unjittered.
+- **HTTP 429 Retry-After**: If the remote server returns HTTP `429` with a valid `Retry-After` header between 1 and 3600 seconds, the delivery engine respects the delay and clamps the next attempt into the schedule. (The retry scheduled by a manual test probe (`POST /v1/webhooks/:id/test`) is an exception: it uses the base ping offsets and does not apply `Retry-After`.)
 
 ### Circuit breaker and automatic disablement
 
