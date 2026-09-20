@@ -658,9 +658,17 @@ proxy and iOS/Android steps.
 
 ## Webhooks
 
+> **How to read this section**
+>
+> **Who this section is for.** There is nothing to compile or deploy to receive webhooks. This section is for developers integrating a webhook receiver into an application; you do not need to read the server source. Every *Normative* statement below is generated from, and cited against, the implementation.
+>
+> **Normative vs Explanatory layers:**
+> - **Normative**: Formal interface contracts (endpoints, request/response fields, event types, configuration defaults, and wire error codes). Where documentation and implementation conflict, the Normative layer and actual server behavior govern.
+> - **Explanatory**: Observable behavior descriptions and receiver guidance. This layer describes externally visible outcomes and is non-normative.
+
 Outbound webhooks deliver real-time HTTP POST notifications to external endpoints when events occur (such as incoming mail or task approval requests). Webhooks are disabled by default (`WEBHOOKS_ENABLED=false`). When enabled, subscriptions can be created and managed per identity address or globally with an admin key.
 
-All webhook endpoints require `WEBHOOKS_ENABLED=true` in server configuration; when disabled, requests return `404 {"error":"webhooks_disabled"}`. Enabling webhooks additionally requires an explicit `TASK_SIGNING_SECRET` of at least 32 characters; existing installations relying on the fallback to `SMTP_PASS` cannot enable webhooks without setting `TASK_SIGNING_SECRET` explicitly, or server startup will abort with a configuration error. OAuth access tokens may read subscriptions but are forbidden from mutating them or revealing signing secrets (`403`).
+Webhook endpoints require `WEBHOOKS_ENABLED=true` in server configuration; when disabled, requests return `404 {"error":"webhooks_disabled"}`. Enabling webhooks additionally requires an explicit `TASK_SIGNING_SECRET` of at least 32 characters; existing installations relying on the fallback to `SMTP_PASS` cannot enable webhooks without setting `TASK_SIGNING_SECRET` explicitly, or server startup will abort with a configuration error. OAuth access tokens may read subscriptions but are forbidden from mutating them or revealing signing secrets (`403`).
 
 ## `POST /v1/webhooks`
 
@@ -703,23 +711,15 @@ Target URLs are evaluated against a three-tier validation ladder before acceptan
 3. **HTTP scheme constraints**: The `http:` scheme is permitted **only** when private targets are allowed as above, and requires **every** resolved IP address of the target hostname to be private or loopback. If any resolved IP is public, the endpoint is rejected with `webhook_target_forbidden`.
 
 Validation errors:
-- `400 {"error":"invalid_webhook_url"}`: URL syntax, scheme, port, or DNS resolution failure.
+- `400 {"error":"invalid_request","details":[...]}`: Payload schema validation failed before destination resolution (for example, malformed URL syntax, URL length exceeding 2048 characters, or missing required fields).
+- `400 {"error":"invalid_webhook_url"}`: URL resolution failed after passing schema validation (unsupported scheme, userinfo, query string, fragment, port not in `WEBHOOK_ALLOWED_PORTS`, or DNS lookup failure).
 - `400 {"error":"webhook_target_forbidden"}`: Target IP address violates SSRF policy, or an unprivileged identity attempted to configure a private network target, or an HTTP endpoint resolved to non-private addresses.
-
-Internal validation reasons (internal diagnostics only; **never returned to clients**):
-The URL validator distinguishes internal rejection reasons (defined in `webhook-delivery.ts`) for server logging. These reasons are **masked from API responses**; API callers always receive only `invalid_webhook_url` or `webhook_target_forbidden` without subcodes:
-- Reasons mapped to `invalid_webhook_url`:
-  - Static syntax and protocol: `malformed_url`, `unsupported_protocol`, `http_requires_private_targets`, `userinfo_forbidden`, `query_string_forbidden`, `fragment_forbidden`, `port_not_allowed`, `ip_literal_forbidden`
-  - DNS resolution: `dns_empty`, `dns_lookup_failed`
-- Reasons mapped to `webhook_target_forbidden`:
-  - SSRF protection: `ssrf_blocked_ip`
-  - Protocol constraint: `http_target_must_be_private`
 
 Note: The creation response (and rotation response) is the only place where the plaintext signing `secret` is returned automatically without an explicit secret request. Authorized callers (admin or the identity creator for `metadata` scope) can retrieve the secret at any time via `GET /v1/webhooks/:id/secret`. List and detail queries return only `secretPrefix`.
 
 ## `GET /v1/webhooks`
 
-List webhook subscriptions. Identity tokens return only subscriptions bound to their own address. Admin keys return all subscriptions across all addresses, or can filter by passing `?address=`.
+List webhook subscriptions. Identity tokens return subscriptions bound to their own address. Admin keys return subscriptions across addresses, or can filter by passing `?address=`.
 
 ```bash
 printf 'header = "Authorization: Bearer %s"\n' "$IDENTITY_TOKEN" | \
@@ -818,7 +818,7 @@ curl -X POST $API/v1/webhooks/whk_01h7x8a.../rotate \
 
 Dual-signing overlap:
 - `overlapUntil` is set to current time plus `WEBHOOK_ROTATION_OVERLAP_MS` (default `86400000` ms = 24 hours).
-- During this overlap window, all outgoing deliveries carry signatures for **both** the new epoch and the preceding epoch in the `X-OAE-Signature` header (`v1=<new>,v1=<prev>`).
+- During this overlap window, outgoing deliveries carry signatures for **both** the new epoch and the preceding epoch in the `X-OAE-Signature` header (`v1=<new>,v1=<prev>`).
 - If a rotation window is already open, further rotations fail with `409 {"error":"rotation_window_open","overlapUntil":"..."}` unless `force: true` is passed.
 - Supports optional `Idempotency-Key` header (replays return cached response with `secret: null`).
 
@@ -907,9 +907,11 @@ Possible errors:
 
 ## Webhook signature verification
 
-All outbound HTTP delivery POST requests include the `X-OAE-Signature` header. Receivers must verify this signature to confirm that requests originated from openagent.email and were not altered or delayed.
+Outbound HTTP delivery POST requests include the `X-OAE-Signature` header. Receivers must verify this signature to confirm that requests originated from openagent.email and were not altered or delayed.
 
 ### Header format
+
+> **Layer:** Normative — generated from, and cited against, the implementation.
 
 ```text
 X-OAE-Signature: t=<unix-timestamp>,v1=<signature-hex>[,v1=<additional-signature-hex>]
@@ -920,7 +922,9 @@ X-OAE-Signature: t=<unix-timestamp>,v1=<signature-hex>[,v1=<additional-signature
 
 ### Verification procedure
 
-1. **Extract timestamp and signatures**: Parse the `X-OAE-Signature` header by splitting on commas. Extract the integer `t` value and all `v1` signature strings. If `t` or `v1` is missing, reject the request.
+> **Layer:** Explanatory — observable behaviour only; not normative.
+
+1. **Extract timestamp and signatures**: Parse the `X-OAE-Signature` header by splitting on commas. Extract the integer `t` value and candidate `v1` signature strings. If `t` or `v1` is missing, reject the request.
 2. **Check timestamp tolerance**: Compute `|nowSec - t|`. If the difference exceeds `WEBHOOK_TIMESTAMP_TOLERANCE_SEC` (default **300 seconds** / 5 minutes), reject the request as expired (`timestamp_out_of_range`) to defend against replay attacks.
 3. **Construct signed payload**: Concatenate the string `t`, a literal dot `.`, and the raw UTF-8 request body bytes:
    ```text
@@ -972,18 +976,22 @@ function verifySignature({ header, rawBody, secret, toleranceSec = 300 }) {
 
 ### Event types
 
+> **Layer:** Normative — generated from, and cited against, the implementation.
+
 The webhook subsystem dispatches event types defined by `WebhookEventType`:
 
 1. `mail.received`: Dispatched when new incoming mail arrives at a managed mailbox over IMAP. Includes sender, recipients, subject, message ID, flags, and size. When `contentScope: "preview"` is enabled (admin only), text snippet previews, extracted security codes, and links are included.
-2. `approval.requested`: Dispatched when a task with `kind: "approval"` is submitted targeting the reviewer identity. Carries task ID, state (`input-required`), requester, reviewer, action type/name, expiration timestamp, and `actionArguments`. Note that `actionArguments` is only included for subscriptions configured with `contentScope: "preview"` (admin-only) subject to size and depth bounds; default `metadata` subscriptions never include it.
+2. `approval.requested`: Dispatched when a task with `kind: "approval"` is submitted targeting the reviewer identity. Carries task ID, state (`input-required`), requester, reviewer, action type/name, expiration timestamp, and `actionArguments`. Note that `actionArguments` is only included for subscriptions configured with `contentScope: "preview"` (admin-only) subject to size and depth bounds; default `metadata` subscriptions do not include it.
 3. `webhook.ping`: Diagnostic ping sent when creating a subscription, changing its destination URL, or executing a manual test probe (`trigger: "creation"` or `trigger: "test"`).
 
 ### Retry schedule and backoff
 
+> **Layer:** Normative — generated from, and cited against, the implementation.
+
 Delivery outcomes determine whether failures are retried automatically:
 
 - **Retryable failures**: Network errors, connection timeouts, HTTP `408`, HTTP `429`, and HTTP `5xx` responses are classified as `retryable` and are retried automatically on a deterministic backoff ladder.
-- **Permanent failures (no retry)**: HTTP `3xx` redirects (`redirect_forbidden`), responses exceeding `WEBHOOK_RESPONSE_MAX_BYTES` (`response_too_large`), and client errors (all other HTTP `4xx` codes, such as `400`, `401`, `403`, or `404`) are classified as `permanent` failures. They are recorded directly to dead-letter storage and **are never retried**.
+- **Permanent failures (no retry)**: HTTP `3xx` redirects (`redirect_forbidden`), responses exceeding `WEBHOOK_RESPONSE_MAX_BYTES` (`response_too_large`), and client errors (HTTP `4xx` responses, including `400`, `401`, `403`, and `404`, excluding `408` and `429`) are classified as `permanent` failures. They are recorded directly to dead-letter storage and are not retried automatically.
 - **Idempotency requirement**: Because retry attempts and manual redeliveries dispatch with the original stable `eventId`, receivers **must deduplicate deliveries idempotently by event ID**.
 
 - **Retry horizon and attempts**: Non-ping events are attempted up to `MAX_RETRY_SCHEDULE_ATTEMPTS` (default `11` attempts, governed by `WEBHOOK_MAX_ATTEMPTS`) spanning a 72-hour horizon (`RETRY_HORIZON_SEC = 259200`).
@@ -1005,25 +1013,30 @@ Delivery outcomes determine whether failures are retried automatically:
 
 ### Circuit breaker and automatic disablement
 
+> **Layer:** Explanatory — observable behaviour only; not normative.
+
 - Each subscription maintains a `consecutiveFailures` counter.
-- **Failures counting toward circuit breaking**: Only delivery attempts resulting in `retryable` or `permanent` outcomes increment `consecutiveFailures` (`refused`, `deferred`, and `pending` never count). Diagnostic pings (`webhook.ping`) have two guards:
-  - Any ping failure while the subscription is in the `unverified` state does not increment the counter (preventing initial setup and validation probes from tripping the breaker).
-  - `permanent` ping failures never increment the counter under any state—even if the subscription is already `enabled`. However, a `retryable` ping failure on an `enabled` subscription still increments the counter and can advance the subscription toward threshold disablement.
+- **Failures counting toward circuit breaking**: Qualifying delivery attempts resulting in `retryable` or `permanent` outcomes increment `consecutiveFailures` (`refused`, `deferred`, and `pending` outcomes do not increment the counter). Diagnostic pings (`webhook.ping`) follow two rules:
+  - A ping failure while the subscription is in the `unverified` state does not increment the counter (preventing initial setup and validation probes from tripping the breaker).
+  - A ping failure with a permanent outcome does not increment the counter in unverified or enabled states. A retryable ping failure on an enabled subscription increments the counter and can advance the subscription toward threshold disablement.
 - If consecutive qualifying delivery attempts fail and reach `WEBHOOK_DISABLE_THRESHOLD` (default **10**), the circuit breaker trips:
-  - The subscription is automatically disabled: `state: "disabled"`, `disabledReason: "threshold"`.
-  - All remaining queued deliveries for this subscription are discarded.
+  - The subscription is automatically disabled (state: `"disabled"`, disabledReason: `"threshold"`). Deliveries already queued are not discarded: when a queued delivery wakes, it checks the subscription state and exits without sending if the subscription is still disabled. If the subscription has been re-enabled by the time it wakes, that delivery is sent.
 - To recover a disabled subscription:
   - **Resume without URL change (`POST /v1/webhooks/:id/enable`)**: Admin only (`403` for identity callers). Calling this resets `consecutiveFailures` to 0, sets `state: "unverified"`, clears `disabledReason`, and dispatches an asynchronous ping.
   - **Update destination URL (`POST /v1/webhooks/:id`)**: Available to an admin key or the identity owner of `address`. Changing `url` on a subscription disabled by threshold (`disabledReason: "threshold"`) resets `consecutiveFailures` to 0, transitions state to `unverified`, clears `disabledReason`, and fires a verification ping. (Subscriptions manually paused with `disabledReason: "manual"` remain disabled when updating `url`).
 
 ### SSRF protection and network constraints
 
-- **Connection-time DNS pinning**: Webhook deliveries use socket-level connection hooks (`pinnedFetch`). The target hostname is resolved at connect time, and every returned IP is verified against blocked private, loopback, link-local, and multicast CIDRs. This neutralizes DNS-rebinding Time-of-Check to Time-of-Use (TOCTOU) exploits.
-- **Redirects forbidden**: HTTP `3xx` redirects are unconditionally rejected (`redirect_forbidden`) to prevent endpoints from pivoting into internal network assets.
+> **Layer:** Explanatory — observable behaviour only; not normative.
+
+- **Connection-time DNS pinning**: Webhook deliveries pin resolved IP addresses at connection time. The target hostname is resolved when connecting, and each returned IP address is verified against blocked private, loopback, link-local, and multicast ranges. This neutralizes DNS-rebinding Time-of-Check to Time-of-Use (TOCTOU) risks.
+- **Redirects forbidden**: HTTP `3xx` redirects are rejected (`redirect_forbidden`) to prevent endpoints from pivoting into internal network assets.
 - **Allowed ports**: Destination ports are restricted by `WEBHOOK_ALLOWED_PORTS` (default `443` only).
-- **Private network targets**: Delivering to private IP addresses (RFC 1918 / loopback) is blocked by default. It requires server setting `WEBHOOK_ALLOW_PRIVATE_TARGETS=true` (default `false`), `OAE_PUBLIC_EDGE=false`, and must be explicitly authorized with an admin key.
+- **Private network targets**: Delivering to private IP addresses (RFC 1918 / loopback) is blocked by default. It requires server setting `WEBHOOK_ALLOW_PRIVATE_TARGETS=true` (default `false`), `OAE_PUBLIC_EDGE=false`, and must be authorized with an admin key.
 
 ### Bounded payloads and timeouts
+
+> **Layer:** Normative — generated from, and cited against, the implementation.
 
 - **Payload ceiling**: Outbound webhook request bodies are capped at `WEBHOOK_PAYLOAD_MAX_BYTES` (default **16,384 bytes** / 16 KiB). If a payload exceeds this limit, fields are shed in deterministic order per event type before failing closed (`payload_too_large`):
   - **`mail.received`**: In `preview` scope, drops `links` → `securityCodes` → `textPreview`; then across both scopes empties `cc` (`[]`) → `to` (`[]`) → `subject` (`""`) → drops `from.name`.
@@ -1034,6 +1047,8 @@ Delivery outcomes determine whether failures are retried automatically:
 - **Concurrency**: Delivery dispatching is throttled by per-subscription and process-wide worker concurrency pools (`WEBHOOK_MAX_CONCURRENT` default 8).
 
 ## Status codes
+
+> **Layer:** Normative — generated from, and cited against, the implementation.
 
 | Code | Meaning |
 |---|---|
