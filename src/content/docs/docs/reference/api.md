@@ -368,7 +368,10 @@ curl "$API/v1/tasks/0fdc3207-056e-47c1-a65c-b29d39f66b83?wait=true" \
 Advance a task. The API, not the caller, writes the task state headers onto a
 new reply in the email thread. `completed` and `failed` are terminal; later
 updates return `409 {"error":"task_already_terminal"}`. Concurrent
-non-terminal updates use last-writer-wins mailbox order.
+non-terminal updates use last-writer-wins mailbox order. Approval tasks
+(`kind: "approval"`) cannot be advanced through this endpoint; they must use
+`POST /v1/tasks/:id/decision`. Calling this endpoint on an approval task returns
+`409 {"error":"approval_decision_required"}`.
 
 ```bash
 printf 'header = "Authorization: Bearer %s"\n' "$WORKER_TOKEN" | \
@@ -387,6 +390,12 @@ curl -X POST $API/v1/tasks/0fdc3207-056e-47c1-a65c-b29d39f66b83/state \
 
 The caller must be one of the task participants. A token for another managed
 identity receives `403` even if it knows the UUID.
+
+Error responses:
+- `403 {"error":"forbidden: task participant required"}`: The caller is not a participant in the task thread.
+- `404 {"error":"not_found"}`: The task does not exist.
+- `409 {"error":"approval_decision_required"}`: The task is an approval task (`kind: "approval"`). Approval tasks cannot be advanced through this endpoint; use `POST /v1/tasks/:id/decision`.
+- `409 {"error":"task_already_terminal"}`: The task has already reached terminal `completed` or `failed`.
 
 Ordinary mail-client replies do not reliably retain `X-OA-Task-*` headers, so
 they do not advance state and may not appear in this thread view. v0.4 does not

@@ -165,10 +165,11 @@ one on the spot.
 | `notify_agent(name, title, message, level?, tags?)` | Wake a named agent by identity **localpart** (e.g. `qa-bot`). Server owns topics/credentials |
 | `notify_check(since?)` | Read this identity's recent notifications (`since` is an optional ntfy duration/timestamp filter) |
 | `notify_verify()` | Harmless delivery self-check; same human-alert permission as `notify_user` |
-| `task_create(to, subject, body, wait?)` | Assign a task to another managed identity; optional `wait` is clamped by `MCP_MAX_WAIT_SECONDS` (default 60, schema max 600) for `completed`/`failed` |
+| `task_create(to, subject, body?, kind?, approval?, wait?)` | Assign a task to another managed identity (supports `kind="approval"` with typed action and expiry); optional `wait` is clamped by `MCP_MAX_WAIT_SECONDS` (default 60, schema max 600) for `completed`/`failed` |
 | `task_list(state?)` | List this identity's email-backed tasks, optionally filtered by current state |
 | `task_get(id, wait?)` | Read one task thread and stamped state history; optional `wait` clamped the same way |
 | `task_update(id, state, body?, result?)` | Advance a task as a participant (`completed`/`failed` are terminal). Optional `result` becomes a JSON block in the reply |
+| `task_decide(id, decision)` | Approve or reject an approval task (`"approved"` or `"rejected"`) as its designated reviewer; records decision only |
 
 A typical automated-signup flow is: `mail_new_identity` → do the signup with that
 address → `mail_wait_for(address, subjectContains="verify")` → open `otp.links[0]`.

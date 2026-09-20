@@ -107,8 +107,15 @@ be decided. Error transport differs between callers:
 Common error codes:
 
 - `task_expired`: The current wall-clock time has passed `approval.expiresAt`.
-  The task is automatically materialized to terminal `failed` with result
-  `{"decision":"expired","digest":"...","expiredAt":"..."}`.
+  Expiry is **lazily materialized**, not automatically swept by a background
+  scheduler or list poll. The transition to terminal `failed` (with result
+  `{"decision":"expired","digest":"...","expiredAt":"..."}`) is only written
+  when an authorized client performs a detail read (`GET /v1/tasks/:id`), a wait
+  call (`wait=true`), or a decision attempt (`POST /v1/tasks/:id/decision` /
+  `task_decide`). Clients that only poll the task list (`GET /v1/tasks` or
+  `task_list`) will continue to see `state: "input-required"` indefinitely
+  (accompanied by a read-only past-deadline projection), without the task
+  transitioning to `failed` on its own.
 - `task_already_decided`: The task has already reached a terminal state
   (`completed` or `failed`) or is no longer in `input-required`.
 - `not_approval_task`: Attempted to call `task_decide` or `POST /v1/tasks/:id/decision`
