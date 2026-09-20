@@ -14,11 +14,12 @@ For a normal person or an outside mailbox, use ordinary email instead.
 ## What a task is
 
 Creating a task sends an email from one managed identity to another. The API
-adds these headers:
+adds these headers (with `X-OA-Task-State: submitted` for standard tasks, or
+`X-OA-Task-State: input-required` for approval tasks):
 
 ```text
 X-OA-Task: <uuid>
-X-OA-Task-State: submitted
+X-OA-Task-State: submitted    # or input-required for approval tasks
 ```
 
 Every API state update sends a reply with the same task ID and a new stamped
@@ -111,8 +112,9 @@ when the task cannot be decided:
 ### Webhook integration
 
 When an approval task is created, the system triggers the `approval.requested`
-webhook event. If the reviewer identity has an enabled webhook subscription for
-`approval.requested`, an outbound HTTP notification is enqueued immediately.
+webhook event. If the reviewer identity has a non-disabled webhook subscription
+(`unverified` or `enabled`) for `approval.requested`, an outbound HTTP notification
+is enqueued immediately.
 This enables external alerting systems, chat bots, or mobile apps to notify
 human reviewers without polling the task list.
 

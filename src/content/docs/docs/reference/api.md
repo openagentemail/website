@@ -650,7 +650,7 @@ proxy and iOS/Android steps.
 
 Outbound webhooks deliver real-time HTTP POST notifications to external endpoints when events occur (such as incoming mail or task approval requests). Webhooks are disabled by default (`WEBHOOKS_ENABLED=false`). When enabled, subscriptions can be created and managed per identity address or globally with an admin key.
 
-All webhook endpoints require `WEBHOOKS_ENABLED=true` in server configuration; when disabled, requests return `404 {"error":"webhooks_disabled"}`. OAuth access tokens may read subscriptions but are forbidden from mutating them or revealing signing secrets (`403`).
+All webhook endpoints require `WEBHOOKS_ENABLED=true` in server configuration; when disabled, requests return `404 {"error":"webhooks_disabled"}`. Enabling webhooks additionally requires an explicit `TASK_SIGNING_SECRET` of at least 32 characters; existing installations relying on the fallback to `SMTP_PASS` cannot enable webhooks without setting `TASK_SIGNING_SECRET` explicitly, or server startup will abort with a configuration error. OAuth access tokens may read subscriptions but are forbidden from mutating them or revealing signing secrets (`403`).
 
 ## `POST /v1/webhooks`
 
@@ -855,7 +855,7 @@ curl "$API/v1/webhooks/whk_01h7x8a.../deliveries?limit=20" --config -
 | Parameter | Type | Notes |
 |---|---|---|
 | `limit` | integer? | Number of records to return (1 to 100, default 20). |
-| `cursor` | string? | Opaque cursor token for forward pagination (max 1024 chars). Invalid cursor returns `400 {"error":"invalid_cursor"}`. |
+| `cursor` | string? | Opaque cursor token for forward pagination (max 1024 chars). An invalid cursor—or a cursor pointing to a record evicted from the memory index—returns `400 {"error":"invalid_cursor"}` (callers must restart pagination from the first page without a cursor). |
 
 The response returns `{"deliveries": [...]}`. When additional pages remain, the response includes `nextCursor` as an opaque string token. When no more pages follow, `nextCursor` is omitted entirely rather than returned as `null`.
 
@@ -872,7 +872,7 @@ curl -X POST $API/v1/webhooks/deliveries/dlv_01h.../redeliver --config -
 The server fetches the referenced delivery record, checks that the target webhook subscription is not disabled, retrieves the underlying email message or task approval, and enqueues a new delivery job preserving the original `eventId`.
 
 Possible errors:
-- `404 {"error":"delivery_not_found"}`: Delivery ID does not exist in logs.
+- `404 {"error":"delivery_not_found"}`: Delivery record does not exist in the active delivery log index (either an unknown delivery ID or evicted from memory when log volume exceeds `WEBHOOK_LOG_MAX_ROWS`, default **100,000**; evicted records persist on disk but cannot be queried or replayed via the API).
 - `404 {"error":"webhook_not_found"}`: Associated webhook subscription was deleted.
 - `404 {"error":"message_not_found"}`: Underlying mail message is no longer in storage. *(Note: If the underlying approval task is missing during replay, the server currently raises an unmapped error resulting in `500 {"error":"internal_error"}` rather than `task_not_found`).*
 - `409 {"error":"webhook_disabled"}`: Webhook subscription is currently disabled.
@@ -955,7 +955,11 @@ The webhook subsystem dispatches three distinct event types:
 
 ### Retry schedule and backoff
 
-Delivery failures are retried automatically with a deterministic schedule:
+Delivery outcomes determine whether failures are retried automatically:
+
+- **Retryable failures**: Network errors, connection timeouts, HTTP `408`, HTTP `429`, and HTTP `5xx` responses are classified as `retryable` and are retried automatically on a deterministic backoff ladder.
+- **Permanent failures (no retry)**: HTTP `3xx` redirects (`redirect_forbidden`), responses exceeding `WEBHOOK_RESPONSE_MAX_BYTES` (`response_too_large`), and client errors (all other HTTP `4xx` codes, such as `400`, `401`, `403`, or `404`) are classified as `permanent` failures. They are recorded directly to dead-letter storage and **are never retried**.
+- **Idempotency requirement**: Because retry attempts and manual redeliveries dispatch with the original stable `eventId`, receivers **must deduplicate deliveries idempotently by event ID**.
 
 - **11 attempts across 72 hours**: Non-ping events are attempted up to 11 times (`MAX_RETRY_SCHEDULE_ATTEMPTS = 11`, `WEBHOOK_MAX_ATTEMPTS = 11`) spanning a 72-hour horizon (`RETRY_HORIZON_SEC = 259200`).
 - **Cumulative attempt offsets**:
