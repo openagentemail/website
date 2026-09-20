@@ -476,9 +476,10 @@ as a cryptographic security boundary against a hostile MTA.
 
 ## `POST /mcp`
 
-Stateless remote MCP transport (MCP 2026-07-28 / SDK v2). Same 15 tools as the
-stdio package; no `Mcp-Session-Id`. **POST only** — other methods return `405`
-with `Allow: POST`.
+Stateless remote MCP transport (MCP 2026-07-28 / SDK v2). Exposes the same tool
+set as the stdio package (see [MCP client setup — Tools your agent gets](/docs/reference/mcp-clients/#tools-your-agent-gets)
+for the authoritative tool table); no `Mcp-Session-Id`. **POST only** — other
+methods return `405` with `Allow: POST`.
 
 Requires `Authorization: Bearer <admin key, oa_… identity token, or OAuth
 access token>`. Missing or invalid credentials return `401` plus a
