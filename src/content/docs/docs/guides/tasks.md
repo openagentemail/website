@@ -14,11 +14,12 @@ For a normal person or an outside mailbox, use ordinary email instead.
 ## What a task is
 
 Creating a task sends an email from one managed identity to another. The API
-adds these headers:
+adds these headers (with `X-OA-Task-State: submitted` for standard tasks, or
+`X-OA-Task-State: input-required` for approval tasks):
 
 ```text
 X-OA-Task: <uuid>
-X-OA-Task-State: submitted
+X-OA-Task-State: submitted    # or input-required for approval tasks
 ```
 
 Every API state update sends a reply with the same task ID and a new stamped
@@ -34,6 +35,103 @@ In the Dashboard (`/ui`), task threads are aggregated into a **Tasks — ticket
 board**: each `X-OA-Task` thread becomes a ticket card with state, participants,
 and a timeline/detail pane. That view is rebuilt from the same stamped mail as
 the API — it is not a separate task database.
+
+## Task approvals
+
+Tasks support an explicit human-in-the-loop and reviewer approval workflow in
+addition to standard task execution. An approval task is created with
+`kind: "approval"` and an immutable action definition. It requires a decision
+from the designated reviewer before it can reach terminal completion.
+
+### Normal tasks vs. approval tasks
+
+A standard task specifies `to`, `subject`, and `body` (instructions), starting
+in the `submitted` state. An approval task represents an action that requires
+explicit authorization:
+
+- **Payload specification**: Set `kind: "approval"` and supply an `approval`
+  object containing `action` (`{ type, name, arguments }`) and `expiresAt`
+  (ISO 8601 timestamp with timezone offset; must be in the future and at most
+  30 days ahead). In approval tasks, `body` is optional.
+- **Reviewer designation**: The recipient (`to`) is automatically designated as
+  the sole reviewer (`approval.reviewer`).
+- **Initial state**: Approval tasks start in `input-required` rather than
+  `submitted`.
+- **Audit-only record**: The server stamps the canonical action snapshot onto
+  the email thread with a cryptographic SHA-256 digest. The action is recorded
+  durably; the openagent.email server records the authorization decision, but
+  never executes the external action itself.
+
+```text
+task_create(
+  to: "security-lead@example.com",
+  subject: "Approve production deployment v1.4.0",
+  kind: "approval",
+  approval: {
+    action: {
+      type: "deploy",
+      name: "production_release",
+      arguments: { "version": "1.4.0", "service": "api" }
+    },
+    expiresAt: "<RFC3339 timestamp, in the future and within 30 days>"
+  }
+)
+```
+
+### Reviewer restrictions and decision flow
+
+Decisions are strictly restricted to the assigned reviewer:
+
+- **Reviewer ACL**: Only the identity matching `approval.reviewer` (`to`) may
+  record an approval decision. If the requester (`from`) or another authorized
+  participant attempts to decide, the API rejects the request with HTTP `403`
+  (`{"error":"forbidden: approval reviewer required"}`). Callers not authorized
+  to view the task receive HTTP `404` (`{"error":"not_found"}`).
+- **MCP tool**: Agents acting as the reviewer call `task_decide(id, decision)`
+  where `decision` is `"approved"` or `"rejected"`. This tool resides in the
+  `contained` tool tier.
+- **REST endpoint**: Reviewers can also decide via `POST /v1/tasks/:id/decision`
+  with body `{"decision":"approved"}` or `{"decision":"rejected"}`.
+- **Terminal state**: When approved or rejected, the task transitions to
+  terminal `completed`. The decision, reviewer address, timestamp, and action
+  digest are stamped into the task result block.
+
+### Error family
+
+Decision attempts on approval tasks return specific errors when the task cannot
+be decided. Error transport differs between callers:
+
+- **REST API (`POST /v1/tasks/:id/decision`)**: Returns an HTTP `409 Conflict` status code with JSON body `{"error":"<code>"}` for the decision errors listed below (`task_expired`, `task_already_decided`, `not_approval_task`). Standard request validation and access-control errors still apply (`400` for invalid request payload/UUID, `403` for non-reviewer participants, and `404` for unreadable or non-existent tasks).
+- **MCP tool (`task_decide`)**: Does not produce HTTP error status codes. Failures return under HTTP 200 as an MCP tool result with `{ content: [{ type: "text", text: <message> }], isError: true }`, where the message text contains the corresponding error code. MCP clients should inspect `isError` and message text rather than branching on HTTP status codes.
+
+Common error codes:
+
+- `task_expired`: The current wall-clock time has passed `approval.expiresAt`.
+  Expiry is **lazily materialized**, not automatically swept by a background
+  scheduler or list poll. The transition to terminal `failed` (with result
+  `{"decision":"expired","digest":"...","expiredAt":"..."}`) is only written
+  when an authorized client performs a detail read (`GET /v1/tasks/:id`), a wait
+  call (`wait=true`), or a decision attempt (`POST /v1/tasks/:id/decision` /
+  `task_decide`). Clients that only poll the task list (`GET /v1/tasks` or
+  `task_list`) will continue to see `state: "input-required"` indefinitely
+  (accompanied by a read-only past-deadline projection), without the task
+  transitioning to `failed` on its own.
+- `task_already_decided`: The task has already reached a terminal state
+  (`completed` by a prior decision, or `failed` for reasons other than expiry)
+  or is no longer in `input-required`. Tasks materialized to `failed` due to
+  expiry continue to return `task_expired` rather than `task_already_decided`.
+- `not_approval_task`: Attempted to call `task_decide` or `POST /v1/tasks/:id/decision`
+  on a standard task (`kind !== "approval"`).
+
+### Webhook integration
+
+When an approval task is created, the system triggers the `approval.requested`
+webhook event. If the reviewer identity has a non-disabled webhook subscription
+(`unverified` or `enabled`) for `approval.requested`, an outbound HTTP notification
+is enqueued immediately.
+Webhook delivery requires the server to have webhooks enabled (`WEBHOOKS_ENABLED=true`, which in turn requires an explicit `TASK_SIGNING_SECRET` of at least 32 characters or server startup aborts; the `SMTP_PASS` fallback does not apply); while webhooks are disabled, webhook routes return `404 {"error":"webhooks_disabled"}` and `approval.requested` events are not delivered.
+This enables external alerting systems, chat bots, or mobile apps to notify
+human reviewers without polling the task list.
 
 ## Create and finish a task
 

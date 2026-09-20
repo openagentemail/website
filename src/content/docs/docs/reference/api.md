@@ -301,9 +301,11 @@ did. Deliverability is your infrastructure's job; see
 ## `POST /v1/tasks`
 
 Create a task between two managed identities. The API sends an email with a
-private `X-OA-Task` UUID and `X-OA-Task-State: submitted`, then wakes the
-recipient's server-side agent route. Task mail is exempt from the ordinary
-`SEND_RATE_LIMIT`.
+private `X-OA-Task` UUID and `X-OA-Task-State: submitted` (or
+`X-OA-Task-State: input-required` for approval tasks), then wakes the
+recipient's server-side agent route. Standard tasks start in the `submitted`
+state; approval tasks start in `input-required`. Task mail is exempt from the
+ordinary `SEND_RATE_LIMIT`.
 
 With an identity token, omit `from` and the server uses that identity. Admin
 keys must include `from` explicitly.
@@ -319,14 +321,22 @@ curl -X POST $API/v1/tasks \
 | Field | Type | Notes |
 |---|---|---|
 | `from` | string? | Required only with an admin key; must be a known identity |
-| `to` | string | A different known identity on this server |
+| `to` | string | A different known identity on this server (becomes reviewer for approval tasks) |
 | `subject` | string | Required task subject |
-| `body` | string | Required plain-text instructions |
+| `body` | string? | Plain-text instructions. Required when `kind !== "approval"`; optional for approval tasks |
+| `kind` | string? | Optional task kind; set to `"approval"` for reviewer approval tasks |
+| `approval` | object? | Required when `kind === "approval"`. Object with `action` (`{ type, name, arguments }`) and `expiresAt` (RFC 3339 timestamp with explicit `Z` or timezone offset). `action.type` and `action.name` must be 1–200 chars; serialized `action` JSON must be ≤ 65,536 UTF-8 bytes with nesting depth ≤ 10; `expiresAt` must be in the future and ≤ 30 days ahead |
 | `wait` | boolean? | Wait up to 600 seconds for `completed` or `failed` before returning — clamped by `MCP_MAX_WAIT_SECONDS` (default 60) |
 
 Returns `201` with a task object. A wait may return a non-terminal task after
 the clamped timeout; use `GET /v1/tasks/:id?wait=true` again, or poll without
 `wait`.
+
+Approval task validation errors:
+- `400 {"error":"invalid_request"}`: `expiresAt` is missing, lacks an explicit timezone offset (must include `Z` or numeric offset like `+00:00`), is invalid, or is already in the past.
+- `400 {"error":"approval_expiry_too_far"}`: `expiresAt` is more than 30 days in the future.
+- `400 {"error":"approval_action_too_large"}`: Serialized `action` JSON exceeds 65,536 bytes.
+- `400 {"error":"approval_action_too_deep"}`: `action` nesting depth exceeds 10.
 
 ## `GET /v1/tasks?state=`
 
@@ -358,7 +368,10 @@ curl "$API/v1/tasks/0fdc3207-056e-47c1-a65c-b29d39f66b83?wait=true" \
 Advance a task. The API, not the caller, writes the task state headers onto a
 new reply in the email thread. `completed` and `failed` are terminal; later
 updates return `409 {"error":"task_already_terminal"}`. Concurrent
-non-terminal updates use last-writer-wins mailbox order.
+non-terminal updates use last-writer-wins mailbox order. Approval tasks
+(`kind: "approval"`) cannot be advanced through this endpoint; they must use
+`POST /v1/tasks/:id/decision`. Calling this endpoint on an approval task returns
+`409 {"error":"approval_decision_required"}`.
 
 ```bash
 printf 'header = "Authorization: Bearer %s"\n' "$WORKER_TOKEN" | \
@@ -378,10 +391,60 @@ curl -X POST $API/v1/tasks/0fdc3207-056e-47c1-a65c-b29d39f66b83/state \
 The caller must be one of the task participants. A token for another managed
 identity receives `403` even if it knows the UUID.
 
+Error responses:
+- `403 {"error":"forbidden: task participant required"}`: The caller is not a participant in the task thread.
+- `404 {"error":"not_found"}`: The task does not exist.
+- `409 {"error":"approval_decision_required"}`: The task is an approval task (`kind: "approval"`). Approval tasks cannot be advanced through this endpoint; use `POST /v1/tasks/:id/decision`.
+- `409 {"error":"task_already_terminal"}`: The task has already reached terminal `completed` or `failed`.
+
 Ordinary mail-client replies do not reliably retain `X-OA-Task-*` headers, so
 they do not advance state and may not appear in this thread view. v0.4 does not
 fall back to `References`/`In-Reply-To` and does not expose Message-ID values.
 Attachments are not task output in v0.4; use the `result` block instead.
+
+## `POST /v1/tasks/:id/decision`
+
+Record an approval or rejection decision for an approval task (`kind: "approval"`).
+
+Only the designated reviewer (`approval.reviewer`, the task's `to` participant)
+can decide the task. Among callers authorized to view the task, any non-reviewer
+(such as the requester `from`) receives `403 {"error":"forbidden: approval reviewer required"}`.
+Unrelated identities not permitted to view the task receive `404 {"error":"not_found"}` to
+mask task existence. Identity tokens derive the reviewer identity automatically; admin keys
+must include `from` explicitly.
+
+```bash
+printf 'header = "Authorization: Bearer %s"\n' "$IDENTITY_TOKEN" | \
+curl -X POST $API/v1/tasks/0fdc3207-056e-47c1-a65c-b29d39f66b83/decision \
+  -H "Content-Type: application/json" \
+  --config - \
+  -d '{"decision":"approved"}'
+```
+
+| Field | Type | Notes |
+|---|---|---|
+| `from` | string? | Required with an admin key; derived automatically from identity tokens |
+| `decision` | string | Required: `"approved"` or `"rejected"` |
+
+Deciding the task transitions it to terminal `completed` state. The decision,
+reviewer address, decided timestamp, and action digest are recorded into the
+stamped task result block:
+
+```json
+{
+  "decision": "approved",
+  "digest": "6b86b273ff34fce19d6b804eff5a3f5747ada4eaa22f1d49c01e52ddb7875b4b",
+  "reviewer": "reviewer@example.com",
+  "decidedAt": "2026-09-20T06:00:00.000Z"
+}
+```
+
+Error responses:
+- `403 {"error":"forbidden: approval reviewer required"}`: The caller is authorized to view the task but is not the task's designated reviewer (for example, the requester `from`).
+- `404 {"error":"not_found"}`: The task does not exist, or the caller is an unrelated identity not permitted to view it.
+- `409 {"error":"task_expired"}`: The current time is past `approval.expiresAt`. The task is transitioned to terminal `failed` with result `{"decision":"expired","digest":"...","expiredAt":"..."}`.
+- `409 {"error":"task_already_decided"}`: The task has already reached a terminal state (`completed` by a prior decision, or `failed` for reasons other than expiry) or is no longer in `input-required`. Tasks materialized to `failed` due to expiry continue to return `task_expired` rather than `task_already_decided`.
+- `409 {"error":"not_approval_task"}`: The task was created without `kind: "approval"`.
 
 ## `X-OA-Mail-Stamp` and message `source`
 
@@ -413,9 +476,10 @@ as a cryptographic security boundary against a hostile MTA.
 
 ## `POST /mcp`
 
-Stateless remote MCP transport (MCP 2026-07-28 / SDK v2). Same 15 tools as the
-stdio package; no `Mcp-Session-Id`. **POST only** — other methods return `405`
-with `Allow: POST`.
+Stateless remote MCP transport (MCP 2026-07-28 / SDK v2). Exposes the same tool
+set as the stdio package (see [MCP client setup — Tools your agent gets](/docs/reference/mcp-clients/#tools-your-agent-gets)
+for the authoritative tool table); no `Mcp-Session-Id`. **POST only** — other
+methods return `405` with `Allow: POST`.
 
 Requires `Authorization: Bearer <admin key, oa_… identity token, or OAuth
 access token>`. Missing or invalid credentials return `401` plus a

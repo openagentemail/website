@@ -1696,7 +1696,7 @@ for (const link of OFFICIAL_LINKS) {
 await assertNoCurlBearerOnArgvAcrossContent();
 assertCurlBearerOffArgvPattern(quickstart, 'Quickstart', 1);
 assertCurlBearerOffArgvPattern(otp, 'OTP extraction', 2);
-assertCurlBearerOffArgvPattern(api, 'API reference', 20);
+assertCurlBearerOffArgvPattern(api, 'API reference', 21);
 
 // #62 Negative mutations: restoring -H "Authorization: Bearer" or removing stdin config must fail
 {
@@ -1710,20 +1710,20 @@ assertCurlBearerOffArgvPattern(api, 'API reference', 20);
 {
   const withoutConfigStdin = api.replace(/--config\s+-/g, '');
   assert.throws(
-    () => assertCurlBearerOffArgvPattern(withoutConfigStdin, 'mutated-api', 20),
+    () => assertCurlBearerOffArgvPattern(withoutConfigStdin, 'mutated-api', 21),
     /config/i,
     'assertCurlBearerOffArgvPattern must reject curl snippet without stdin config',
   );
 }
 {
-  // 靶向突变 1：删掉整条 printf 行（token 引用随之而去）——计数 20→19 必须红。
+  // 靶向突变 1：删掉整条 printf 行（token 引用随之而去）——计数 21→20 必须红。
   const singleBlockAuthLoss = api.replace(
     /printf 'header = "Authorization: Bearer %s"\\n' "\$[A-Z_]+"\s*\|\s*\\\n/,
     '',
   );
   assert.notEqual(singleBlockAuthLoss, api, 'mutation fixture must actually change api.md source');
   assert.throws(
-    () => assertCurlBearerOffArgvPattern(singleBlockAuthLoss, 'single-block-loss', 20),
+    () => assertCurlBearerOffArgvPattern(singleBlockAuthLoss, 'single-block-loss', 21),
     /found \d+/,
     'per-block guard must reject a single block silently losing its auth header',
   );
@@ -1738,7 +1738,7 @@ assertCurlBearerOffArgvPattern(api, 'API reference', 20);
   );
   assert.notEqual(catBypass, api, 'cat-bypass fixture must actually change api.md source');
   assert.throws(
-    () => assertCurlBearerOffArgvPattern(catBypass, 'cat-bypass', 20),
+    () => assertCurlBearerOffArgvPattern(catBypass, 'cat-bypass', 21),
     /token variable|found \d+/,
     'connected-pipe guard must reject printf piped away from the curl that reads stdin config',
   );
@@ -1752,7 +1752,7 @@ assertCurlBearerOffArgvPattern(api, 'API reference', 20);
   );
   assert.notEqual(onwardPipe, api, 'onward-pipe fixture must actually change api.md source');
   assert.throws(
-    () => assertCurlBearerOffArgvPattern(onwardPipe, 'onward-pipe', 20),
+    () => assertCurlBearerOffArgvPattern(onwardPipe, 'onward-pipe', 21),
     /token variable|found \d+/,
     'guard must reject --config - attached to a command after a pipe operator',
   );
@@ -1765,7 +1765,7 @@ assertCurlBearerOffArgvPattern(api, 'API reference', 20);
   );
   assert.notEqual(andEcho, api, 'and-echo fixture must actually change api.md source');
   assert.throws(
-    () => assertCurlBearerOffArgvPattern(andEcho, 'and-echo', 20),
+    () => assertCurlBearerOffArgvPattern(andEcho, 'and-echo', 21),
     /token variable|found \d+/,
     'guard must reject --config - appearing after a command separator',
   );
@@ -1779,7 +1779,7 @@ assertCurlBearerOffArgvPattern(api, 'API reference', 20);
   );
   assert.notEqual(commentedProducer, api, 'commented-producer fixture must actually change api.md source');
   assert.throws(
-    () => assertCurlBearerOffArgvPattern(commentedProducer, 'commented-producer', 20),
+    () => assertCurlBearerOffArgvPattern(commentedProducer, 'commented-producer', 21),
     /found \d+/,
     'guard must reject a block whose auth producer exists only in a comment',
   );
@@ -1939,7 +1939,7 @@ if (process.argv.includes('--check-rendered')) {
   for (const [label, html, expectedConfigCount] of [
     ['Quickstart', renderedQuickstart, 1],
     ['OTP extraction', renderedOtp, 2],
-    ['API reference', renderedApi, 20],
+    ['API reference', renderedApi, 21],
   ]) {
     assert.match(
       html,
@@ -3284,7 +3284,7 @@ function assertNoCurlBearerOnArgv(markup, label) {
 // shell 注释——注释不是命令。连接定义：printf 经 "| \" 续行直接喂一条 curl 命令，
 // 该 curl 命令段内（不跨 ;、|、&、#、裸换行——运算符之后是另一条命令）自带
 // --config -/-K -。含 curl 的块不满足连接形态则不得引用任何 bearer token 变量
-// （含 ${VAR} 形态）；按文件钉数量 1/2/20。假绿反例（各轮闸面实证）：printf 灌
+// （含 ${VAR} 形态）；按文件钉数量 1/2/21。假绿反例（各轮闸面实证）：printf 灌
 // cat、curl 后接 | cat --config -、&& echo --config -、注释掉关键行——全部必须红。
 function stripShellComments(block) {
   // 语料中引号内不含 '#'（响应注释行本就是 shell 注释），保守逐行剥离。
