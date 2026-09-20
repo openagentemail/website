@@ -137,7 +137,7 @@ const SEMANTICS_ENV_DEFAULTS = {
 const RETRY_OFFSETS_FULL = ['0', '5', '300', '1800', '7200', '18000', '36000', '72000', '122400', '172800', '259200'];
 
 const SIGNATURE_GOLDENS = [
-  'X-OAE-Signature: t=<unix-timestamp>,v1=<signature-hex>[,v1=<additional-signature-hex>]',
+  'X-OAE-Signature: t=<unix-timestamp>,v1=<signature-hex>[,v1=<additional-signature-hex>[,v1=<additional-signature-hex>]]',
   '`t`: Integer Unix timestamp in seconds (`Math.floor(Date.now() / 1000)`)',
   '`v1`: Lower-case hexadecimal HMAC-SHA256 signature',
   '`WEBHOOK_TIMESTAMP_TOLERANCE_SEC` (default **300 seconds** / 5 minutes)',

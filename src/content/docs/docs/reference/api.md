@@ -927,18 +927,18 @@ Outbound HTTP delivery POST requests include the `X-OAE-Signature` header. Recei
 > **Layer:** Normative — generated from, and cited against, the implementation.
 
 ```text
-X-OAE-Signature: t=<unix-timestamp>,v1=<signature-hex>[,v1=<additional-signature-hex>]
+X-OAE-Signature: t=<unix-timestamp>,v1=<signature-hex>[,v1=<additional-signature-hex>[,v1=<additional-signature-hex>]]
 ```
 
 - `t`: Integer Unix timestamp in seconds (`Math.floor(Date.now() / 1000)`) representing when the signature was created.
-- `v1`: Lower-case hexadecimal HMAC-SHA256 signature calculated over the payload. If secret rotation or root key migration is in progress, multiple comma-separated `v1=` signatures are included.
+- `v1`: Lower-case hexadecimal HMAC-SHA256 signature calculated over the payload. If secret rotation or root key migration is in progress, multiple comma-separated `v1=` signatures are included (up to three: the current signature plus the previous epoch and previous root-key signatures during rotation overlap).
 
 ### Verification procedure
 
 > **Layer:** Explanatory — observable behaviour only; not normative.
 
 1. **Extract timestamp and signatures**: Parse the `X-OAE-Signature` header by splitting on commas. Extract the integer `t` value and candidate `v1` signature strings. If `t` or `v1` is missing, reject the request.
-2. **Check timestamp tolerance**: Compute `|nowSec - t|`. If the difference exceeds `WEBHOOK_TIMESTAMP_TOLERANCE_SEC` (default **300 seconds** / 5 minutes), reject the request as expired (`timestamp_out_of_range`) to defend against replay attacks.
+2. **Check timestamp tolerance**: Compute `|nowSec - t|`. If the difference exceeds your configured tolerance — the server's `WEBHOOK_TIMESTAMP_TOLERANCE_SEC` (default **300 seconds** / 5 minutes) is a reasonable baseline — reject the request as expired (`timestamp_out_of_range`) to defend against replay attacks.
 3. **Construct signed payload**: Concatenate the string `t`, a literal dot `.`, and the raw UTF-8 request body bytes:
    ```text
    signedPayload = `${t}.${rawRequestBody}`
