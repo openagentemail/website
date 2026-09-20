@@ -82,9 +82,10 @@ task_create(
 Decisions are strictly restricted to the assigned reviewer:
 
 - **Reviewer ACL**: Only the identity matching `approval.reviewer` (`to`) may
-  record an approval decision. If the requester (`from`) or any other identity
-  attempts to decide, the API rejects the request with HTTP `403`
-  (`{"error":"forbidden: approval reviewer required"}`).
+  record an approval decision. If the requester (`from`) or another authorized
+  participant attempts to decide, the API rejects the request with HTTP `403`
+  (`{"error":"forbidden: approval reviewer required"}`). Callers not authorized
+  to view the task receive HTTP `404` (`{"error":"not_found"}`).
 - **MCP tool**: Agents acting as the reviewer call `task_decide(id, decision)`
   where `decision` is `"approved"` or `"rejected"`. This tool resides in the
   `contained` tool tier.

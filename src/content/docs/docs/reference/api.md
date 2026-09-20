@@ -398,9 +398,11 @@ Attachments are not task output in v0.4; use the `result` block instead.
 Record an approval or rejection decision for an approval task (`kind: "approval"`).
 
 Only the designated reviewer (`approval.reviewer`, the task's `to` participant)
-can decide the task. Any other caller (including the requester `from`) receives
-`403 {"error":"forbidden: approval reviewer required"}`. Identity tokens derive
-the reviewer identity automatically; admin keys must include `from` explicitly.
+can decide the task. Among callers authorized to view the task, any non-reviewer
+(such as the requester `from`) receives `403 {"error":"forbidden: approval reviewer required"}`.
+Unrelated identities not permitted to view the task receive `404 {"error":"not_found"}` to
+mask task existence. Identity tokens derive the reviewer identity automatically; admin keys
+must include `from` explicitly.
 
 ```bash
 printf 'header = "Authorization: Bearer %s"\n' "$IDENTITY_TOKEN" | \
@@ -429,8 +431,8 @@ stamped task result block:
 ```
 
 Error responses:
-- `403 {"error":"forbidden: approval reviewer required"}`: The caller is not the task's designated reviewer.
-- `404 {"error":"not_found"}`: The task does not exist or caller cannot view it.
+- `403 {"error":"forbidden: approval reviewer required"}`: The caller is authorized to view the task but is not the task's designated reviewer (for example, the requester `from`).
+- `404 {"error":"not_found"}`: The task does not exist, or the caller is an unrelated identity not permitted to view it.
 - `409 {"error":"task_expired"}`: The current time is past `approval.expiresAt`. The task is transitioned to terminal `failed` with result `{"decision":"expired","digest":"...","expiredAt":"..."}`.
 - `409 {"error":"task_already_decided"}`: The task has already reached a terminal state (`completed` or `failed`) or is no longer in `input-required`.
 - `409 {"error":"not_approval_task"}`: The task was created without `kind: "approval"`.
@@ -811,7 +813,7 @@ The test delivery sends a `webhook.ping` event with `data.trigger: "test"`. Ping
 
 ## `POST /v1/webhooks/:id/disable`
 
-Manually pause an enabled webhook subscription. Outgoing deliveries are halted, and queued attempts are cancelled.
+Manually pause an enabled webhook subscription. Pausing a subscription cancels queued pending deliveries in storage and prevents future retries. In-flight HTTP attempts already underway are not aborted and may still reach the receiver, but their results will not trigger further retries.
 
 Requires an admin key or the creating identity. OAuth tokens are forbidden (`403`).
 
@@ -846,13 +848,16 @@ printf 'header = "Authorization: Bearer %s"\n' "$ADMIN_KEY" | \
 curl "$API/v1/webhooks/whk_01h7x8a.../deliveries?limit=20" --config -
 # → 200 {"deliveries":[{"deliveryId":"dlv_01h...","ts":"...","webhookId":"whk_...","eventId":"evt_...",
 #                      "type":"mail.received","attempt":1,"outcome":"success","status":200,
-#                      "durationMs":45,"nextAttemptAt":null,"reason":null}],"nextCursor":null}
+#                      "durationMs":45,"nextAttemptAt":null,"reason":null}]}
+# (nextCursor appears only when more results follow)
 ```
 
 | Parameter | Type | Notes |
 |---|---|---|
 | `limit` | integer? | Number of records to return (1 to 100, default 20). |
 | `cursor` | string? | Opaque cursor token for forward pagination (max 1024 chars). Invalid cursor returns `400 {"error":"invalid_cursor"}`. |
+
+The response returns `{"deliveries": [...]}`. When additional pages remain, the response includes `nextCursor` as an opaque string token. When no more pages follow, `nextCursor` is omitted entirely rather than returned as `null`.
 
 ## `POST /v1/webhooks/deliveries/:deliveryId/redeliver` — admin only
 
@@ -869,10 +874,11 @@ The server fetches the referenced delivery record, checks that the target webhoo
 Possible errors:
 - `404 {"error":"delivery_not_found"}`: Delivery ID does not exist in logs.
 - `404 {"error":"webhook_not_found"}`: Associated webhook subscription was deleted.
-- `404 {"error":"message_not_found"}` / `task_not_found`: Underlying source entity is no longer in storage.
+- `404 {"error":"message_not_found"}`: Underlying mail message is no longer in storage. *(Note: If the underlying approval task is missing during replay, the server currently raises an unmapped error resulting in `500 {"error":"internal_error"}` rather than `task_not_found`).*
 - `409 {"error":"webhook_disabled"}`: Webhook subscription is currently disabled.
 - `409 {"error":"delivery_not_replayable"}`: Delivery record cannot be replayed.
-- `409 {"error":"stale_message_generation"}` / `uidvalidity_required`: IMAP mailbox generation mismatch.
+- `409 {"error":"stale_message_generation"}`: IMAP mailbox generation UIDVALIDITY changed since original delivery.
+- `409 {"error":"uidvalidity_required"}`: Historical delivery row lacks UIDVALIDITY tracking required for safe mailbox replay.
 
 ## Webhook signature verification
 
@@ -985,7 +991,10 @@ Delivery failures are retried automatically with a deterministic schedule:
 
 ### Bounded payloads and timeouts
 
-- **Payload ceiling**: Outbound webhook request bodies are capped at `WEBHOOK_PAYLOAD_MAX_BYTES` (default **16,384 bytes** / 16 KiB). If a payload exceeds this limit, fields are dropped in deterministic order (preview links → security codes → text previews → CC → To → Subject → from name). If the envelope still exceeds the limit, delivery fails closed.
+- **Payload ceiling**: Outbound webhook request bodies are capped at `WEBHOOK_PAYLOAD_MAX_BYTES` (default **16,384 bytes** / 16 KiB). If a payload exceeds this limit, fields are shed in deterministic order per event type before failing closed (`payload_too_large`):
+  - **`mail.received`**: In `preview` scope, drops `links` → `securityCodes` → `textPreview`; then across both scopes empties `cc` (`[]`) → `to` (`[]`) → `subject` (`""`) → drops `from.name`.
+  - **`approval.requested`**: In `preview` scope, drops `actionArguments` first (dropped whole); then across both scopes empties `subject` (`""`).
+  - If the envelope still exceeds the limit after shedding droppable fields, delivery fails closed.
 - **Approval argument bounds**: In `approval.requested` events, action arguments are bounded by `WEBHOOK_APPROVAL_ARGS_MAX_BYTES` (default **4,096 bytes**) and maximum JSON nesting depth `WEBHOOK_APPROVAL_ARGS_MAX_DEPTH` (default **4**).
 - **Timeouts and buffers**: Remote endpoint responses are capped at `WEBHOOK_RESPONSE_MAX_BYTES` (default **4,096 bytes**) to prevent buffer exhaustion. Each delivery attempt has a wall-clock timeout of `WEBHOOK_DELIVERY_TIMEOUT_MS` (default **10,000 ms** / 10 seconds).
 - **Concurrency**: Delivery dispatching is throttled by per-subscription and process-wide worker concurrency pools (`WEBHOOK_MAX_CONCURRENT` default 8).
