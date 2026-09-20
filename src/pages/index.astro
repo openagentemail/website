@@ -5,6 +5,7 @@ import EnvelopeOrbit from '../components/EnvelopeOrbit.astro';
 import FeatureViz from '../components/FeatureViz.astro';
 import PaperPlane from '../components/PaperPlane.astro';
 import JsonLd from '../components/JsonLd.astro';
+import { MCP_TOOLS } from '../data/mcp-tools.js';
 
 const rawMail = `From: noreply@github.com
 To: fox-k7d2@yourdomain
@@ -492,7 +493,7 @@ const faqJsonLd = {
         <div class="stats">
           {/* 口径：公开端点含 /healthz 与 /.well-known/*，不含 /ui/*；测试 = api 531 + mcp 20 + setup 33 */}
           <div class="stat reveal"><div class="n" data-count="22">0</div><div class="l">REST endpoints</div></div>
-          <div class="stat reveal"><div class="n" data-count="15">0</div><div class="l">MCP tools</div></div>
+          <div class="stat reveal"><div class="n" data-count={MCP_TOOLS.length}>0</div><div class="l">MCP tools</div></div>
           <div class="stat reveal"><div class="n" data-count="584">0</div><div class="l">automated tests</div></div>
           {/* 诚实限定：tier 2/3 会经 ntfy 送出元数据/正文/OTP；* 脚注用既有 .honest，不加 CSS */}
           <div class="stat reveal"><div class="n" data-count="0">0</div><div class="l">bytes of mail leaving your infra*</div></div>
@@ -523,21 +524,9 @@ const faqJsonLd = {
           </ul>
           <h3>MCP tools</h3>
           <ul>
-            <li><code>mail_new_identity</code></li>
-            <li><code>mail_list_identities</code></li>
-            <li><code>mail_list_messages</code></li>
-            <li><code>mail_read_message</code></li>
-            <li><code>mail_wait_for</code></li>
-            <li><code>mail_send</code></li>
-            <li><code>mail_mark_seen</code></li>
-            <li><code>task_create</code></li>
-            <li><code>task_list</code></li>
-            <li><code>task_get</code></li>
-            <li><code>task_update</code></li>
-            <li><code>notify_user</code></li>
-            <li><code>notify_agent</code></li>
-            <li><code>notify_check</code></li>
-            <li><code>notify_verify</code></li>
+            {MCP_TOOLS.map((tool) => (
+              <li><code>{tool}</code></li>
+            ))}
           </ul>
           <h3>Extraction corpus</h3>
           <ul>

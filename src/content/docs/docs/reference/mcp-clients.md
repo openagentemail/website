@@ -166,10 +166,19 @@ one on the spot.
 | `notify_check(since?)` | Read this identity's recent notifications (`since` is an optional ntfy duration/timestamp filter) |
 | `notify_verify()` | Harmless delivery self-check; same human-alert permission as `notify_user` |
 | `task_create(to, subject, body?, kind?, approval?, wait?)` | Assign a task to another managed identity (supports `kind="approval"` with typed action and expiry); optional `wait` is clamped by `MCP_MAX_WAIT_SECONDS` (default 60, schema max 600) for `completed`/`failed` |
+| `task_list_children(parentTaskId, limit?, cursor?)` | List only direct readable children of a readable parent task (`limit` is 20, 50, or 100; cursor-paged) |
 | `task_list(state?)` | List this identity's email-backed tasks, optionally filtered by current state |
 | `task_get(id, wait?)` | Read one task thread and stamped state history; optional `wait` clamped the same way |
 | `task_update(id, state, body?, result?)` | Advance a task as a participant (`completed`/`failed` are terminal). Optional `result` becomes a JSON block in the reply |
 | `task_decide(id, decision)` | Approve or reject an approval task (`"approved"` or `"rejected"`) as its designated reviewer; records decision only |
+| `task_claim(id, leaseSec?)` | Claim a submitted task as its managed recipient for a bounded lease (`leaseSec` is 30..3600, default 300) |
+| `task_renew(id, leaseToken, leaseSec?)` | Renew an active task lease using its current opaque lease token (`leaseSec` is 30..3600, default 300) |
+| `task_release(id, leaseToken, reason?)` | Release a task lease using its current opaque lease token; optional release `reason` |
+| `mail_webhook_list(address?)` | List outbound webhook subscriptions (identity callers see their own; admin callers may filter by `address`) |
+| `mail_webhook_create(url, address, events, contentScope?, description?)` | Create an outbound webhook subscription; returns subscription metadata and displayed signing secret (`whs_...`) |
+| `mail_webhook_delete(id)` | Permanently delete an outbound webhook subscription (`whk_...`) and cancel any pending retries |
+| `mail_webhook_test(id)` | Send an immediate probe ping to test webhook connectivity (`whk_...`) |
+| `mail_webhook_disable(id)` | Pause an active webhook subscription (`whk_...`) by marking it disabled |
 
 A typical automated-signup flow is: `mail_new_identity` → do the signup with that
 address → `mail_wait_for(address, subjectContains="verify")` → open `otp.links[0]`.
