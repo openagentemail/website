@@ -1006,13 +1006,15 @@ Delivery outcomes determine whether failures are retried automatically:
 ### Circuit breaker and automatic disablement
 
 - Each subscription maintains a `consecutiveFailures` counter.
-- **Failures counting toward circuit breaking**: Only delivery attempts resulting in `retryable` or `permanent` outcomes increment `consecutiveFailures` (`refused`, `deferred`, and `pending` never count). Diagnostic pings (`webhook.ping`) have two critical exceptions:
-  - Any ping failure while the subscription is in the `unverified` state does not increment the counter (preventing setup and validation probes from tripping the breaker).
-  - `permanent` ping failures never increment the counter under any state—even if the subscription is already `enabled`. Consequently, diagnostic pings will not advance a subscription toward threshold disablement, and operators lowering `WEBHOOK_DISABLE_THRESHOLD` should not expect ping failures to trip the circuit breaker.
+- **Failures counting toward circuit breaking**: Only delivery attempts resulting in `retryable` or `permanent` outcomes increment `consecutiveFailures` (`refused`, `deferred`, and `pending` never count). Diagnostic pings (`webhook.ping`) have two guards:
+  - Any ping failure while the subscription is in the `unverified` state does not increment the counter (preventing initial setup and validation probes from tripping the breaker).
+  - `permanent` ping failures never increment the counter under any state—even if the subscription is already `enabled`. However, a `retryable` ping failure on an `enabled` subscription still increments the counter and can advance the subscription toward threshold disablement.
 - If consecutive qualifying delivery attempts fail and reach `WEBHOOK_DISABLE_THRESHOLD` (default **10**), the circuit breaker trips:
   - The subscription is automatically disabled: `state: "disabled"`, `disabledReason: "threshold"`.
   - All remaining queued deliveries for this subscription are discarded.
-- To recover, an administrator must call `POST /v1/webhooks/:id/enable` (or update the endpoint URL via `POST /v1/webhooks/:id`). Enabling resets `consecutiveFailures` to 0, transitions state to `unverified`, and fires a creation test ping.
+- To recover a disabled subscription:
+  - **Resume without URL change (`POST /v1/webhooks/:id/enable`)**: Admin only (`403` for identity callers). Calling this resets `consecutiveFailures` to 0, sets `state: "unverified"`, clears `disabledReason`, and dispatches an asynchronous ping.
+  - **Update destination URL (`POST /v1/webhooks/:id`)**: Available to an admin key or the identity owner of `address`. Changing `url` on a subscription disabled by threshold (`disabledReason: "threshold"`) resets `consecutiveFailures` to 0, transitions state to `unverified`, clears `disabledReason`, and fires a verification ping. (Subscriptions manually paused with `disabledReason: "manual"` remain disabled when updating `url`).
 
 ### SSRF protection and network constraints
 
