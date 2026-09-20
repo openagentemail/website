@@ -670,6 +670,8 @@ proxy and iOS/Android steps.
 
 Outbound webhooks deliver real-time HTTP POST notifications to external endpoints when events occur (such as incoming mail or task approval requests). Webhooks are disabled by default (`WEBHOOKS_ENABLED=false`). When enabled, subscriptions can be created and managed per identity address or globally with an admin key.
 
+Deliveries are dispatched only to subscriptions whose `events` list includes the event type and that are not in the `disabled` state. A successful delivery attempt from the `unverified` state transitions the subscription to `enabled`.
+
 Webhook endpoints require `WEBHOOKS_ENABLED=true` in server configuration; when disabled, requests return `404 {"error":"webhooks_disabled"}`. Enabling webhooks additionally requires an explicit `TASK_SIGNING_SECRET` of at least 32 characters; existing installations relying on the fallback to `SMTP_PASS` cannot enable webhooks without setting `TASK_SIGNING_SECRET` explicitly, or server startup will abort with a configuration error. OAuth access tokens may read subscriptions but are forbidden from mutating them or revealing signing secrets (`403`).
 
 ## `POST /v1/webhooks`
@@ -916,7 +918,72 @@ Possible errors:
 - `409 {"error":"stale_message_generation"}`: IMAP mailbox generation UIDVALIDITY changed since original delivery.
 - `409 {"error":"uidvalidity_required"}`: Historical delivery row lacks UIDVALIDITY tracking required for safe mailbox replay.
 
-*(Webhook signature verification is documented in a subsequent slice).*
+## Webhook signature verification
+
+Outbound HTTP delivery POST requests include the `X-OAE-Signature` header. Receivers must verify this signature to confirm that requests originated from openagent.email and were not altered or delayed.
+
+### Header format
+
+> **Layer:** Normative — generated from, and cited against, the implementation.
+
+```text
+X-OAE-Signature: t=<unix-timestamp>,v1=<signature-hex>[,v1=<additional-signature-hex>]
+```
+
+- `t`: Integer Unix timestamp in seconds (`Math.floor(Date.now() / 1000)`) representing when the signature was created.
+- `v1`: Lower-case hexadecimal HMAC-SHA256 signature calculated over the payload. If secret rotation or root key migration is in progress, multiple comma-separated `v1=` signatures are included.
+
+### Verification procedure
+
+> **Layer:** Explanatory — observable behaviour only; not normative.
+
+1. **Extract timestamp and signatures**: Parse the `X-OAE-Signature` header by splitting on commas. Extract the integer `t` value and candidate `v1` signature strings. If `t` or `v1` is missing, reject the request.
+2. **Check timestamp tolerance**: Compute `|nowSec - t|`. If the difference exceeds `WEBHOOK_TIMESTAMP_TOLERANCE_SEC` (default **300 seconds** / 5 minutes), reject the request as expired (`timestamp_out_of_range`) to defend against replay attacks.
+3. **Construct signed payload**: Concatenate the string `t`, a literal dot `.`, and the raw UTF-8 request body bytes:
+   ```text
+   signedPayload = `${t}.${rawRequestBody}`
+   ```
+   **Do not** parse or re-serialize JSON before verifying; the exact raw wire body bytes must be used.
+4. **Compute HMAC-SHA256**:
+   - The signing key is the exact 68-character ASCII string of the displayed secret (`whs_<64-hex>`). The `whs_` prefix is part of the HMAC key body (`Buffer.from(secret, 'utf8')`).
+   - Calculate `HMAC-SHA256(key=signingKey, data=signedPayload)` and format as a lower-case hexadecimal string.
+5. **Constant-time comparison**: Compare the computed hex digest against each candidate `v1=` signature using a constant-time comparison function (such as Node.js `crypto.timingSafeEqual`). If any signature matches, the request is authentic.
+
+```javascript
+import crypto from 'node:crypto';
+
+function verifySignature({ header, rawBody, secret, toleranceSec = 300 }) {
+  if (!header) return false;
+  const parts = header.split(',').map((p) => p.trim());
+  let t = null;
+  const signatures = [];
+  for (const part of parts) {
+    const [k, v] = part.split('=');
+    if (k === 't') t = parseInt(v, 10);
+    else if (k === 'v1') signatures.push(v);
+  }
+  if (!t || signatures.length === 0) return false;
+
+  const nowSec = Math.floor(Date.now() / 1000);
+  if (Math.abs(nowSec - t) > toleranceSec) return false;
+
+  const signedPayload = `${t}.${rawBody}`;
+  const signingKey = Buffer.from(secret, 'utf8');
+  const expectedSig = crypto
+    .createHmac('sha256', signingKey)
+    .update(signedPayload, 'utf8')
+    .digest('hex');
+  const expectedBuf = Buffer.from(expectedSig, 'utf8');
+
+  return signatures.some((sig) => {
+    const candidateBuf = Buffer.from(sig, 'utf8');
+    return (
+      candidateBuf.length === expectedBuf.length &&
+      crypto.timingSafeEqual(candidateBuf, expectedBuf)
+    );
+  });
+}
+```
 
 ## Webhook delivery semantics
 

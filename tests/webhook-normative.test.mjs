@@ -1,14 +1,18 @@
-// Normative machine-check for the webhook reference section (predecessor of the
-// B3 machine-check slice).
+// Normative machine-check for the webhook reference section (B3 slice:
+// signature verification + machine-check hardening).
 //
 // Modes (direct node run — same convention as tests/mcp-tools.test.mjs; note that
 // `node --test <file> --flag` does NOT forward the flag to the child process):
 //   node tests/webhook-normative.test.mjs                 # doc-side goldens (no source needed)
 //   node tests/webhook-normative.test.mjs --check-source  # cross-check the doc against the implementation
 //
+// Source pin:
+//   Pinned to v0.8.0 (byte-identical with verified baseline 3cedb94 on webhook source files).
+//   Upgrade procedure: update SOURCE_REF constant -> run both test modes -> update comments with PR.
+//
 // Source resolution for --check-source: OAE_SRC (path to a checkout of the product
 // repo whose working files are the revision under check) → otherwise fetch from
-// raw.githubusercontent.com/openagentemail/openagentemail/main.
+// raw.githubusercontent.com/openagentemail/openagentemail/${SOURCE_REF}/.
 //
 // Fail-loud classes: NETWORK (cannot fetch), PARSE (source layout changed),
 // MISMATCH (doc and implementation disagree) — "cannot verify" never counts as pass.
@@ -21,7 +25,8 @@ import { join } from 'node:path';
 const API_URL = new URL('../src/content/docs/docs/reference/api.md', import.meta.url);
 const isSourceMode = process.argv.includes('--check-source');
 
-const REMOTE_BASE = 'https://raw.githubusercontent.com/openagentemail/openagentemail/main/';
+const SOURCE_REF = process.env.OAE_REF ?? 'v0.8.0';
+const REMOTE_BASE = `https://raw.githubusercontent.com/openagentemail/openagentemail/${SOURCE_REF}/`;
 const SOURCE_FILES = {
   app: 'packages/api/src/app.ts',
   scopePolicy: 'packages/api/src/lib/scope-policy.ts',
@@ -29,6 +34,7 @@ const SOURCE_FILES = {
   webhookRoutes: 'packages/api/src/routes/webhooks.ts',
   delivery: 'packages/api/src/lib/webhook-delivery.ts',
   store: 'packages/api/src/lib/webhook-store.ts',
+  signing: 'packages/api/src/lib/webhook-signing.ts',
 };
 
 // Wire error literals the section must document verbatim (golden set, byte-exact).
@@ -124,9 +130,35 @@ const SEMANTICS_ENV_DEFAULTS = {
   WEBHOOK_RESPONSE_MAX_BYTES: '4096',
   WEBHOOK_DELIVERY_TIMEOUT_MS: '10000',
   WEBHOOK_MAX_CONCURRENT: '8',
+  WEBHOOK_TIMESTAMP_TOLERANCE_SEC: '300',
 };
 
 const RETRY_OFFSETS_FULL = ['0', '5', '300', '1800', '7200', '18000', '36000', '72000', '122400', '172800', '259200'];
+
+const SIGNATURE_GOLDENS = [
+  'X-OAE-Signature: t=<unix-timestamp>,v1=<signature-hex>[,v1=<additional-signature-hex>]',
+  '`t`: Integer Unix timestamp in seconds (`Math.floor(Date.now() / 1000)`)',
+  '`v1`: Lower-case hexadecimal HMAC-SHA256 signature',
+  '`WEBHOOK_TIMESTAMP_TOLERANCE_SEC` (default **300 seconds** / 5 minutes)',
+  'signedPayload = `${t}.${rawRequestBody}`',
+  'The signing key is the exact 68-character ASCII string of the displayed secret (`whs_<64-hex>`)',
+  'constant-time comparison',
+  'reject the request as expired (`timestamp_out_of_range`)',
+];
+
+function signatureSectionOf(doc) {
+  const start = doc.indexOf('\n## Webhook signature verification\n');
+  assert.ok(start >= 0, 'api.md must contain the `## Webhook signature verification` section');
+  const end = doc.indexOf('\n## Webhook delivery semantics', start);
+  assert.ok(end > start, 'the signature section must precede `## Webhook delivery semantics`');
+  return doc.slice(start, end);
+}
+
+function assertSignatureGoldens(sig) {
+  for (const g of SIGNATURE_GOLDENS) {
+    assert.ok(sig.includes(g), `signature golden missing: ${g}`);
+  }
+}
 
 function semanticsSectionOf(doc) {
   const start = doc.indexOf('\n## Webhook delivery semantics\n');
@@ -148,7 +180,9 @@ function assertSemanticsGoldens(sem) {
 function sectionOf(doc) {
   const start = doc.indexOf('\n## Webhooks\n');
   assert.ok(start >= 0, 'api.md must contain the `## Webhooks` section');
-  return doc.slice(start);
+  const end = doc.indexOf('\n## Webhook signature verification', start);
+  assert.ok(end > start, 'the endpoint sections must precede `## Webhook signature verification`');
+  return doc.slice(start, end);
 }
 
 async function loadSources() {
@@ -211,6 +245,7 @@ if (!isSourceMode) {
     assertDocLiterals(sec);
     assertDocFragments(sec);
     assertSemanticsGoldens(semanticsSectionOf(doc));
+    assertSignatureGoldens(signatureSectionOf(doc));
   });
 } else {
   test('webhook section normative claims match the implementation (--check-source)', async () => {
@@ -225,6 +260,7 @@ if (!isSourceMode) {
     assertDocLiterals(sec);
     assertDocFragments(sec);
     assertSemanticsGoldens(semanticsSectionOf(doc));
+    assertSignatureGoldens(signatureSectionOf(doc));
     for (const lit of DOC_LITERALS) {
       assert.ok(
         allSource.includes(`'${lit}'`),
@@ -254,7 +290,8 @@ if (!isSourceMode) {
     assert.equal(attempts[1], '3', `MISMATCH: MAX_PING_ATTEMPTS — doc=3 source=${attempts[1]}`);
     const offsets = src.delivery.match(/export const RETRY_SCHEDULE_OFFSETS_SEC = \[([\s\S]*?)\]/);
     if (!offsets) assert.fail('WEBHOOK-NORMATIVE/PARSE: RETRY_SCHEDULE_OFFSETS_SEC not found');
-    const nums = [...offsets[1].matchAll(/(\d+)\s*,/g)].map((m) => m[1]);
+    const offsetsBody = offsets[1].replace(/\/\/[^\n]*/g, '');
+    const nums = [...offsetsBody.matchAll(/(\d+)/g)].map((m) => m[1]);
     assert.deepEqual(
       nums.slice(0, 3),
       ['0', '5', '300'],
@@ -264,10 +301,9 @@ if (!isSourceMode) {
     // 5. the scope-policy table must still define no webhook operation (premise depends on it)
     const policies = src.scopePolicy.match(/export const OPERATION_POLICIES[^=]*= \[([\s\S]*?)\];/);
     if (!policies) assert.fail('WEBHOOK-NORMATIVE/PARSE: OPERATION_POLICIES not found');
-    assert.ok(
-      !/webhooks/i.test(policies[1]),
-      'MISMATCH: OPERATION_POLICIES now contains a webhook entry — the section premise is stale',
-    );
+    const paths = [...policies[1].matchAll(/path === '([^']+)'/g)].map((m) => m[1]);
+    if (paths.length === 0) assert.fail('WEBHOOK-NORMATIVE/PARSE: no path literals found in OPERATION_POLICIES');
+    for (const p of paths) assert.ok(!p.startsWith('/v1/webhooks'), `MISMATCH: OPERATION_POLICIES now matches ${p} — the section premise is stale`);
 
     // 6. delivery-semantics env defaults ↔ config schema (B2)
     for (const [env, value] of Object.entries(SEMANTICS_ENV_DEFAULTS)) {
@@ -303,7 +339,33 @@ if (!isSourceMode) {
     }
     assert.ok(src.delivery.includes("reason: 'ssrf_refused'"), 'MISMATCH: ssrf_refused reason literal not in delivery source');
 
-    // 9. report-only: source error literals the section does not document
+    // 9. rate limiter bucket mapping (§6-9)
+    const limiterChecks = {
+      checkCreateRate: 'rateCreatePerMin',
+      checkReadRate: 'rateCreatePerMin',
+      checkRotateRate: 'rateTestPerMin',
+      checkTestProbeRate: 'rateTestPerMin',
+    };
+    for (const [fn, key] of Object.entries(limiterChecks)) {
+      const m = src.delivery.match(new RegExp(`${fn}\\([^)]*\\)[\\s\\S]*?\\n  \\}`));
+      if (!m) assert.fail(`WEBHOOK-NORMATIVE/PARSE: ${fn} not found`);
+      assert.ok(m[0].includes(`config.webhooks.${key}`), `MISMATCH: ${fn} does not use config.webhooks.${key}`);
+    }
+
+    // 10. signature verification implementation assertions
+    assert.ok(
+      /export function buildWebhookSignatureHeader\(/.test(src.signing),
+      'MISMATCH: buildWebhookSignatureHeader not exported',
+    );
+    assert.ok(src.signing.includes('Math.floor(nowMs / 1000)'), 'MISMATCH: nowMs timestamp rounding missing in signing');
+    assert.ok(src.signing.includes('v1=${s}'), 'MISMATCH: v1 signature formatting missing in signing');
+    assert.ok(
+      /export function verifyWebhookSignature\(/.test(src.signing),
+      'MISMATCH: verifyWebhookSignature not exported',
+    );
+    assert.ok(src.signing.includes('timingSafeEqual'), 'MISMATCH: timingSafeEqual constant-time check missing in signing');
+
+    // 11. report-only: source error literals the section does not document
     //    (direction rule: doc-claims-absent-in-source = hard fail; source-lacks-in-doc = report)
     const sourceLiterals = new Set([...allSource.matchAll(/[{,]\s*error:\s*'([^'\n]+)'/g)].map((m) => m[1]));
     const documented = new Set(DOC_LITERALS);
