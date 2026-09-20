@@ -666,7 +666,7 @@ proxy and iOS/Android steps.
 > - **Normative**: Formal interface contracts (endpoints, request/response fields, event types, configuration defaults, and wire error codes). Where documentation and implementation conflict, the Normative layer and actual server behavior govern.
 > - **Explanatory**: Observable behavior descriptions and receiver guidance. This layer describes externally visible outcomes and is non-normative.
 >
-> **Authorization premise (applies to all endpoints below).** Unless stated otherwise, every authorization statement in this section describes tokens **without** a persisted `scopes` array — unscoped identity tokens and OAuth tokens derived from unscoped identities. Scope-carrying tokens (an identity token with a `scopes` array — even an empty one — or an OAuth token whose identity has one) are default-denied: the server's operation-policy table (`OPERATION_POLICIES`) defines no webhook operations, so every `/v1/webhooks*` request from such a token is rejected with `403 {"error":"forbidden:insufficient_scope"}` — **including read-only requests**.
+> **Authorization premise (applies to all endpoints below).** Unless stated otherwise, every authorization statement in this section describes tokens **without** a persisted `scopes` array — unscoped identity tokens and OAuth tokens derived from unscoped identities. Scope-carrying tokens (an identity token with a `scopes` array — even an empty one — or an OAuth token whose identity has one) are default-denied: the server's operation-policy table (`OPERATION_POLICIES`) defines no webhook operations, so every `/v1/webhooks*` request from such a token is rejected with `403 {"error":"forbidden: insufficient_scope"}` — **including read-only requests**.
 
 Outbound webhooks deliver real-time HTTP POST notifications to external endpoints when events occur (such as incoming mail or task approval requests). Webhooks are disabled by default (`WEBHOOKS_ENABLED=false`). When enabled, subscriptions can be created and managed per identity address or globally with an admin key.
 
@@ -735,7 +735,7 @@ curl $API/v1/webhooks --config -
 #        "rotatedAt":null,"consecutiveFailures":0,"privateTargetGranted":false,"lastDelivery":null}]}
 ```
 
-Rate-limited by an independent read bucket sized like creation (`WEBHOOK_RATE_CREATE_PER_MIN`, default 10 requests per minute per caller; returns `429 {"error":"rate_limited","retryAfterSec":...}` when exceeded).
+Rate-limited by the shared webhook read bucket (also used by subscription detail and delivery-log reads; `WEBHOOK_RATE_CREATE_PER_MIN`, default 10 requests per minute per caller; returns `429 {"error":"rate_limited","retryAfterSec":...}` when exceeded).
 
 ## `GET /v1/webhooks/:id`
 
@@ -753,7 +753,7 @@ curl $API/v1/webhooks/whk_01h7x8a... --config -
 #                        "status":200,"durationMs":42,"reason":null}}
 ```
 
-Returns `404 {"error":"not_found"}` if the webhook does not exist. Rate-limited by an independent read bucket sized like creation (`WEBHOOK_RATE_CREATE_PER_MIN`, default 10 requests per minute per caller; returns `429 {"error":"rate_limited","retryAfterSec":...}` when exceeded).
+Returns `404 {"error":"not_found"}` if the webhook does not exist. Rate-limited by the shared webhook read bucket (also used by the subscription list and delivery-log reads; `WEBHOOK_RATE_CREATE_PER_MIN`, default 10 requests per minute per caller; returns `429 {"error":"rate_limited","retryAfterSec":...}` when exceeded).
 
 ## `POST /v1/webhooks/:id`
 
@@ -877,7 +877,7 @@ Resuming resets `consecutiveFailures` to 0, sets `state: "unverified"`, clears `
 
 ## `GET /v1/webhooks/:id/deliveries` — admin only
 
-Inspect the historical delivery log for a webhook subscription. **Admin only** (`403` for non-admin).
+Inspect the historical delivery log for a webhook subscription. **Admin only** (`403` for non-admin). Rate-limited by the shared webhook read bucket (also used by the subscription list and detail reads; `WEBHOOK_RATE_CREATE_PER_MIN`, default 10 requests per minute per caller; returns `429 {"error":"rate_limited","retryAfterSec":...}` when exceeded). The read-rate check runs before the admin check, so an over-limit caller may receive `429` instead of `403`.
 
 ```bash
 printf 'header = "Authorization: Bearer %s"\n' "$ADMIN_KEY" | \
