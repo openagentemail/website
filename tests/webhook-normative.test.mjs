@@ -68,7 +68,7 @@ const CONFIG_DEFAULTS = {
 };
 
 const DOC_EVENTS = ['mail.received', 'approval.requested'];
-const PING_ATTEMPTS_DOC = '`MAX_PING_ATTEMPTS` attempts (default 3: immediate, +5s, +5m)';
+const PING_ATTEMPTS_DOC = '`MAX_PING_ATTEMPTS` attempts (default 3, scheduled at base offsets: immediate, +5s, +5m). Retry times are jittered by up to ±10% of the gap between consecutive offsets, and a valid `Retry-After` on a `429` response can delay the next attempt further.';
 
 function sectionOf(doc) {
   const start = doc.indexOf('\n## Webhooks\n');

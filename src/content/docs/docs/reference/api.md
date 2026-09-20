@@ -845,7 +845,7 @@ curl -X POST $API/v1/webhooks/whk_01h7x8a.../test --config -
 # → 200 {"deliveryId":"dlv_01h...","outcome":"success","status":200,"reason":null}
 ```
 
-The test delivery sends a `webhook.ping` event with `data.trigger: "test"`. Ping attempts are capped at `MAX_PING_ATTEMPTS` attempts (default 3: immediate, +5s, +5m). Test probes are rate-limited by `WEBHOOK_RATE_TEST_PER_MIN` (default 3 requests per minute per caller; returns `429 {"error":"rate_limited","retryAfterSec":...}` when exceeded).
+The test delivery sends a `webhook.ping` event with `data.trigger: "test"`. Ping attempts are capped at `MAX_PING_ATTEMPTS` attempts (default 3, scheduled at base offsets: immediate, +5s, +5m). Retry times are jittered by up to ±10% of the gap between consecutive offsets, and a valid `Retry-After` on a `429` response can delay the next attempt further. Test probes are rate-limited by `WEBHOOK_RATE_TEST_PER_MIN` (default 3 requests per minute per caller; returns `429 {"error":"rate_limited","retryAfterSec":...}` when exceeded).
 
 ## `POST /v1/webhooks/:id/disable`
 

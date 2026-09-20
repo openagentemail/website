@@ -1658,7 +1658,7 @@ assert.equal(pkg.scripts['test:seo-docs'], 'node --test tests/seo-docs.test.mjs'
 assert.equal(pkg.scripts['test:seo-docs-rendered'], 'node tests/seo-docs.test.mjs --check-rendered');
 assert.equal(
   pkg.scripts.prebuild,
-  'npm run test:compare-freshness && npm run test:hosted-checkout && npm run test:mail-security-docs && npm run test:iphone-mail-guide && npm run test:jsonld && npm run test:seo-docs && npm run test:llms-txt && npm run test:mcp-tools && npm run test:mcp-tools-upstream',
+  'npm run test:compare-freshness && npm run test:hosted-checkout && npm run test:mail-security-docs && npm run test:iphone-mail-guide && npm run test:jsonld && npm run test:seo-docs && npm run test:llms-txt && npm run test:mcp-tools && npm run test:mcp-tools-upstream && npm run test:webhook-normative',
   'prebuild must preserve prior gates and add the seo-docs source leg',
 );
 assert.equal(
