@@ -117,7 +117,9 @@ Common error codes:
   (accompanied by a read-only past-deadline projection), without the task
   transitioning to `failed` on its own.
 - `task_already_decided`: The task has already reached a terminal state
-  (`completed` or `failed`) or is no longer in `input-required`.
+  (`completed` by a prior decision, or `failed` for reasons other than expiry)
+  or is no longer in `input-required`. Tasks materialized to `failed` due to
+  expiry continue to return `task_expired` rather than `task_already_decided`.
 - `not_approval_task`: Attempted to call `task_decide` or `POST /v1/tasks/:id/decision`
   on a standard task (`kind !== "approval"`).
 
