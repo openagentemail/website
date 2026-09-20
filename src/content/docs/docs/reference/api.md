@@ -974,15 +974,30 @@ function verifySignature({ header, rawBody, secret, toleranceSec = 300 }) {
 
 ## Webhook delivery semantics
 
+### Outbound envelope
+
+> **Layer:** Normative — generated from, and cited against, the implementation.
+
+Outbound webhook delivery HTTP POST requests carry a JSON body consisting of five standardized envelope fields wrapping event-specific `data`:
+
+| Field | Type | Description |
+|---|---|---|
+| `id` | string | Stable event identifier (prefixed `evt_`). Retried attempts and manual redeliveries of the same event retain this exact `id`. |
+| `type` | string | Event type identifier: `'mail.received'`, `'approval.requested'`, or `'webhook.ping'`. |
+| `payloadVersion` | string | Wire schema format version (`'v1'`). |
+| `createdAt` | string | ISO 8601 UTC timestamp recording when the event was generated on the server. |
+| `domain` | string | Server domain originating the delivery. |
+| `data` | object | Event-specific data object containing the event payload fields. |
+
 ### Event types
 
 > **Layer:** Normative — generated from, and cited against, the implementation.
 
 The webhook subsystem dispatches event types defined by `WebhookEventType`:
 
-1. `mail.received`: Dispatched when new incoming mail arrives at a managed mailbox over IMAP. Includes sender, recipients, subject, message ID, flags, and size. When `contentScope: "preview"` is enabled (admin only), text snippet previews, extracted security codes, and links are included.
-2. `approval.requested`: Dispatched when a task with `kind: "approval"` is submitted targeting the reviewer identity. Carries task ID, state (`input-required`), requester, reviewer, action type/name, expiration timestamp, and `actionArguments`. Note that `actionArguments` is only included for subscriptions configured with `contentScope: "preview"` (admin-only) subject to size and depth bounds; default `metadata` subscriptions do not include it.
-3. `webhook.ping`: Diagnostic ping sent when creating a subscription, changing its destination URL, or executing a manual test probe (`trigger: "creation"` or `trigger: "test"`).
+1. `mail.received`: Dispatched when incoming mail arrives at a managed mailbox over IMAP. The `data` object includes `object` (`"mail"`), `address`, `messageId`, `cursor`, `uid`, `uidValidity`, `receivedAt`, `from` (`{ address, name }`), `to`, `cc`, `subject`, `sizeBytes`, `hasAttachments`, `unread`, `containsSecurityCode`, and `containsLink`. When `contentScope: "preview"` is enabled (admin only), `textPreview`, `securityCodes`, and `links` are included.
+2. `approval.requested`: Dispatched when a task with `kind: "approval"` is submitted targeting the reviewer identity. The `data` object includes `object` (`"approval"`), `taskId`, `taskState` (`"input-required"`), `from`, `to`, `reviewer`, `subject`, `createdAt`, `expiresAt`, `expiresInSec`, `digest`, `actionType`, and `actionName`. When `contentScope: "preview"` is enabled (admin only), `actionArguments` is included subject to size and depth bounds; default `metadata` subscriptions do not include it.
+3. `webhook.ping`: Diagnostic ping sent when creating a subscription, changing its destination URL, or executing a manual test probe (`trigger: "creation"` or `trigger: "test"`). The `data` object includes `object` (`"webhook"`), `webhookId`, and `trigger`.
 
 ### Retry schedule and backoff
 
@@ -992,7 +1007,7 @@ Delivery outcomes determine whether failures are retried automatically:
 
 - **Retryable failures**: Network errors, connection timeouts, HTTP `408`, HTTP `429`, and HTTP `5xx` responses are classified as `retryable` and are retried automatically on a deterministic backoff ladder.
 - **Permanent failures (no retry)**: HTTP `3xx` redirects (`redirect_forbidden`), responses exceeding `WEBHOOK_RESPONSE_MAX_BYTES` (`response_too_large`), and client errors (HTTP `4xx` responses, including `400`, `401`, `403`, and `404`, excluding `408` and `429`) are classified as `permanent` failures. They are recorded directly to dead-letter storage and are not retried automatically.
-- **Idempotency requirement**: Because retry attempts and manual redeliveries dispatch with the original stable `eventId`, receivers **must deduplicate deliveries idempotently by event ID**.
+- **Idempotency requirement**: Because retry attempts and manual redeliveries dispatch with the original stable top-level event `id`, receivers **must deduplicate deliveries idempotently by this `id`**.
 
 - **Retry horizon and attempts**: Non-ping events are attempted up to `MAX_RETRY_SCHEDULE_ATTEMPTS` (default `11` attempts, governed by `WEBHOOK_MAX_ATTEMPTS`) spanning a 72-hour horizon (`RETRY_HORIZON_SEC = 259200`).
 - **Cumulative attempt offsets**:
