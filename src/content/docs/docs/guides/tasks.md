@@ -98,8 +98,13 @@ Decisions are strictly restricted to the assigned reviewer:
 
 ### Error family
 
-Decision attempts on approval tasks return specific HTTP `409 Conflict` errors
-when the task cannot be decided:
+Decision attempts on approval tasks return specific errors when the task cannot
+be decided. Error transport differs between callers:
+
+- **REST API (`POST /v1/tasks/:id/decision`)**: Returns an HTTP `409 Conflict` status code with JSON body `{"error":"<code>"}`.
+- **MCP tool (`task_decide`)**: Does not produce HTTP error status codes. Failures return under HTTP 200 as an MCP tool result with `{ content: [{ type: "text", text: <message> }], isError: true }`, where the message text contains the corresponding error code. MCP clients should inspect `isError` and message text rather than branching on HTTP status codes.
+
+Common error codes:
 
 - `task_expired`: The current wall-clock time has passed `approval.expiresAt`.
   The task is automatically materialized to terminal `failed` with result
