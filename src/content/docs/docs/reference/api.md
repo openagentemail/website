@@ -707,7 +707,7 @@ Limits:
 Valid destination quick reference:
 Target URLs are evaluated against a three-tier validation ladder before acceptance:
 1. **Protocol and syntax constraints**: Destination URLs must be valid URLs (max 2048 characters) without query strings (`?`), fragments (`#`), or user credentials (`user:pass@`). The port must be explicitly listed in `WEBHOOK_ALLOWED_PORTS` (default `443` only). The hostname must be a DNS hostname; IP literals are forbidden unless private targets are enabled.
-2. **Private target authorization**: Targeting private IP addresses (RFC 1918 / loopback) requires server configuration `WEBHOOK_ALLOW_PRIVATE_TARGETS=true` **and** `OAE_PUBLIC_EDGE=false` (when `OAE_PUBLIC_EDGE=true`, private targets are disabled server-wide regardless of `WEBHOOK_ALLOW_PRIVATE_TARGETS`). Furthermore, private-target subscriptions must be created or updated with an **admin key** (identity callers attempting to target private addresses receive `400 {"error":"webhook_target_forbidden"}`).
+2. **Private target authorization**: Targeting private IP addresses (RFC 1918, CGNAT `100.64.0.0/10`, loopback, or IPv6 ULA `fd00::/8`) requires server configuration `WEBHOOK_ALLOW_PRIVATE_TARGETS=true` **and** `OAE_PUBLIC_EDGE=false` (when `OAE_PUBLIC_EDGE=true`, private targets are disabled server-wide regardless of `WEBHOOK_ALLOW_PRIVATE_TARGETS`). Furthermore, private-target subscriptions must be created or updated with an **admin key** (identity callers attempting to target private addresses receive `400 {"error":"webhook_target_forbidden"}`).
 3. **HTTP scheme constraints**: The `http:` scheme is permitted **only** when private targets are allowed as above, and requires **every** resolved IP address of the target hostname to be private or loopback. If any resolved IP is public, the endpoint is rejected with `webhook_target_forbidden`.
 
 Validation errors:
@@ -824,7 +824,9 @@ curl -X POST $API/v1/webhooks/whk_01h7x8a.../rotate \
 
 Dual-signing overlap:
 - `overlapUntil` is set to the current time plus `WEBHOOK_ROTATION_OVERLAP_MS` (default `86400000` ms = 24 hours) only when `WEBHOOK_ROTATION_OVERLAP_MS > 0`. When configured to `0`, `overlapUntil` is `null`.
-- Dual signing occurs only while an active overlap window is open (`overlapUntil` is non-null and the current server timestamp is before `overlapUntil`): during this window, outgoing deliveries carry signatures for both the new epoch and the preceding epoch in the `X-OAE-Signature` header (`v1=<new>,v1=<prev>`). If `WEBHOOK_ROTATION_OVERLAP_MS` is `0`, `overlapUntil` is `null` and outgoing deliveries carry only the new epoch signature.
+- Endpoint-rotation dual signing occurs only while an active overlap window is open (`overlapUntil` is non-null and the current server timestamp is before `overlapUntil`): during this window, outgoing deliveries add a signature for the preceding epoch in the `X-OAE-Signature` header (`v1=<new>,v1=<prev>`).
+- Root-key rotation is an independent second signature source: when `WEBHOOK_SIGNING_SECRET_PREVIOUS` is configured, every outgoing delivery additionally carries a signature derived from that previous root signing key, regardless of `overlapUntil`.
+- The two mechanisms compose, so the `X-OAE-Signature` header carries 1, 2, or 3 `v1=` signatures: 1 when neither is active, 2 when exactly one is active (a configured previous root key, or an open overlap window), 3 when both are active. If `WEBHOOK_ROTATION_OVERLAP_MS` is `0`, `overlapUntil` is `null` and the endpoint-rotation signature is omitted, but a configured previous root key still adds its signature.
 - If an active rotation window is already open, further rotations fail with `409 {"error":"rotation_window_open","overlapUntil":"..."}` unless `force: true` is passed.
 - Supports optional `Idempotency-Key` header (replays return cached response with `secret: null`).
 - Rate-limited by an independent rotation bucket (`WEBHOOK_RATE_TEST_PER_MIN`, default 3 requests per minute per caller; returns `429 {"error":"rate_limited","retryAfterSec":...}` when exceeded).
@@ -869,7 +871,7 @@ curl -X POST $API/v1/webhooks/whk_01h7x8a.../enable --config -
 # → 200 {"ok":true,"state":"unverified"}
 ```
 
-Resuming resets `consecutiveFailures` to 0, sets `state: "unverified"`, clears `disabledReason`, and immediately dispatches an asynchronous ping to verify destination reachability.
+Resuming resets `consecutiveFailures` to 0, sets `state: "unverified"`, clears `disabledReason`, and immediately dispatches an asynchronous ping to verify destination reachability. This ping shares the `WEBHOOK_RATE_TEST_PER_MIN` bucket with `POST /v1/webhooks/:id/test`. When that bucket is exhausted at enable time, the ping is queued for a delayed re-check (`WEBHOOK_POOL_RETRY_MS`, default 5000 ms); it is attempted over HTTP if the bucket has capacity by then, and is recorded with `reason: "probe_rate_limited"` (no HTTP attempt) only if the bucket is still exhausted at that re-check.
 
 ## `GET /v1/webhooks/:id/deliveries` — admin only
 
