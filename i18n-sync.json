@@ -13,6 +13,16 @@
       "page": "index",
       "file": "src/pages/index.astro",
       "sha256": "fd2b047e024a04de193933490ffa3f9a68fd7f04433c9bd772c2e1709bce6675"
+    },
+    {
+      "component": "StampWall",
+      "file": "src/components/StampWall.astro",
+      "sha256": "84dadacbac92457afd3ad22791ecc334fe1bdb61281df8b6d925b0107eba3422"
+    },
+    {
+      "component": "FeatureViz",
+      "file": "src/components/FeatureViz.astro",
+      "sha256": "5af35c2c25a95525a9799ebe0e3689cba70b06e9f8aad6ca36262615b2d36920"
     }
   ],
   "dicts": {

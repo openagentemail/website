@@ -74,11 +74,25 @@ if (!isRenderedMode) {
   test('G3: sourceSha256 matches i18n-sync.json (+ negative control)', async () => {
     assert.doesNotThrow(async () => await checkSourceSha());
 
-    // Negative control: tamper with source
+    // Negative control 1: tamper with index.astro
     await assert.rejects(
       async () => await checkSourceSha(undefined, { 'src/pages/index.astro': 'tampered source' }),
       /en 源已变更，译文需同步/,
-      'Must fail with exact message when source sha256 drifts',
+      'Must fail with exact message when page source sha256 drifts',
+    );
+
+    // Negative control 2: tamper with StampWall.astro
+    await assert.rejects(
+      async () => await checkSourceSha(undefined, { 'src/components/StampWall.astro': 'tampered component' }),
+      /en 源已变更，译文需同步/,
+      'Must fail with exact message when StampWall component sha256 drifts',
+    );
+
+    // Negative control 3: tamper with FeatureViz.astro
+    await assert.rejects(
+      async () => await checkSourceSha(undefined, { 'src/components/FeatureViz.astro': 'tampered component' }),
+      /en 源已变更，译文需同步/,
+      'Must fail with exact message when FeatureViz component sha256 drifts',
     );
   });
 

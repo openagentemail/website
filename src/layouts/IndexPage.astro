@@ -930,6 +930,17 @@ const faqJsonLd = {
         margin: 0.7rem 0 0;
         line-height: 1.7;
       }
+      @media (max-width: 38rem) {
+        nav .wrap {
+          flex-wrap: wrap;
+          height: auto;
+          padding-block: 0.45rem;
+          row-gap: 0.3rem;
+        }
+        :global(.lang-switcher) {
+          margin-left: auto;
+        }
+      }
       @media (max-width: 34rem) {
         .hero {
           padding: 4.5rem 0 3.2rem;

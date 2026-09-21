@@ -2,7 +2,8 @@ export const texts = {
   // ── Meta / Head ──
   meta_title: 'openagent.email — Open Communication &amp; Task Handoffs for AI Agents',
   meta_description: 'Open communication and task handoffs for AI agents. Self-hosted email, task threads, approvals, and webhooks over MCP and REST—for the agents you already use.',
-  og_title: 'openagent.email — Open Communication &amp; Task Handoffs for AI Agents',
+  // Note: og_title uses literal '&' (attribute context, Astro auto-escapes); meta_title uses '&amp;' for set:html context.
+  og_title: 'openagent.email — Open Communication & Task Handoffs for AI Agents',
   og_description: 'Open communication and task handoffs for AI agents. Self-hosted email, task threads, approvals, and webhooks over MCP and REST—for the agents you already use. Bring your own agents. Keep control of the work.',
 
   // ── JSON-LD ──
