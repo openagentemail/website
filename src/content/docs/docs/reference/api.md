@@ -912,7 +912,10 @@ The server fetches the referenced delivery record, checks that the target webhoo
 Possible errors:
 - `404 {"error":"delivery_not_found"}`: Delivery record does not exist in the active delivery log index (either an unknown delivery ID or evicted from memory when log volume exceeds `WEBHOOK_LOG_MAX_ROWS`, default **100,000**; evicted records persist on disk but cannot be queried or replayed via the API).
 - `404 {"error":"webhook_not_found"}`: Associated webhook subscription was deleted.
-- `404 {"error":"message_not_found"}`: Underlying mail message is no longer in storage. *(Note: If the underlying approval task is missing during replay, the server currently raises an unmapped error resulting in `500 {"error":"internal_error"}` rather than `task_not_found`).*
+- `404 {"error":"message_not_found"}`: Underlying mail message is no longer in storage.
+- `404 {"error":"task_not_found"}`: Underlying approval task is no longer available for replay.
+- `404 {"error":"missing_task_id"}`: Historical delivery row lacks the approval task ID required for replay.
+- `500 {"error":"internal_error"}`: Unexpected server error during replay (unmapped failure).
 - `409 {"error":"webhook_disabled"}`: Webhook subscription is currently disabled.
 - `409 {"error":"delivery_not_replayable"}`: Delivery record cannot be replayed.
 - `409 {"error":"stale_message_generation"}`: IMAP mailbox generation UIDVALIDITY changed since original delivery.
