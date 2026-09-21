@@ -23,7 +23,7 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { access, readFile, readdir, writeFile } from 'node:fs/promises';
-import { dirname, resolve, join, relative } from 'node:path';
+import { dirname, resolve, join, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -85,6 +85,22 @@ export async function checkFileParity(syncConfig, configModule) {
       assert.fail(`FILE_PARITY: Route file missing for page '${page}' at ${routeRelPath}`);
     }
   }
+
+  // 1.4 sync.locales must equal config.LOCALES (order-independent)
+  assert.deepEqual(
+    [...sync.locales].sort(),
+    [...config.LOCALES].sort(),
+    'FILE_PARITY: sync.locales in i18n-sync.json must equal LOCALES in src/i18n/config.js',
+  );
+
+  // 1.5 sync.dicts key set must equal ['en', ...config.LOCALES]
+  const expectedDictKeys = ['en', ...config.LOCALES].sort();
+  const actualDictKeys = Object.keys(sync.dicts).sort();
+  assert.deepEqual(
+    actualDictKeys,
+    expectedDictKeys,
+    'FILE_PARITY: sync.dicts keys must equal [en, ...LOCALES] — new locale added to config without dict entry (or vice-versa)',
+  );
 
   return true;
 }
@@ -264,7 +280,8 @@ export function extractStylesheetHrefs(html) {
     const hrefMatch = m[0].match(/\bhref=["']([^"']+)["']/i);
     if (hrefMatch) {
       const href = hrefMatch[1].split('?')[0].split('#')[0];
-      if (!href.startsWith('http://') && !href.startsWith('https://')) {
+      // Exclude absolute URLs (http://, https://) and protocol-relative URLs (//)
+      if (!href.startsWith('http://') && !href.startsWith('https://') && !href.startsWith('//')) {
         hrefs.push(href);
       }
     }
@@ -275,8 +292,15 @@ export function extractStylesheetHrefs(html) {
 export async function extractStylesheetShas(html, distDir) {
   const hrefs = extractStylesheetHrefs(html);
   const shas = [];
+  const resolvedDistDir = resolve(distDir);
+  const distPrefix = resolvedDistDir + (resolvedDistDir.endsWith(sep) ? '' : sep);
   for (const href of hrefs) {
-    const filePath = join(distDir, href.replace(/^\//, ''));
+    const filePath = resolve(resolvedDistDir, href.replace(/^\//, ''));
+    // Safety: assert the resolved path is within distDir (no path traversal)
+    assert.ok(
+      filePath.startsWith(distPrefix),
+      `EN_BASELINE: Stylesheet path traversal detected: '${href}' resolved outside distDir`,
+    );
     const content = await readFile(filePath);
     shas.push(computeSha256(content));
   }

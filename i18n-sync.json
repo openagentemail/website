@@ -23,6 +23,11 @@
       "component": "FeatureViz",
       "file": "src/components/FeatureViz.astro",
       "sha256": "5af35c2c25a95525a9799ebe0e3689cba70b06e9f8aad6ca36262615b2d36920"
+    },
+    {
+      "layout": "IndexPage",
+      "file": "src/layouts/IndexPage.astro",
+      "sha256": "817cba301292038cac2c933b45c266315100e86b62ff4d9a0ec3cf73508b1755"
     }
   ],
   "dicts": {

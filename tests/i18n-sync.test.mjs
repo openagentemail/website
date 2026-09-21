@@ -34,6 +34,20 @@ const isRenderedMode = process.argv.includes('--check-rendered');
 if (!isRenderedMode) {
   // ── Source-level tests (G1 ~ G6, prebuild chain) ─────────────────────────
 
+  test('G0: File set parity (+ negative control)', async () => {
+    await checkFileParity();
+
+    // Negative control: config declares an unregistered locale ('fr')
+    await assert.rejects(
+      async () => await checkFileParity(undefined, {
+        LOCALES: [...LOCALES, 'fr'],
+        TRANSLATED_PAGES: [...TRANSLATED_PAGES],
+      }),
+      /FILE_PARITY: sync\.locales/,
+      'Must fail when config LOCALES adds an unregistered locale',
+    );
+  });
+
   test('G1: Dictionary key set equality across all languages (+ negative control)', async () => {
     const dicts = { en, es, ja, ko, zh };
     await checkStructureParity(dicts);
@@ -72,7 +86,7 @@ if (!isRenderedMode) {
   });
 
   test('G3: sourceSha256 matches i18n-sync.json (+ negative control)', async () => {
-    assert.doesNotThrow(async () => await checkSourceSha());
+    await assert.doesNotReject(async () => await checkSourceSha());
 
     // Negative control 1: tamper with index.astro
     await assert.rejects(
@@ -94,10 +108,17 @@ if (!isRenderedMode) {
       /en 源已变更，译文需同步/,
       'Must fail with exact message when FeatureViz component sha256 drifts',
     );
+
+    // Negative control 4: tamper with IndexPage.astro (layout)
+    await assert.rejects(
+      async () => await checkSourceSha(undefined, { 'src/layouts/IndexPage.astro': 'tampered layout' }),
+      /en 源已变更，译文需同步/,
+      'Must fail with exact message when IndexPage layout sha256 drifts',
+    );
   });
 
-  test('G4: Value validation and HTML tag whitelist (+ negative control)', () => {
-    assert.doesNotThrow(() => checkValues({ en, es, ja, ko, zh }));
+  test('G4: Value validation and HTML tag whitelist (+ negative control)', async () => {
+    await assert.doesNotReject(() => checkValues({ en, es, ja, ko, zh }));
 
     // Negative control: empty value
     assert.throws(() => validateTextValue('k', '', 'test'), /Value must be a non-empty string/);
