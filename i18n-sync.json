@@ -80,47 +80,47 @@
     {
       "layout": "IndexPage",
       "file": "src/layouts/IndexPage.astro",
-      "sha256": "817cba301292038cac2c933b45c266315100e86b62ff4d9a0ec3cf73508b1755"
+      "sha256": "c67675110046ac232e3e3e03cd6135c20b7540762d4e88b9b4f703ef2ed092f9"
     },
     {
       "layout": "ComparePage",
       "file": "src/layouts/ComparePage.astro",
-      "sha256": "203215aa371120ec99422a3c6093ac5a908e04bf2403e64f660061785b242abd"
+      "sha256": "83a1647ecce9278e976596c73c9225870604694dbb1c1cf3c72d255e5e428289"
     },
     {
       "layout": "PricingPage",
       "file": "src/layouts/PricingPage.astro",
-      "sha256": "c5b1bc6409cee2a882481f112c03dd0be26d945de7a99ea9efd75432eacd2bb2"
+      "sha256": "7026f4301adeafbe9c0a8b167b590989930108794bb70b439376817e665cc81b"
     },
     {
       "layout": "McpPage",
       "file": "src/layouts/McpPage.astro",
-      "sha256": "e5c755faca2f9ed0d91457849352d3625f8088198cde4192b013dd45b13f4f23"
+      "sha256": "820383dea6cceddf47fe19f29ddc6eef8293c0f78df05fe2b0de6cd4580cdfca"
     },
     {
       "layout": "ContactPage",
       "file": "src/layouts/ContactPage.astro",
-      "sha256": "5934cbc0419fcc3a482de3282f3c5a18faf2fc1c5646def5931bc291a2b30d1b"
+      "sha256": "1b34847657b0f9eaf10f5b80b6d7f969bbf59cc35a6e763bee63073252cdb3c0"
     },
     {
       "layout": "AgentmailPage",
       "file": "src/layouts/AgentmailPage.astro",
-      "sha256": "76e14c7d4067c420554a78c1a5fba9328a81ad1ae609f1fcdbea9686cd8beca3"
+      "sha256": "afcf3a5a1f92fca394a0567bd3b76ba1368b7ea6d9c4b80706386320b27fab7b"
     },
     {
       "layout": "PrivacyPolicyPage",
       "file": "src/layouts/PrivacyPolicyPage.astro",
-      "sha256": "3aaca639f389a1330f44ee1f7dc60be6ddbd56c9913a94e5332a170dc1139c5a"
+      "sha256": "ebe748f3b79b5afa3b59dc4dada029c69258ef6d17fc79dba9fb60f7c3043aaf"
     },
     {
       "layout": "TermsOfServicePage",
       "file": "src/layouts/TermsOfServicePage.astro",
-      "sha256": "de533c6e5cc1bb785cb4063829f3c0fa18ca4077fac7eacb12eb108fc628cbff"
+      "sha256": "8a0fd5ebcebc14e9d4b3603ecfb682017c4f1cf49b8fd4bcb76b3d5fc64abcda"
     },
     {
       "layout": "RefundPolicyPage",
       "file": "src/layouts/RefundPolicyPage.astro",
-      "sha256": "7f98a5e523c18ca1e30afabb79df2a608708b56f0372a6f4601e6b1301bfab6a"
+      "sha256": "fc309ce4500a9f59a100676899f2c8e545a60e75cecbd1fd8b10f58c223924d0"
     }
   ],
   "dicts": {
