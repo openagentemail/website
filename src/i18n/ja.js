@@ -354,7 +354,7 @@ export const texts = {
   compare_lede: 'このページでは、エージェントにメールを提供する 3 つの方法を比較します。openagent.email は自身で運用する Apache-2.0 ソフトウェア、AgentMail はエンタープライズ AWS Outposts BYOC を備えたマネージド型エージェントメール製品、MailSlurp はメール・SMS テスト用のホスティングプラットフォームです。',
   compare_hero_deploy: 'デプロイ / はじめに',
   compare_hero_connect: 'エージェントを接続',
-  compare_picks_heading: 'どちらを選ぶべきか',
+  compare_picks_heading: 'どれを選ぶべきか',
   compare_picks_note: 'このページの事実に基づく適合メモであり、普遍的な推奨ではありません。',
   compare_pick_oa: 'openagent.email',
   compare_pick_oa_desc: 'オープンソースの制御、独自ドメインとインフラ、永続的なエージェントメールボックスを求める場合に適しています。',

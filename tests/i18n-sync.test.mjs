@@ -1,3 +1,13 @@
+/*
+ * Viewport-matrix lesson (card C2 / #137, 2026-09-21): responsive breakpoint
+ * changes must be verified across BOTH sides of the breakpoint band. Two
+ * consecutive rounds missed the 544-768px band (C1 F-4 swept 320-544px;
+ * C2.2 re-verified 360-390px), letting a too-low nav wrap breakpoint (38rem)
+ * ship twice before C2.3 raised it to 48rem. Future nav / breakpoint CSS
+ * changes should be re-checked across the full sweep widths:
+ * 320/360/375/390/414/480/544/600/640/700/768/769/800/900/1024/1280.
+ */
+
 import assert from 'node:assert/strict';
 import { access, cp, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
