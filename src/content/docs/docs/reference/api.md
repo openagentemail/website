@@ -963,8 +963,10 @@ function verifySignature({ header, rawBody, secret, toleranceSec = 300 }) {
     const k = part.slice(0, eq);
     const v = part.slice(eq + 1);
     if (k === 't') {
-      const parsed = Number.parseInt(v, 10);
-      if (Number.isFinite(parsed) && parsed >= 0) t = parsed;
+      if (/^(?:0|[1-9]\d*)$/.test(v)) {
+        const parsed = Number(v);
+        if (Number.isSafeInteger(parsed)) t = parsed;
+      }
     } else if (k === 'v1' && v.length > 0) {
       signatures.push(v);
     }
@@ -974,7 +976,8 @@ function verifySignature({ header, rawBody, secret, toleranceSec = 300 }) {
   const nowSec = Math.floor(Date.now() / 1000);
   if (Math.abs(nowSec - t) > toleranceSec) return false;
 
-  const signedPayload = `${t}.${rawBody}`;
+  const body = typeof rawBody === 'string' ? rawBody : rawBody.toString('utf8');
+  const signedPayload = `${t}.${body}`;
   const signingKey = Buffer.from(secret, 'utf8');
   const expectedSig = crypto
     .createHmac('sha256', signingKey)

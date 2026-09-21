@@ -7,7 +7,8 @@
 //   node tests/webhook-normative.test.mjs --check-source  # cross-check the doc against the implementation
 //
 // Source pin:
-//   Pinned to v0.8.0 (byte-identical with verified baseline 3cedb94 on webhook source files).
+//   Pinned to v0.8.0 = commit eab80f9296b75b539a33d7c262543d7dcaf8288c (immutable SHA;
+//   byte-identical with verified baseline 3cedb94 on webhook source files).
 //   Upgrade procedure: update SOURCE_REF constant -> run both test modes -> update comments with PR.
 //
 // Source resolution for --check-source: OAE_SRC (path to a checkout of the product
@@ -25,7 +26,7 @@ import { join } from 'node:path';
 const API_URL = new URL('../src/content/docs/docs/reference/api.md', import.meta.url);
 const isSourceMode = process.argv.includes('--check-source');
 
-const SOURCE_REF = process.env.OAE_REF ?? 'v0.8.0';
+const SOURCE_REF = process.env.OAE_REF ?? 'eab80f9296b75b539a33d7c262543d7dcaf8288c';
 const REMOTE_BASE = `https://raw.githubusercontent.com/openagentemail/openagentemail/${SOURCE_REF}/`;
 const SOURCE_FILES = {
   app: 'packages/api/src/app.ts',
@@ -368,6 +369,9 @@ if (!isSourceMode) {
     );
     assert.ok(src.signing.includes('Math.floor(nowMs / 1000)'), 'MISMATCH: nowMs timestamp rounding missing in signing');
     assert.ok(src.signing.includes('v1=${s}'), 'MISMATCH: v1 signature formatting missing in signing');
+    assert.ok(src.signing.includes("createHmac('sha256'"), 'MISMATCH: HMAC-SHA256 algorithm not found in signing');
+    assert.ok(src.signing.includes('${t}.${rawBodyStr}'), 'MISMATCH: signed-payload construction missing in signing');
+    assert.ok(src.signing.includes("Buffer.from(displayedSecret, 'utf8')"), 'MISMATCH: displayed-secret key derivation missing in signing');
     assert.ok(
       /export function verifyWebhookSignature\(/.test(src.signing),
       'MISMATCH: verifyWebhookSignature not exported',
@@ -380,8 +384,12 @@ if (!isSourceMode) {
       'MISMATCH: mail.received dispatch filter (state + events) not found in webhook-sink',
     );
     assert.ok(
-      /events\.includes\('approval\.requested'\)/.test(src.sink),
-      'MISMATCH: approval.requested dispatch filter (events) not found in webhook-sink',
+      /sub\.state !== 'disabled'\s*&&\s*sub\.events\.includes\('approval\.requested'\)/.test(src.sink),
+      'MISMATCH: approval.requested dispatch filter (state + events) not found in webhook-sink',
+    );
+    assert.ok(
+      /sub\.address === reviewer/.test(src.sink),
+      'MISMATCH: approval reviewer-targeting predicate not found in webhook-sink',
     );
     const creationPingFn = src.delivery.match(/export function fireCreationPing\([\s\S]*?\n\}/);
     if (!creationPingFn) assert.fail('WEBHOOK-NORMATIVE/PARSE: fireCreationPing not found');
