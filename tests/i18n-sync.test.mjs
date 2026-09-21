@@ -114,6 +114,13 @@ if (!isRenderedMode) {
       /en 源已变更，译文需同步/,
       'Must fail with exact message when IndexPage layout sha256 drifts',
     );
+
+    // Negative control 5: tamper with Legal.astro (shared en-page shell layout)
+    await assert.rejects(
+      async () => await checkSourceSha(undefined, { 'src/layouts/Legal.astro': 'tampered layout' }),
+      /en 源已变更，译文需同步/,
+      'Must fail with exact message when Legal layout sha256 drifts',
+    );
   });
 
   test('G4: Value validation and HTML tag whitelist (+ negative control)', async () => {

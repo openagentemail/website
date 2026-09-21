@@ -243,6 +243,10 @@ function renderedFixture({ compare = ownedBlock() } = {}) {
     ['ja/index.html', `<html><head>${ownedBlock()}${ownedBlock()}</head></html>`],
     ['ko/index.html', `<html><head>${ownedBlock()}${ownedBlock()}</head></html>`],
     ['zh/index.html', `<html><head>${ownedBlock()}${ownedBlock()}</head></html>`],
+    ['es/compare/index.html', `<html><head>${ownedBlock()}</head></html>`],
+    ['ja/compare/index.html', `<html><head>${ownedBlock()}</head></html>`],
+    ['ko/compare/index.html', `<html><head>${ownedBlock()}</head></html>`],
+    ['zh/compare/index.html', `<html><head>${ownedBlock()}</head></html>`],
   ]);
 }
 

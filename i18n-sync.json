@@ -73,6 +73,11 @@
       "sha256": "5af35c2c25a95525a9799ebe0e3689cba70b06e9f8aad6ca36262615b2d36920"
     },
     {
+      "layout": "Legal",
+      "file": "src/layouts/Legal.astro",
+      "sha256": "fc0c8fd00ed9c74352b95b9e070f0562091e057d14f568d4df3b453bce74662c"
+    },
+    {
       "layout": "IndexPage",
       "file": "src/layouts/IndexPage.astro",
       "sha256": "817cba301292038cac2c933b45c266315100e86b62ff4d9a0ec3cf73508b1755"
