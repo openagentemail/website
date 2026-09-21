@@ -23,7 +23,8 @@
     "test:mcp-tools-rendered": "node tests/mcp-tools.test.mjs --check-rendered",
     "test:mcp-tools-upstream": "node tests/mcp-tools.test.mjs --check-upstream",
     "test:webhook-normative": "node tests/webhook-normative.test.mjs",
-    "prebuild": "npm run test:compare-freshness && npm run test:hosted-checkout && npm run test:mail-security-docs && npm run test:iphone-mail-guide && npm run test:jsonld && npm run test:seo-docs && npm run test:llms-txt && npm run test:mcp-tools && npm run test:mcp-tools-upstream && npm run test:webhook-normative",
+    "test:webhook-normative-source": "node tests/webhook-normative.test.mjs --check-source",
+    "prebuild": "npm run test:compare-freshness && npm run test:hosted-checkout && npm run test:mail-security-docs && npm run test:iphone-mail-guide && npm run test:jsonld && npm run test:seo-docs && npm run test:llms-txt && npm run test:mcp-tools && npm run test:mcp-tools-upstream && npm run test:webhook-normative && npm run test:webhook-normative-source",
     "postbuild": "npm run test:compare-rendered && npm run test:jsonld-rendered && npm run test:seo-docs-rendered && npm run test:llms-txt-rendered && npm run test:mcp-tools-rendered"
   },
   "dependencies": {

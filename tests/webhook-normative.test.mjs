@@ -1,14 +1,19 @@
-// Normative machine-check for the webhook reference section (predecessor of the
-// B3 machine-check slice).
+// Normative machine-check for the webhook reference section (B3 slice:
+// signature verification + machine-check hardening).
 //
 // Modes (direct node run — same convention as tests/mcp-tools.test.mjs; note that
 // `node --test <file> --flag` does NOT forward the flag to the child process):
 //   node tests/webhook-normative.test.mjs                 # doc-side goldens (no source needed)
 //   node tests/webhook-normative.test.mjs --check-source  # cross-check the doc against the implementation
 //
+// Source pin:
+//   Pinned to v0.8.0 = commit eab80f9296b75b539a33d7c262543d7dcaf8288c (immutable SHA;
+//   byte-identical with verified baseline 3cedb94 on webhook source files).
+//   Upgrade procedure: update SOURCE_REF constant -> run both test modes -> update comments with PR.
+//
 // Source resolution for --check-source: OAE_SRC (path to a checkout of the product
 // repo whose working files are the revision under check) → otherwise fetch from
-// raw.githubusercontent.com/openagentemail/openagentemail/main.
+// raw.githubusercontent.com/openagentemail/openagentemail/${SOURCE_REF}/.
 //
 // Fail-loud classes: NETWORK (cannot fetch), PARSE (source layout changed),
 // MISMATCH (doc and implementation disagree) — "cannot verify" never counts as pass.
@@ -21,7 +26,8 @@ import { join } from 'node:path';
 const API_URL = new URL('../src/content/docs/docs/reference/api.md', import.meta.url);
 const isSourceMode = process.argv.includes('--check-source');
 
-const REMOTE_BASE = 'https://raw.githubusercontent.com/openagentemail/openagentemail/main/';
+const SOURCE_REF = process.env.OAE_REF ?? 'eab80f9296b75b539a33d7c262543d7dcaf8288c';
+const REMOTE_BASE = `https://raw.githubusercontent.com/openagentemail/openagentemail/${SOURCE_REF}/`;
 const SOURCE_FILES = {
   app: 'packages/api/src/app.ts',
   scopePolicy: 'packages/api/src/lib/scope-policy.ts',
@@ -29,6 +35,8 @@ const SOURCE_FILES = {
   webhookRoutes: 'packages/api/src/routes/webhooks.ts',
   delivery: 'packages/api/src/lib/webhook-delivery.ts',
   store: 'packages/api/src/lib/webhook-store.ts',
+  sink: 'packages/api/src/lib/webhook-sink.ts',
+  signing: 'packages/api/src/lib/webhook-signing.ts',
 };
 
 // Wire error literals the section must document verbatim (golden set, byte-exact).
@@ -124,9 +132,35 @@ const SEMANTICS_ENV_DEFAULTS = {
   WEBHOOK_RESPONSE_MAX_BYTES: '4096',
   WEBHOOK_DELIVERY_TIMEOUT_MS: '10000',
   WEBHOOK_MAX_CONCURRENT: '8',
+  WEBHOOK_TIMESTAMP_TOLERANCE_SEC: '300',
 };
 
 const RETRY_OFFSETS_FULL = ['0', '5', '300', '1800', '7200', '18000', '36000', '72000', '122400', '172800', '259200'];
+
+const SIGNATURE_GOLDENS = [
+  'X-OAE-Signature: t=<unix-timestamp>,v1=<signature-hex>[,v1=<additional-signature-hex>[,v1=<additional-signature-hex>]]',
+  '`t`: Integer Unix timestamp in seconds (`Math.floor(Date.now() / 1000)`)',
+  '`v1`: Lower-case hexadecimal HMAC-SHA256 signature',
+  '`WEBHOOK_TIMESTAMP_TOLERANCE_SEC` (default **300 seconds** / 5 minutes)',
+  'signedPayload = `${t}.${rawRequestBody}`',
+  'The signing key is the exact 68-character ASCII string of the displayed secret (`whs_<64-hex>`)',
+  'constant-time comparison',
+  'reject the request as expired (`timestamp_out_of_range`)',
+];
+
+function signatureSectionOf(doc) {
+  const start = doc.indexOf('\n## Webhook signature verification\n');
+  assert.ok(start >= 0, 'api.md must contain the `## Webhook signature verification` section');
+  const end = doc.indexOf('\n## Webhook delivery semantics', start);
+  assert.ok(end > start, 'the signature section must precede `## Webhook delivery semantics`');
+  return doc.slice(start, end);
+}
+
+function assertSignatureGoldens(sig) {
+  for (const g of SIGNATURE_GOLDENS) {
+    assert.ok(sig.includes(g), `signature golden missing: ${g}`);
+  }
+}
 
 function semanticsSectionOf(doc) {
   const start = doc.indexOf('\n## Webhook delivery semantics\n');
@@ -148,7 +182,9 @@ function assertSemanticsGoldens(sem) {
 function sectionOf(doc) {
   const start = doc.indexOf('\n## Webhooks\n');
   assert.ok(start >= 0, 'api.md must contain the `## Webhooks` section');
-  return doc.slice(start);
+  const end = doc.indexOf('\n## Webhook signature verification', start);
+  assert.ok(end > start, 'the endpoint sections must precede `## Webhook signature verification`');
+  return doc.slice(start, end);
 }
 
 async function loadSources() {
@@ -211,6 +247,7 @@ if (!isSourceMode) {
     assertDocLiterals(sec);
     assertDocFragments(sec);
     assertSemanticsGoldens(semanticsSectionOf(doc));
+    assertSignatureGoldens(signatureSectionOf(doc));
   });
 } else {
   test('webhook section normative claims match the implementation (--check-source)', async () => {
@@ -225,6 +262,7 @@ if (!isSourceMode) {
     assertDocLiterals(sec);
     assertDocFragments(sec);
     assertSemanticsGoldens(semanticsSectionOf(doc));
+    assertSignatureGoldens(signatureSectionOf(doc));
     for (const lit of DOC_LITERALS) {
       assert.ok(
         allSource.includes(`'${lit}'`),
@@ -254,7 +292,8 @@ if (!isSourceMode) {
     assert.equal(attempts[1], '3', `MISMATCH: MAX_PING_ATTEMPTS — doc=3 source=${attempts[1]}`);
     const offsets = src.delivery.match(/export const RETRY_SCHEDULE_OFFSETS_SEC = \[([\s\S]*?)\]/);
     if (!offsets) assert.fail('WEBHOOK-NORMATIVE/PARSE: RETRY_SCHEDULE_OFFSETS_SEC not found');
-    const nums = [...offsets[1].matchAll(/(\d+)\s*,/g)].map((m) => m[1]);
+    const offsetsBody = offsets[1].replace(/\/\/[^\n]*/g, '');
+    const nums = [...offsetsBody.matchAll(/(\d+)/g)].map((m) => m[1]);
     assert.deepEqual(
       nums.slice(0, 3),
       ['0', '5', '300'],
@@ -264,10 +303,17 @@ if (!isSourceMode) {
     // 5. the scope-policy table must still define no webhook operation (premise depends on it)
     const policies = src.scopePolicy.match(/export const OPERATION_POLICIES[^=]*= \[([\s\S]*?)\];/);
     if (!policies) assert.fail('WEBHOOK-NORMATIVE/PARSE: OPERATION_POLICIES not found');
-    assert.ok(
-      !/webhooks/i.test(policies[1]),
-      'MISMATCH: OPERATION_POLICIES now contains a webhook entry — the section premise is stale',
-    );
+    const matcherBodies = [...policies[1].matchAll(/matches:\s*\([^)]*\)\s*=>\s*([^\n]+)/g)].map((m) => m[1]);
+    const policyIds = [...policies[1].matchAll(/\bid:/g)].length;
+    if (matcherBodies.length === 0) assert.fail('WEBHOOK-NORMATIVE/PARSE: no matcher bodies found in OPERATION_POLICIES');
+    assert.equal(matcherBodies.length, policyIds, 'WEBHOOK-NORMATIVE/PARSE: some OPERATION_POLICIES entries have an unparsed matcher form');
+    // Text-level gate: a matcher that targets /v1/webhooks without naming it cannot be detected here.
+    for (const body of matcherBodies) {
+      assert.ok(!/webhook/i.test(body), `MISMATCH: OPERATION_POLICIES matcher references webhooks: ${body.trim()}`);
+      for (const lit of [...body.matchAll(/'([^']*)'/g)].map((m) => m[1])) {
+        assert.ok(!lit.startsWith('/v1/webhooks'), `MISMATCH: OPERATION_POLICIES matcher path ${lit} — the section premise is stale`);
+      }
+    }
 
     // 6. delivery-semantics env defaults ↔ config schema (B2)
     for (const [env, value] of Object.entries(SEMANTICS_ENV_DEFAULTS)) {
@@ -303,7 +349,66 @@ if (!isSourceMode) {
     }
     assert.ok(src.delivery.includes("reason: 'ssrf_refused'"), 'MISMATCH: ssrf_refused reason literal not in delivery source');
 
-    // 9. report-only: source error literals the section does not document
+    // 9. rate limiter bucket mapping (§6-9)
+    const limiterChecks = {
+      checkCreateRate: 'rateCreatePerMin',
+      checkReadRate: 'rateCreatePerMin',
+      checkRotateRate: 'rateTestPerMin',
+      checkTestProbeRate: 'rateTestPerMin',
+    };
+    for (const [fn, key] of Object.entries(limiterChecks)) {
+      const m = src.delivery.match(new RegExp(`${fn}\\([^)]*\\)[\\s\\S]*?\\n  \\}`));
+      if (!m) assert.fail(`WEBHOOK-NORMATIVE/PARSE: ${fn} not found`);
+      assert.ok(m[0].includes(`config.webhooks.${key}`), `MISMATCH: ${fn} does not use config.webhooks.${key}`);
+    }
+
+    // 10. signature verification implementation assertions (scoped to function bodies)
+    const signingFn = (name) => {
+      const m = src.signing.match(new RegExp(`export function ${name}\\([\\s\\S]*?\\n\\}`));
+      if (!m) assert.fail(`WEBHOOK-NORMATIVE/PARSE: ${name} body not found in webhook-signing`);
+      return m[0];
+    };
+    const deriveFn = signingFn('deriveWebhookKey');
+    const buildFn = signingFn('buildWebhookSignatureHeader');
+    const verifyFn = signingFn('verifyWebhookSignature');
+    assert.ok(deriveFn.includes("Buffer.from(displayedSecret, 'utf8')"), 'MISMATCH: displayed-secret key derivation missing in deriveWebhookKey');
+    assert.ok(buildFn.includes('Math.floor(nowMs / 1000)'), 'MISMATCH: nowMs timestamp rounding missing in buildWebhookSignatureHeader');
+    assert.ok(buildFn.includes("createHmac('sha256'"), 'MISMATCH: HMAC-SHA256 algorithm missing in buildWebhookSignatureHeader');
+    assert.ok(buildFn.includes('${t}.${rawBodyStr}'), 'MISMATCH: signed-payload construction missing in buildWebhookSignatureHeader');
+    assert.ok(buildFn.includes('v1=${s}'), 'MISMATCH: v1 signature formatting missing in buildWebhookSignatureHeader');
+    assert.ok(verifyFn.includes("createHmac('sha256'"), 'MISMATCH: HMAC-SHA256 algorithm missing in verifyWebhookSignature');
+    assert.ok(verifyFn.includes('${t}.${rawBodyStr}'), 'MISMATCH: signed-payload construction missing in verifyWebhookSignature');
+    assert.ok(verifyFn.includes('timingSafeEqual'), 'MISMATCH: timingSafeEqual constant-time check missing in verifyWebhookSignature');
+
+    // 11. dispatch-filter assertions (D3 statements)
+    const sinkMethod = (name) => {
+      const m = src.sink.match(new RegExp(`async ${name}\\([\\s\\S]*?\\n    \\}`));
+      if (!m) assert.fail(`WEBHOOK-NORMATIVE/PARSE: ${name} body not found in webhook-sink`);
+      return m[0];
+    };
+    const handleMailFn = sinkMethod('handleMail');
+    const handleApprovalFn = sinkMethod('handleApproval');
+    assert.ok(
+      /s\.state !== 'disabled' && s\.events\.includes\('mail\.received'\)/.test(handleMailFn),
+      'MISMATCH: mail.received dispatch filter (state + events) not found in handleMail',
+    );
+    assert.ok(
+      /sub\.state !== 'disabled'\s*&&\s*sub\.events\.includes\('approval\.requested'\)/.test(handleApprovalFn),
+      'MISMATCH: approval.requested dispatch filter (state + events) not found in handleApproval',
+    );
+    assert.ok(
+      /sub\.address === reviewer/.test(handleApprovalFn),
+      'MISMATCH: approval reviewer-targeting predicate not found in handleApproval',
+    );
+    assert.ok(
+      /s\.state === 'unverified'[\s\S]{0,60}?s\.state = 'enabled'/.test(src.delivery),
+      'MISMATCH: unverified -> enabled transition missing in delivery success handling',
+    );
+    const creationPingFn = src.delivery.match(/export function fireCreationPing\([\s\S]*?\n\}/);
+    if (!creationPingFn) assert.fail('WEBHOOK-NORMATIVE/PARSE: fireCreationPing not found');
+    assert.ok(!creationPingFn[0].includes('events.includes'), 'MISMATCH: fireCreationPing now filters by events — the ping exception claim is stale');
+
+    // 12. report-only: source error literals the section does not document
     //    (direction rule: doc-claims-absent-in-source = hard fail; source-lacks-in-doc = report)
     const sourceLiterals = new Set([...allSource.matchAll(/[{,]\s*error:\s*'([^'\n]+)'/g)].map((m) => m[1]));
     const documented = new Set(DOC_LITERALS);
