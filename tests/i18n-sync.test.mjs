@@ -157,6 +157,13 @@ if (!isRenderedMode) {
     return (node.attrs ?? []).find((a) => a.name === attrName)?.value;
   }
 
+  function getNodeDirectText(node) {
+    return (node.childNodes ?? [])
+      .filter((c) => c.nodeName === '#text')
+      .map((c) => c.value)
+      .join('');
+  }
+
   test('G7: Translated pages exist and have correct <html lang> attributes', async () => {
     for (const loc of LOCALES) {
       const filePath = resolve(ROOT, `dist/${loc}/index.html`);
@@ -319,5 +326,55 @@ if (!isRenderedMode) {
       5,
       `All 5 homepage URLs must be present in the sitemap (found ${checkedHomepages})`,
     );
+  });
+
+  test('G12: REST API caplist code-span scope parity across all 5 languages', async () => {
+    const pagesToCheck = [
+      { loc: 'en', path: resolve(ROOT, 'dist/index.html') },
+      ...LOCALES.map((loc) => ({ loc, path: resolve(ROOT, `dist/${loc}/index.html`) })),
+    ];
+
+    for (const { loc, path } of pagesToCheck) {
+      const html = await readFile(path, 'utf8');
+      const nodes = getHtmlNodes(html);
+      const liNodes = nodes.filter((n) => n.nodeName === 'li');
+      const restLis = liNodes.filter((li) => {
+        const code = (li.childNodes ?? []).find((c) => c.nodeName === 'code');
+        return code && /^(POST|GET|DELETE|PUT) \/v1\//.test(getNodeDirectText(code).trim());
+      });
+
+      assert.equal(
+        restLis.length,
+        19,
+        `Page [${loc}] must render exactly 19 REST API items in caplist (got ${restLis.length})`,
+      );
+
+      for (let i = 0; i < restLis.length; i++) {
+        const li = restLis[i];
+        const code = (li.childNodes ?? []).find((c) => c.nodeName === 'code');
+        assert.ok(code, `[${loc}] REST item ${i + 1} must contain a <code> tag`);
+
+        const codeText = getNodeDirectText(code).trim();
+        assert.ok(
+          /^(POST|GET|DELETE|PUT) \/v1\//.test(codeText),
+          `[${loc}] REST item ${i + 1} code text must match REST endpoint pattern, got '${codeText}'`,
+        );
+        assert.equal(
+          codeText.includes('—'),
+          false,
+          `[${loc}] REST item ${i + 1} <code> must NOT contain '—', got '${codeText}'`,
+        );
+
+        const outsideText = getNodeDirectText(li).trim();
+        assert.ok(
+          outsideText.startsWith('—'),
+          `[${loc}] REST item ${i + 1} description outside code must start with '—', got '${outsideText}'`,
+        );
+        assert.ok(
+          outsideText.length > 2,
+          `[${loc}] REST item ${i + 1} description outside code must not be empty`,
+        );
+      }
+    }
   });
 }
