@@ -7,8 +7,8 @@
 //   node tests/webhook-normative.test.mjs --check-source  # cross-check the doc against the implementation
 //
 // Source pin:
-//   Pinned to v0.8.0 = commit eab80f9296b75b539a33d7c262543d7dcaf8288c (immutable SHA;
-//   byte-identical with verified baseline 3cedb94 on webhook source files).
+//   Pinned to commit fd4135935c5308e6af4b6a531f529db4b39149e0 (immutable SHA; product main at the
+//   #280 redeliver-404 merge; supersedes the v0.8.0 = eab80f92 pin on webhook source files).
 //   Upgrade procedure: update SOURCE_REF constant -> run both test modes -> update comments with PR.
 //
 // Source resolution for --check-source: OAE_SRC (path to a checkout of the product
@@ -26,7 +26,7 @@ import { join } from 'node:path';
 const API_URL = new URL('../src/content/docs/docs/reference/api.md', import.meta.url);
 const isSourceMode = process.argv.includes('--check-source');
 
-const SOURCE_REF = process.env.OAE_REF ?? 'eab80f9296b75b539a33d7c262543d7dcaf8288c';
+const SOURCE_REF = process.env.OAE_REF ?? 'fd4135935c5308e6af4b6a531f529db4b39149e0';
 const REMOTE_BASE = `https://raw.githubusercontent.com/openagentemail/openagentemail/${SOURCE_REF}/`;
 const SOURCE_FILES = {
   app: 'packages/api/src/app.ts',
@@ -61,6 +61,8 @@ const DOC_LITERALS = [
   'uidvalidity_required',
   'internal_error',
   'invalid_cursor',
+  'task_not_found',
+  'missing_task_id',
 ];
 
 // env → { value, doc } : default claimed by the section, matched against the config schema.
