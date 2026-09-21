@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { parse } from 'parse5';
-import { agentmailLastChecked, agentmailSources, assertOfficialAgentmailSources } from '../src/data/agentmailSources.js';
+import { approvedAgentmailHosts, agentmailLastChecked, agentmailSources, assertOfficialAgentmailSources } from '../src/data/agentmailSources.js';
 import { approvedMailslurpHosts, mailslurpLastChecked, mailslurpSources, assertOfficialMailslurpSources } from '../src/data/mailslurpSources.js';
 
 const compare = await readFile(new URL('../src/pages/compare.astro', import.meta.url), 'utf8');
@@ -22,6 +22,15 @@ assert.throws(() => assertOfficialMailslurpSources([{ href: 'https://example.inv
 assert.throws(() => assertOfficialMailslurpSources([{ href: 'not a URL', label: 'pricing' }]), /must use HTTPS on an approved MailSlurp host/, 'MailSlurp module validation must reject a malformed source URL with its semantic error');
 // The digest pins which sources are cited but not which hosts are trusted, so a single commit could widen
 // the allowlist and update the digest together. This pin makes that a deliberate two-place change.
+assert.deepEqual([...approvedAgentmailHosts].sort(), ['docs.agentmail.to', 'www.agentmail.to'], 'The approved AgentMail host set is policy: widen it only as a reviewed change, and update this pin in the same commit.');
+assert.throws(
+  () => {
+    const widened = [...approvedAgentmailHosts, 'extra.agentmail.to'].sort();
+    assert.deepEqual(widened, ['docs.agentmail.to', 'www.agentmail.to']);
+  },
+  /AssertionError/,
+  'Injecting an extra host into the AgentMail allowlist must fail the pin assertion',
+);
 assert.deepEqual([...approvedMailslurpHosts].sort(), ['app.mailslurp.com', 'www.mailslurp.com'], 'The approved MailSlurp host set is policy: widen it only as a reviewed change, and update this pin in the same commit.');
 
 const requiredAgentmailSourcesDigest = 'd15e8535f3afcc624399104447ef679abacdabdb39e47c426bd0c1e18b25c414';
