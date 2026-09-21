@@ -1,3 +1,13 @@
+/*
+ * Viewport-matrix lesson (card C2 / #137, 2026-09-21): responsive breakpoint
+ * changes must be verified across BOTH sides of the breakpoint band. Two
+ * consecutive rounds missed the 544-768px band (C1 F-4 swept 320-544px;
+ * C2.2 re-verified 360-390px), letting a too-low nav wrap breakpoint (38rem)
+ * ship twice before C2.3 raised it to 48rem. Future nav / breakpoint CSS
+ * changes should be re-checked across the full sweep widths:
+ * 320/360/375/390/414/480/544/600/640/700/768/769/800/900/1024/1280.
+ */
+
 import assert from 'node:assert/strict';
 import { access, cp, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -70,18 +80,17 @@ if (!isRenderedMode) {
     );
   });
 
-  test('G2: Heading outline and pre count parity (+ negative control)', async () => {
-    const enSrc = await readFile(resolve(ROOT, 'src/pages/index.astro'), 'utf8');
-    const layoutSrc = await readFile(resolve(ROOT, 'src/layouts/IndexPage.astro'), 'utf8');
+  test('G2: Heading outline and pre count parity across all 9 pages (+ negative control)', async () => {
+    await checkStructureParity({ en, es, ja, ko, zh });
 
-    await checkStructureParity({ en, es, ja, ko, zh }, { en: enSrc, layout: layoutSrc });
-
-    // Negative control: tampering with heading in layout
+    // Negative control: tampering with heading in one layout
+    const layoutPath = 'src/layouts/IndexPage.astro';
+    const layoutSrc = await readFile(resolve(ROOT, layoutPath), 'utf8');
     const tamperedLayout = layoutSrc + '\n<h2>Extra Heading</h2>';
     await assert.rejects(
-      async () => await checkStructureParity({ en, es, ja, ko, zh }, { en: enSrc, layout: tamperedLayout }),
+      async () => await checkStructureParity({ en, es, ja, ko, zh }, { [layoutPath]: tamperedLayout }),
       /STRUCTURE_PARITY: Heading outline and <pre> count mismatch/,
-      'Must fail when layout headings outline differs from en source',
+      'Must fail when a layout heading outline differs from its en source',
     );
   });
 
@@ -114,6 +123,13 @@ if (!isRenderedMode) {
       async () => await checkSourceSha(undefined, { 'src/layouts/IndexPage.astro': 'tampered layout' }),
       /en 源已变更，译文需同步/,
       'Must fail with exact message when IndexPage layout sha256 drifts',
+    );
+
+    // Negative control 5: tamper with Legal.astro (shared en-page shell layout)
+    await assert.rejects(
+      async () => await checkSourceSha(undefined, { 'src/layouts/Legal.astro': 'tampered layout' }),
+      /en 源已变更，译文需同步/,
+      'Must fail with exact message when Legal layout sha256 drifts',
     );
   });
 
@@ -151,25 +167,29 @@ if (!isRenderedMode) {
     }
   });
 
-  test('G6: pageUrl fallback and routing semantics', () => {
+  test('G6: pageUrl fallback and routing semantics (9 translated pages)', () => {
     // English (default) has no prefix
     assert.equal(pageUrl('en', 'index'), '/');
     assert.equal(pageUrl('en', '/'), '/');
     assert.equal(pageUrl('en', 'pricing'), '/pricing');
     assert.equal(pageUrl('en', '/compare'), '/compare');
+    assert.equal(pageUrl('en', 'alternatives/agentmail'), '/alternatives/agentmail');
 
-    // Translated pages under locales
+    // All 9 pages are translated → locale prefix
     assert.equal(pageUrl('zh', 'index'), '/zh/');
-    assert.equal(pageUrl('zh', '/'), '/zh/');
     assert.equal(pageUrl('es', 'index'), '/es/');
-    assert.equal(pageUrl('ja', 'index'), '/ja/');
-    assert.equal(pageUrl('ko', 'index'), '/ko/');
+    assert.equal(pageUrl('ja', 'compare'), '/ja/compare');
+    assert.equal(pageUrl('ko', 'pricing'), '/ko/pricing');
+    assert.equal(pageUrl('zh', 'mcp'), '/zh/mcp');
+    assert.equal(pageUrl('es', 'contact'), '/es/contact');
+    assert.equal(pageUrl('ja', 'alternatives/agentmail'), '/ja/alternatives/agentmail');
+    assert.equal(pageUrl('ko', 'privacy-policy'), '/ko/privacy-policy');
+    assert.equal(pageUrl('zh', 'terms-of-service'), '/zh/terms-of-service');
+    assert.equal(pageUrl('es', 'refund-policy'), '/es/refund-policy');
 
-    // Untranslated pages fall back to en URLs
-    assert.equal(pageUrl('zh', 'pricing'), '/pricing');
-    assert.equal(pageUrl('zh', '/pricing'), '/pricing');
-    assert.equal(pageUrl('es', 'compare'), '/compare');
-    assert.equal(pageUrl('ja', '/docs/quickstart/'), '/docs/quickstart/');
+    // Docs remain untranslated → en fallback
+    assert.equal(pageUrl('zh', '/docs/quickstart/'), '/docs/quickstart/');
+    assert.equal(pageUrl('ja', '/docs/'), '/docs/');
   });
 
 } else {
@@ -202,129 +222,155 @@ if (!isRenderedMode) {
       .join('');
   }
 
-  test('G7: Translated pages exist and have correct <html lang> attributes', async () => {
+  function distPathFor(loc, page) {
+    return page === 'index'
+      ? resolve(ROOT, `dist/${loc}/index.html`)
+      : resolve(ROOT, `dist/${loc}/${page}/index.html`);
+  }
+
+  function enDistPathFor(page) {
+    return page === 'index'
+      ? resolve(ROOT, 'dist/index.html')
+      : resolve(ROOT, `dist/${page}/index.html`);
+  }
+
+  function pageGroupUrls(page) {
+    const enUrl = page === 'index' ? 'https://openagent.email/' : `https://openagent.email/${page}/`;
+    const locUrls = LOCALES.map((loc) =>
+      page === 'index' ? `https://openagent.email/${loc}/` : `https://openagent.email/${loc}/${page}/`,
+    );
+    return [enUrl, ...locUrls];
+  }
+
+  test('G7: All 9 translated pages exist and have correct <html lang> attributes', async () => {
     for (const loc of LOCALES) {
-      const filePath = resolve(ROOT, `dist/${loc}/index.html`);
-      const html = await readFile(filePath, 'utf8');
-      const expectedLang = HTML_LANG[loc] || loc;
-      const nodes = getHtmlNodes(html);
-      const htmlNode = nodes.find((n) => n.nodeName === 'html');
-      assert.ok(htmlNode, `<html> element must exist in dist/${loc}/index.html`);
-      const lang = getAttr(htmlNode, 'lang');
-      assert.equal(lang, expectedLang, `dist/${loc}/index.html <html lang> must be '${expectedLang}'`);
+      for (const page of TRANSLATED_PAGES) {
+        const filePath = distPathFor(loc, page);
+        const html = await readFile(filePath, 'utf8');
+        const expectedLang = HTML_LANG[loc] || loc;
+        const nodes = getHtmlNodes(html);
+        const htmlNode = nodes.find((n) => n.nodeName === 'html');
+        assert.ok(htmlNode, `<html> element must exist for ${loc}/${page}`);
+        const lang = getAttr(htmlNode, 'lang');
+        assert.equal(lang, expectedLang, `[${loc}/${page}] <html lang> must be '${expectedLang}'`);
+      }
     }
 
-    const enHtml = await readFile(resolve(ROOT, 'dist/index.html'), 'utf8');
-    const enNodes = getHtmlNodes(enHtml);
-    const enHtmlNode = enNodes.find((n) => n.nodeName === 'html');
-    assert.equal(getAttr(enHtmlNode, 'lang'), 'en', 'dist/index.html <html lang> must be "en"');
+    for (const page of TRANSLATED_PAGES) {
+      const enHtml = await readFile(enDistPathFor(page), 'utf8');
+      const enNodes = getHtmlNodes(enHtml);
+      const enHtmlNode = enNodes.find((n) => n.nodeName === 'html');
+      assert.equal(getAttr(enHtmlNode, 'lang'), 'en', `en page '${page}' <html lang> must be "en"`);
+    }
   });
 
-  test('G8: Rendered structure parity (heading outline and pre count)', async () => {
-    const enHtml = await readFile(resolve(ROOT, 'dist/index.html'), 'utf8');
-    const enNodes = getHtmlNodes(enHtml);
-    const enOutline = enNodes
-      .filter((n) => ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'pre'].includes(n.nodeName))
-      .map((n) => n.nodeName);
-
-    for (const loc of LOCALES) {
-      const locHtml = await readFile(resolve(ROOT, `dist/${loc}/index.html`), 'utf8');
-      const locNodes = getHtmlNodes(locHtml);
-      const locOutline = locNodes
+  test('G8: Rendered structure parity (heading outline and pre count) across all 9 pages', async () => {
+    for (const page of TRANSLATED_PAGES) {
+      const enHtml = await readFile(enDistPathFor(page), 'utf8');
+      const enNodes = getHtmlNodes(enHtml);
+      const enOutline = enNodes
         .filter((n) => ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'pre'].includes(n.nodeName))
         .map((n) => n.nodeName);
 
-      assert.deepEqual(
-        locOutline,
-        enOutline,
-        `Rendered heading outline & pre count for dist/${loc}/index.html must match dist/index.html`,
-      );
+      for (const loc of LOCALES) {
+        const locHtml = await readFile(distPathFor(loc, page), 'utf8');
+        const locNodes = getHtmlNodes(locHtml);
+        const locOutline = locNodes
+          .filter((n) => ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'pre'].includes(n.nodeName))
+          .map((n) => n.nodeName);
+
+        assert.deepEqual(
+          locOutline,
+          enOutline,
+          `Rendered heading outline & pre count for [${loc}/${page}] must match en [${page}]`,
+        );
+      }
     }
   });
 
-  test('G9: No dead internal links on translated pages', async () => {
+  test('G9: No dead internal links on any translated page', async () => {
     for (const loc of LOCALES) {
-      const locHtml = await readFile(resolve(ROOT, `dist/${loc}/index.html`), 'utf8');
-      const nodes = getHtmlNodes(locHtml);
-      const aNodes = nodes.filter((n) => n.nodeName === 'a');
+      for (const page of TRANSLATED_PAGES) {
+        const locHtml = await readFile(distPathFor(loc, page), 'utf8');
+        const nodes = getHtmlNodes(locHtml);
+        const aNodes = nodes.filter((n) => n.nodeName === 'a');
 
-      for (const a of aNodes) {
-        const href = getAttr(a, 'href');
-        if (!href || !href.startsWith('/') || href.startsWith('//')) continue;
-        const cleanPath = href.split('#')[0].split('?')[0];
-        if (!cleanPath) continue;
+        for (const a of aNodes) {
+          const href = getAttr(a, 'href');
+          if (!href || !href.startsWith('/') || href.startsWith('//')) continue;
+          const cleanPath = href.split('#')[0].split('?')[0];
+          if (!cleanPath) continue;
 
-        // Resolve cleanPath to dist file
-        let targetFile;
-        if (cleanPath === '/' || cleanPath.endsWith('/')) {
-          targetFile = resolve(ROOT, 'dist', cleanPath.replace(/^\//, ''), 'index.html');
-        } else {
-          // May be a direct file like /favicon.svg, or a route /pricing -> dist/pricing/index.html
-          const direct = resolve(ROOT, 'dist', cleanPath.replace(/^\//, ''));
-          const asDirIndex = resolve(ROOT, 'dist', cleanPath.replace(/^\//, ''), 'index.html');
-          const asHtml = resolve(ROOT, 'dist', `${cleanPath.replace(/^\//, '')}.html`);
-          try {
-            await access(direct);
-            targetFile = direct;
-          } catch {
+          let targetFile;
+          if (cleanPath === '/' || cleanPath.endsWith('/')) {
+            targetFile = resolve(ROOT, 'dist', cleanPath.replace(/^\//, ''), 'index.html');
+          } else {
+            const direct = resolve(ROOT, 'dist', cleanPath.replace(/^\//, ''));
+            const asDirIndex = resolve(ROOT, 'dist', cleanPath.replace(/^\//, ''), 'index.html');
+            const asHtml = resolve(ROOT, 'dist', `${cleanPath.replace(/^\//, '')}.html`);
             try {
-              await access(asDirIndex);
-              targetFile = asDirIndex;
+              await access(direct);
+              targetFile = direct;
             } catch {
-              targetFile = asHtml;
+              try {
+                await access(asDirIndex);
+                targetFile = asDirIndex;
+              } catch {
+                targetFile = asHtml;
+              }
             }
           }
-        }
 
-        try {
-          await access(targetFile);
-        } catch {
-          assert.fail(`DEAD_LINK [${loc}]: Link '${href}' points to non-existent file '${targetFile}'`);
+          try {
+            await access(targetFile);
+          } catch {
+            assert.fail(`DEAD_LINK [${loc}/${page}]: Link '${href}' points to non-existent file '${targetFile}'`);
+          }
         }
       }
     }
   });
 
-  test('G10: Language switcher has 5 links on translated pages and 0 on en homepage', async () => {
-    // 1. Translated pages have 5 switcher links
+  test('G10: Language switcher has 5 links on every translated page and 0 on every en page', async () => {
+    // 1. Translated pages have 5 switcher links each (9 pages × 4 locales)
     for (const loc of LOCALES) {
-      const locHtml = await readFile(resolve(ROOT, `dist/${loc}/index.html`), 'utf8');
-      const nodes = getHtmlNodes(locHtml);
-      const switcher = nodes.find((n) => getAttr(n, 'class')?.includes('lang-switcher'));
-      assert.ok(switcher, `dist/${loc}/index.html must contain a .lang-switcher element`);
+      for (const page of TRANSLATED_PAGES) {
+        const locHtml = await readFile(distPathFor(loc, page), 'utf8');
+        const nodes = getHtmlNodes(locHtml);
+        const switcher = nodes.find((n) => getAttr(n, 'class')?.includes('lang-switcher'));
+        assert.ok(switcher, `[${loc}/${page}] must contain a .lang-switcher element`);
 
-      const links = (switcher.childNodes ?? []).filter((n) => n.nodeName === 'a');
-      assert.equal(links.length, 5, `dist/${loc}/index.html must contain exactly 5 language links`);
+        const links = (switcher.childNodes ?? []).filter((n) => n.nodeName === 'a');
+        assert.equal(links.length, 5, `[${loc}/${page}] must contain exactly 5 language links`);
 
-      const hreflangs = links.map((l) => getAttr(l, 'hreflang')).sort();
-      const expectedHreflangs = ['en', 'es', 'ja', 'ko', 'zh-CN'].sort();
-      assert.deepEqual(hreflangs, expectedHreflangs, `dist/${loc}/index.html links must have correct hreflang attributes`);
+        const hreflangs = links.map((l) => getAttr(l, 'hreflang')).sort();
+        const expectedHreflangs = ['en', 'es', 'ja', 'ko', 'zh-CN'].sort();
+        assert.deepEqual(hreflangs, expectedHreflangs, `[${loc}/${page}] links must have correct hreflang attributes`);
+      }
     }
 
-    // 2. English homepage has 0 switcher links (zero leakage)
-    const enHtml = await readFile(resolve(ROOT, 'dist/index.html'), 'utf8');
-    const enNodes = getHtmlNodes(enHtml);
-    const enSwitcher = enNodes.find((n) => getAttr(n, 'class')?.includes('lang-switcher'));
-    assert.equal(enSwitcher, undefined, 'dist/index.html must NOT contain a .lang-switcher element (zero leakage)');
+    // 2. Every English page has 0 switcher links (zero leakage)
+    for (const page of TRANSLATED_PAGES) {
+      const enHtml = await readFile(enDistPathFor(page), 'utf8');
+      const enNodes = getHtmlNodes(enHtml);
+      const enSwitcher = enNodes.find((n) => getAttr(n, 'class')?.includes('lang-switcher'));
+      assert.equal(enSwitcher, undefined, `en page '${page}' must NOT contain a .lang-switcher element (zero leakage)`);
+    }
   });
 
-  test('G11: Sitemap alternates: 5x5 alternates on homepage group, 0 on all other URLs', async () => {
+  test('G11: Sitemap alternates: 9 page groups × 5×5, 0 on all other URLs', async () => {
     const sitemapPath = resolve(ROOT, 'dist/sitemap-0.xml');
     const sitemapContent = await readFile(sitemapPath, 'utf8');
 
-    // Parse XML url entries
     const urlMatches = [...sitemapContent.matchAll(/<url>([\s\S]*?)<\/url>/g)];
     assert.ok(urlMatches.length > 0, 'Sitemap must contain <url> entries');
 
-    const homepageUrls = new Set([
-      'https://openagent.email/',
-      'https://openagent.email/es/',
-      'https://openagent.email/ja/',
-      'https://openagent.email/ko/',
-      'https://openagent.email/zh/',
-    ]);
+    const translatedUrls = new Set();
+    for (const page of TRANSLATED_PAGES) {
+      for (const url of pageGroupUrls(page)) translatedUrls.add(url);
+    }
 
-    let checkedHomepages = 0;
+    const seen = new Set();
 
     for (const match of urlMatches) {
       const block = match[1];
@@ -334,12 +380,12 @@ if (!isRenderedMode) {
 
       const linkMatches = [...block.matchAll(/<xhtml:link\b([^>]*)\/>/g)];
 
-      if (homepageUrls.has(loc)) {
-        checkedHomepages++;
+      if (translatedUrls.has(loc)) {
+        seen.add(loc);
         assert.equal(
           linkMatches.length,
           5,
-          `Homepage URL '${loc}' must have exactly 5 alternate links in sitemap (got ${linkMatches.length})`,
+          `Translated URL '${loc}' must have exactly 5 alternate links in sitemap (got ${linkMatches.length})`,
         );
 
         const hreflangs = linkMatches
@@ -348,21 +394,21 @@ if (!isRenderedMode) {
         assert.deepEqual(
           hreflangs,
           ['en', 'es', 'ja', 'ko', 'zh-CN'].sort(),
-          `Homepage URL '${loc}' must contain alternates for en, es, ja, ko, and zh-CN`,
+          `Translated URL '${loc}' must contain alternates for en, es, ja, ko, and zh-CN`,
         );
       } else {
         assert.equal(
           linkMatches.length,
           0,
-          `Non-homepage URL '${loc}' must have 0 alternate links in sitemap (got ${linkMatches.length})`,
+          `Non-translated URL '${loc}' must have 0 alternate links in sitemap (got ${linkMatches.length})`,
         );
       }
     }
 
     assert.equal(
-      checkedHomepages,
-      5,
-      `All 5 homepage URLs must be present in the sitemap (found ${checkedHomepages})`,
+      seen.size,
+      translatedUrls.size,
+      `All ${translatedUrls.size} translated URLs must be present in the sitemap (found ${seen.size})`,
     );
   });
 

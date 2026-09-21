@@ -1,6 +1,14 @@
 {
   "translationSet": [
-    "index"
+    "index",
+    "compare",
+    "pricing",
+    "mcp",
+    "contact",
+    "alternatives/agentmail",
+    "privacy-policy",
+    "terms-of-service",
+    "refund-policy"
   ],
   "locales": [
     "es",
@@ -15,6 +23,46 @@
       "sha256": "fd2b047e024a04de193933490ffa3f9a68fd7f04433c9bd772c2e1709bce6675"
     },
     {
+      "page": "compare",
+      "file": "src/pages/compare.astro",
+      "sha256": "8badd031df6140d71b0f5c1b91dc7a484b33ee23f10709851d39924d04eb7c53"
+    },
+    {
+      "page": "pricing",
+      "file": "src/pages/pricing.astro",
+      "sha256": "d81b61322a1e30230b37678d5d0212bca798988c77e04411e2b8105dac1d51d5"
+    },
+    {
+      "page": "mcp",
+      "file": "src/pages/mcp.astro",
+      "sha256": "b3ee4d554254f1545c91cce5efc521026865e205d303cdec85031cf948170bd2"
+    },
+    {
+      "page": "contact",
+      "file": "src/pages/contact.astro",
+      "sha256": "8ef7ffebe7d56602259901e34305613e827d9a416c90b6d9294fcab97cb8acf1"
+    },
+    {
+      "page": "alternatives/agentmail",
+      "file": "src/pages/alternatives/agentmail.astro",
+      "sha256": "66f612460e71aff9de994ab60c4ba5dbf975ddf024f88d8a3b0e198832348e08"
+    },
+    {
+      "page": "privacy-policy",
+      "file": "src/pages/privacy-policy.astro",
+      "sha256": "c2ebcac48f4227ad0b1a94e2aae696616bd095b4b0cd12ef0731bcc7a65545cf"
+    },
+    {
+      "page": "terms-of-service",
+      "file": "src/pages/terms-of-service.astro",
+      "sha256": "fd945f6a35ad5d068eebbb25f5dc0b7b5dff80c262c75f63c925c5fc83a4e8ef"
+    },
+    {
+      "page": "refund-policy",
+      "file": "src/pages/refund-policy.astro",
+      "sha256": "7ddb19623fa766ad5669d9f18518d77505c101674f7893e5500643b187beba95"
+    },
+    {
       "component": "StampWall",
       "file": "src/components/StampWall.astro",
       "sha256": "84dadacbac92457afd3ad22791ecc334fe1bdb61281df8b6d925b0107eba3422"
@@ -25,9 +73,54 @@
       "sha256": "5af35c2c25a95525a9799ebe0e3689cba70b06e9f8aad6ca36262615b2d36920"
     },
     {
+      "layout": "Legal",
+      "file": "src/layouts/Legal.astro",
+      "sha256": "fc0c8fd00ed9c74352b95b9e070f0562091e057d14f568d4df3b453bce74662c"
+    },
+    {
       "layout": "IndexPage",
       "file": "src/layouts/IndexPage.astro",
-      "sha256": "817cba301292038cac2c933b45c266315100e86b62ff4d9a0ec3cf73508b1755"
+      "sha256": "c67675110046ac232e3e3e03cd6135c20b7540762d4e88b9b4f703ef2ed092f9"
+    },
+    {
+      "layout": "ComparePage",
+      "file": "src/layouts/ComparePage.astro",
+      "sha256": "83a1647ecce9278e976596c73c9225870604694dbb1c1cf3c72d255e5e428289"
+    },
+    {
+      "layout": "PricingPage",
+      "file": "src/layouts/PricingPage.astro",
+      "sha256": "7026f4301adeafbe9c0a8b167b590989930108794bb70b439376817e665cc81b"
+    },
+    {
+      "layout": "McpPage",
+      "file": "src/layouts/McpPage.astro",
+      "sha256": "820383dea6cceddf47fe19f29ddc6eef8293c0f78df05fe2b0de6cd4580cdfca"
+    },
+    {
+      "layout": "ContactPage",
+      "file": "src/layouts/ContactPage.astro",
+      "sha256": "1b34847657b0f9eaf10f5b80b6d7f969bbf59cc35a6e763bee63073252cdb3c0"
+    },
+    {
+      "layout": "AgentmailPage",
+      "file": "src/layouts/AgentmailPage.astro",
+      "sha256": "afcf3a5a1f92fca394a0567bd3b76ba1368b7ea6d9c4b80706386320b27fab7b"
+    },
+    {
+      "layout": "PrivacyPolicyPage",
+      "file": "src/layouts/PrivacyPolicyPage.astro",
+      "sha256": "ebe748f3b79b5afa3b59dc4dada029c69258ef6d17fc79dba9fb60f7c3043aaf"
+    },
+    {
+      "layout": "TermsOfServicePage",
+      "file": "src/layouts/TermsOfServicePage.astro",
+      "sha256": "8a0fd5ebcebc14e9d4b3603ecfb682017c4f1cf49b8fd4bcb76b3d5fc64abcda"
+    },
+    {
+      "layout": "RefundPolicyPage",
+      "file": "src/layouts/RefundPolicyPage.astro",
+      "sha256": "fc309ce4500a9f59a100676899f2c8e545a60e75cecbd1fd8b10f58c223924d0"
     }
   ],
   "dicts": {

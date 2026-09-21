@@ -1,0 +1,14 @@
+---
+import RefundPolicyPage from '../../layouts/RefundPolicyPage.astro';
+import { LOCALES } from '../../i18n/config.js';
+
+export function getStaticPaths() {
+  return LOCALES.map((lang) => ({
+    params: { lang },
+  }));
+}
+
+const { lang } = Astro.params;
+---
+
+<RefundPolicyPage locale={lang} />

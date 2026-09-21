@@ -1,0 +1,167 @@
+---
+import '../styles/global.css';
+import LangSwitcher from '../components/LangSwitcher.astro';
+import { HTML_LANG, pageUrl } from '../i18n/config.js';
+import { texts as en } from '../i18n/en.js';
+import { texts as es } from '../i18n/es.js';
+import { texts as ja } from '../i18n/ja.js';
+import { texts as ko } from '../i18n/ko.js';
+import { texts as zh } from '../i18n/zh.js';
+
+interface Props {
+  locale: string;
+}
+
+const { locale } = Astro.props;
+const dicts = { en, es, ja, ko, zh };
+const t = dicts[locale] || en;
+const htmlLang = HTML_LANG[locale] || locale;
+const canonicalUrl = `https://openagent.email${pageUrl(locale, 'privacy-policy')}/`;
+const documentTitle = `${t.privacy_title} — openagent.email`;
+---
+
+<!doctype html>
+<html lang={htmlLang}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{documentTitle}</title>
+    <meta name="description" content={t.privacy_description} />
+    <link rel="canonical" href={canonicalUrl} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preload" href="/fonts/Satoshi-Regular.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/Satoshi-Bold.woff2" as="font" type="font/woff2" crossorigin />
+    <script defer src="https://stats.openagent.email/script.js" data-website-id="86e6eaf7-473c-4c8d-a9bf-ea48c13742c5"></script>
+  </head>
+  <body>
+    <nav>
+      <div class="wrap">
+        <a class="brand" href={pageUrl(locale, 'index')} aria-label={t.nav_brand_aria}>
+          <img src="/favicon.svg" alt="" />
+          <span>openagent<span class="gold">.email</span></span>
+        </a>
+        <span class="spacer"></span>
+        <a class="navlink" href={pageUrl(locale, 'compare')}>{t.nav_compare}</a>
+        <a class="navlink" href={pageUrl(locale, 'pricing')}>{t.nav_pricing}</a>
+        <a class="navlink" href="https://github.com/openagentemail/openagentemail">{t.nav_github}</a>
+        <a class="navlink" href={pageUrl(locale, '/docs/')}>{t.nav_docs}</a>
+        <LangSwitcher currentLocale={locale} page="privacy-policy" />
+      </div>
+    </nav>
+
+    <main class="legal wrap">
+      <h1>{t.privacy_title}</h1>
+      <p class="legal-disclaimer">{t.legal_disclaimer} <a href="/privacy-policy">{t.legal_disclaimer_link}</a></p>
+      <p class="updated">{t.privacy_updated}</p>
+      <p class="lede">{t.privacy_lede}</p>
+      <h2>{t.privacy_software_title}</h2>
+      <p>{t.privacy_software_body}</p>
+      <h2>{t.privacy_website_title}</h2>
+      <ul>
+        <li>{t.privacy_website_li1}</li>
+        <li>
+          {t.privacy_website_li2_a}
+          <a href="mailto:support@openagent.email">support@openagent.email</a>{t.privacy_website_li2_b}
+        </li>
+        <li>{t.privacy_website_li3}</li>
+        <li>
+          {t.privacy_website_li4_a}
+          <a href="https://umami.is/">{t.privacy_website_li4_link}</a>{t.privacy_website_li4_b}
+        </li>
+      </ul>
+      <h2>{t.privacy_hosted_title}</h2>
+      <p>{t.privacy_hosted_intro}</p>
+      <ul>
+        <li>{t.privacy_hosted_li1}</li>
+        <li>{t.privacy_hosted_li2}</li>
+        <li>{t.privacy_hosted_li3}</li>
+      </ul>
+      <h2>{t.privacy_email_title}</h2>
+      <p>
+        {t.privacy_email_body_a}
+        <a href="mailto:support@openagent.email">support@openagent.email</a>{t.privacy_email_body_b}
+      </p>
+      <h2>{t.privacy_thirdparty_title}</h2>
+      <p>{t.privacy_thirdparty_body}</p>
+      <h2>{t.privacy_changes_title}</h2>
+      <p>
+        {t.privacy_changes_body_a}
+        <a href="mailto:support@openagent.email">support@openagent.email</a>{t.punct_end}
+      </p>
+    </main>
+
+    <footer>
+      <div class="wrap">
+        <div class="bottom" style="border-top: none; padding-top: 0">
+          <span>{t.legal_footer_copyright}</span>
+          <span class="spacer" style="flex: 1"></span>
+          <a href={pageUrl(locale, 'pricing')}>{t.legal_footer_pricing}</a>
+          <a href={pageUrl(locale, 'privacy-policy')}>{t.legal_footer_privacy}</a>
+          <a href={pageUrl(locale, 'terms-of-service')}>{t.legal_footer_terms}</a>
+          <a href={pageUrl(locale, 'refund-policy')}>{t.legal_footer_refunds}</a>
+          <a href={pageUrl(locale, 'contact')}>{t.legal_footer_contact}</a>
+          <a href="mailto:support@openagent.email">{t.legal_footer_support}</a>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>
+
+<style>
+  .legal {
+    max-width: 44rem;
+    padding: 3.5rem 1.5rem 5rem;
+  }
+  .legal.legal-wide { max-width: 72rem; }
+  .legal h1 {
+    font-size: clamp(2rem, 5vw, 2.8rem);
+    margin-bottom: 0.4rem;
+  }
+  .legal .updated {
+    color: var(--ink-faint);
+    font-size: 0.85rem;
+    margin: 0 0 2.5rem;
+  }
+  .legal h2 {
+    font-size: 1.25rem;
+    margin: 2.2rem 0 0.6rem;
+  }
+  .legal p,
+  .legal li {
+    color: var(--ink-dim);
+    line-height: 1.7;
+  }
+  .legal ul {
+    padding-left: 1.2rem;
+    display: grid;
+    gap: 0.35rem;
+    margin: 0.6rem 0;
+  }
+  .legal a {
+    color: var(--gold);
+    text-decoration: none;
+  }
+  .legal a:hover {
+    text-decoration: underline;
+  }
+  .legal .lede {
+    font-size: 1.08rem;
+    color: var(--ink);
+  }
+  .legal-disclaimer {
+    color: var(--ink-faint);
+    font-size: 0.85rem;
+    margin: 0 0 0.4rem;
+  }
+  @media (max-width: 48rem) {
+    nav .wrap {
+      flex-wrap: wrap;
+      height: auto;
+      padding-block: 0.45rem;
+      row-gap: 0.3rem;
+    }
+    :global(.lang-switcher) {
+      margin-left: auto;
+    }
+  }
+</style>

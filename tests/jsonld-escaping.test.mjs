@@ -15,8 +15,12 @@ const expectedBlocks = new Map([
   ['ja/index.html', 2],
   ['ko/index.html', 2],
   ['zh/index.html', 2],
+  ['es/compare/index.html', 1],
+  ['ja/compare/index.html', 1],
+  ['ko/compare/index.html', 1],
+  ['zh/compare/index.html', 1],
 ]);
-const expectedTotalBlocks = 11;
+const expectedTotalBlocks = 15;
 const baselinePayloadDigest = 'd84a6efe1bdbe5f2d64347c12eb284804f4b95f2a8f85138e18c6db038c246f3';
 
 // The owner marker and source rule guard regressions and accidental misuse. They do not
@@ -239,6 +243,10 @@ function renderedFixture({ compare = ownedBlock() } = {}) {
     ['ja/index.html', `<html><head>${ownedBlock()}${ownedBlock()}</head></html>`],
     ['ko/index.html', `<html><head>${ownedBlock()}${ownedBlock()}</head></html>`],
     ['zh/index.html', `<html><head>${ownedBlock()}${ownedBlock()}</head></html>`],
+    ['es/compare/index.html', `<html><head>${ownedBlock()}</head></html>`],
+    ['ja/compare/index.html', `<html><head>${ownedBlock()}</head></html>`],
+    ['ko/compare/index.html', `<html><head>${ownedBlock()}</head></html>`],
+    ['zh/compare/index.html', `<html><head>${ownedBlock()}</head></html>`],
   ]);
 }
 

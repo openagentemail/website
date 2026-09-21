@@ -1,0 +1,248 @@
+---
+import '../styles/global.css';
+import EnvelopeOrbit from '../components/EnvelopeOrbit.astro';
+import PaperPlane from '../components/PaperPlane.astro';
+import LangSwitcher from '../components/LangSwitcher.astro';
+import { MCP_TOOLS } from '../data/mcp-tools.js';
+import { HTML_LANG, pageUrl } from '../i18n/config.js';
+import { texts as en } from '../i18n/en.js';
+import { texts as es } from '../i18n/es.js';
+import { texts as ja } from '../i18n/ja.js';
+import { texts as ko } from '../i18n/ko.js';
+import { texts as zh } from '../i18n/zh.js';
+
+interface Props {
+  locale: string;
+}
+
+const { locale } = Astro.props;
+const dicts = { en, es, ja, ko, zh };
+const t = dicts[locale] || en;
+const htmlLang = HTML_LANG[locale] || locale;
+const canonicalUrl = `https://openagent.email${pageUrl(locale, 'pricing')}/`;
+const documentTitle = `${t.pricing_title} — openagent.email`;
+---
+
+<!doctype html>
+<html lang={htmlLang}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{documentTitle}</title>
+    <meta name="description" content={t.pricing_description} />
+    <link rel="canonical" href={canonicalUrl} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preload" href="/fonts/Satoshi-Regular.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/Satoshi-Bold.woff2" as="font" type="font/woff2" crossorigin />
+    <script defer src="https://stats.openagent.email/script.js" data-website-id="86e6eaf7-473c-4c8d-a9bf-ea48c13742c5"></script>
+  </head>
+  <body>
+    <nav>
+      <div class="wrap">
+        <a class="brand" href={pageUrl(locale, 'index')} aria-label={t.nav_brand_aria}>
+          <img src="/favicon.svg" alt="" />
+          <span>openagent<span class="gold">.email</span></span>
+        </a>
+        <span class="spacer"></span>
+        <a class="navlink" href={pageUrl(locale, 'compare')}>{t.nav_compare}</a>
+        <a class="navlink" href={pageUrl(locale, 'pricing')}>{t.nav_pricing}</a>
+        <a class="navlink" href="https://github.com/openagentemail/openagentemail">{t.nav_github}</a>
+        <a class="navlink" href={pageUrl(locale, '/docs/')}>{t.nav_docs}</a>
+        <LangSwitcher currentLocale={locale} page="pricing" />
+      </div>
+    </nav>
+
+    <main class="legal wrap legal-wide">
+      <header class="pricing-hero" data-envelope-root>
+        <EnvelopeOrbit compact />
+        <h1>{t.pricing_title}</h1>
+        <p class="updated">{t.pricing_updated}</p>
+      </header>
+
+      <div class="plans">
+        <section class="plan">
+          <h2>{t.pricing_self_title}</h2>
+          <p class="price">{t.pricing_self_price} <small>{t.pricing_self_price_small}</small></p>
+          <p class="tagline">{t.pricing_self_tagline}</p>
+          <ul>
+            <li>{t.pricing_self_li1}</li>
+            <li>{t.pricing_self_li2_a}{MCP_TOOLS.length}{t.pricing_self_li2_b}</li>
+            <li>{t.pricing_self_li3}</li>
+            <li>{t.pricing_self_li4}</li>
+          </ul>
+          <p class="cost-note">
+            {t.pricing_self_note}
+          </p>
+          <p class="cta"><a class="btn btn-ghost" href={pageUrl(locale, '/docs/quickstart/')}>{t.pricing_self_cta}</a></p>
+        </section>
+
+        <section class="plan">
+          <h2>{t.pricing_hosted_title}<span class="badge">{t.pricing_hosted_badge}</span></h2>
+          <p class="price">{t.pricing_hosted_price} <small>{t.pricing_hosted_price_small}</small></p>
+          <p class="tagline">
+            {t.pricing_hosted_tagline}
+          </p>
+          <ul>
+            <li>{t.pricing_hosted_li1}</li>
+            <li>{t.pricing_hosted_li2}</li>
+            <li>{t.pricing_hosted_li3}</li>
+            <li>{t.pricing_hosted_li4}</li>
+          </ul>
+          <p class="cost-note">
+            {t.pricing_hosted_note}
+          </p>
+          <div class="cta cta-stack">
+            <a class="btn btn-gold" href="https://hosted.openagent.email/checkout/one-time?product_id=prod_2MmEOwu9ph2BJA9JYpLjaB">{t.pricing_hosted_cta}</a>
+          </div>
+        </section>
+      </div>
+
+      <h2>{t.pricing_notes_title}</h2>
+      <ul>
+        <li>{t.pricing_notes_li1}</li>
+        <li>
+          {t.pricing_notes_li2}
+          <a href="mailto:support@openagent.email">support@openagent.email</a>{t.punct_end}
+        </li>
+      </ul>
+      <PaperPlane lottie />
+    </main>
+
+    <footer>
+      <div class="wrap">
+        <div class="bottom" style="border-top: none; padding-top: 0">
+          <span>{t.legal_footer_copyright}</span>
+          <span class="spacer" style="flex: 1"></span>
+          <a href={pageUrl(locale, 'pricing')}>{t.legal_footer_pricing}</a>
+          <a href={pageUrl(locale, 'privacy-policy')}>{t.legal_footer_privacy}</a>
+          <a href={pageUrl(locale, 'terms-of-service')}>{t.legal_footer_terms}</a>
+          <a href={pageUrl(locale, 'refund-policy')}>{t.legal_footer_refunds}</a>
+          <a href={pageUrl(locale, 'contact')}>{t.legal_footer_contact}</a>
+          <a href="mailto:support@openagent.email">{t.legal_footer_support}</a>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>
+
+<style>
+  .legal {
+    max-width: 44rem;
+    padding: 3.5rem 1.5rem 5rem;
+  }
+  .legal.legal-wide { max-width: 72rem; }
+  .legal h1 {
+    font-size: clamp(2rem, 5vw, 2.8rem);
+    margin-bottom: 0.4rem;
+  }
+  .legal .updated {
+    color: var(--ink-faint);
+    font-size: 0.85rem;
+    margin: 0 0 2.5rem;
+  }
+  .legal h2 {
+    font-size: 1.25rem;
+    margin: 2.2rem 0 0.6rem;
+  }
+  .legal p,
+  .legal li {
+    color: var(--ink-dim);
+    line-height: 1.7;
+  }
+  .legal ul {
+    padding-left: 1.2rem;
+    display: grid;
+    gap: 0.35rem;
+    margin: 0.6rem 0;
+  }
+  .legal a {
+    color: var(--gold);
+    text-decoration: none;
+  }
+  .legal a:hover {
+    text-decoration: underline;
+  }
+  .legal .lede {
+    font-size: 1.08rem;
+    color: var(--ink);
+  }
+
+  .plans {
+    display: grid;
+    gap: 1.25rem;
+    margin: 1.5rem 0 2rem;
+  }
+  .pricing-hero { position: relative; padding-bottom: .5rem; }
+  @media (min-width: 44rem) {
+    .plans {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+  .plan {
+    border: 1px solid color-mix(in srgb, currentColor 14%, transparent);
+    border-radius: 0.75rem;
+    padding: 1.25rem 1.4rem;
+    display: flex;
+    flex-direction: column;
+  }
+  .plan h2 {
+    margin-top: 0;
+    min-height: 2.1rem;
+  }
+  .plan .badge {
+    font-size: 0.7rem;
+    vertical-align: middle;
+    border: 1px solid var(--gold);
+    color: var(--gold);
+    border-radius: 999px;
+    padding: 0.1rem 0.55rem;
+    margin-left: 0.3rem;
+    white-space: nowrap;
+  }
+  .plan .price {
+    font-size: 2rem;
+    font-weight: 700;
+    margin: 0.2rem 0 0.4rem;
+    color: var(--ink);
+  }
+  .plan .price small {
+    font-size: 0.9rem;
+    font-weight: 400;
+    color: var(--ink-faint);
+  }
+  .plan .tagline {
+    margin: 0 0 0.8rem;
+    min-height: 3.4rem;
+  }
+  .plan .cost-note {
+    font-size: 0.9rem;
+  }
+  .plan .cta {
+    margin: auto 0 0;
+    min-height: 5.8rem;
+    display: flex;
+    align-items: flex-end;
+  }
+  .plan .cta-stack {
+    display: grid;
+    align-content: end;
+    gap: 0.65rem;
+  }
+  .plan .cta .btn {
+    width: 100%;
+    justify-content: center;
+    box-sizing: border-box;
+  }
+  @media (max-width: 43.99rem) { .plan .tagline { min-height: 0; } }
+  @media (max-width: 48rem) {
+    nav .wrap {
+      flex-wrap: wrap;
+      height: auto;
+      padding-block: 0.45rem;
+      row-gap: 0.3rem;
+    }
+    :global(.lang-switcher) {
+      margin-left: auto;
+    }
+  }
+</style>

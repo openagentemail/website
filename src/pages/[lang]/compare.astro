@@ -1,0 +1,14 @@
+---
+import ComparePage from '../../layouts/ComparePage.astro';
+import { LOCALES } from '../../i18n/config.js';
+
+export function getStaticPaths() {
+  return LOCALES.map((lang) => ({
+    params: { lang },
+  }));
+}
+
+const { lang } = Astro.params;
+---
+
+<ComparePage locale={lang} />
