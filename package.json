@@ -24,14 +24,18 @@
     "test:mcp-tools-upstream": "node tests/mcp-tools.test.mjs --check-upstream",
     "test:webhook-normative": "node tests/webhook-normative.test.mjs",
     "test:webhook-normative-source": "node tests/webhook-normative.test.mjs --check-source",
-    "prebuild": "npm run test:compare-freshness && npm run test:hosted-checkout && npm run test:mail-security-docs && npm run test:iphone-mail-guide && npm run test:jsonld && npm run test:seo-docs && npm run test:llms-txt && npm run test:mcp-tools && npm run test:mcp-tools-upstream && npm run test:webhook-normative && npm run test:webhook-normative-source",
-    "postbuild": "npm run test:compare-rendered && npm run test:jsonld-rendered && npm run test:seo-docs-rendered && npm run test:llms-txt-rendered && npm run test:mcp-tools-rendered"
+    "test:i18n-sync": "node --test tests/i18n-sync.test.mjs",
+    "test:i18n-sync-rendered": "node tests/i18n-sync.test.mjs --check-rendered && node scripts/i18n-check.mjs --en-baseline",
+    "test:i18n-en-baseline": "node scripts/i18n-check.mjs --en-baseline",
+    "prebuild": "npm run test:compare-freshness && npm run test:hosted-checkout && npm run test:mail-security-docs && npm run test:iphone-mail-guide && npm run test:jsonld && npm run test:seo-docs && npm run test:llms-txt && npm run test:mcp-tools && npm run test:mcp-tools-upstream && npm run test:webhook-normative && npm run test:webhook-normative-source && node scripts/i18n-check.mjs && npm run test:i18n-sync",
+    "postbuild": "npm run test:compare-rendered && npm run test:jsonld-rendered && npm run test:seo-docs-rendered && npm run test:llms-txt-rendered && npm run test:mcp-tools-rendered && npm run test:i18n-sync-rendered"
   },
   "dependencies": {
     "@astrojs/starlight": "^0.37.7",
     "astro": "^5.13.0"
   },
   "devDependencies": {
+    "@astrojs/sitemap": "3.7.3",
     "parse5": "7.3.0"
   }
 }

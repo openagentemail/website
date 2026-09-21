@@ -1,0 +1,1000 @@
+---
+import '../styles/global.css';
+import StampWall from '../components/StampWall.astro';
+import EnvelopeOrbit from '../components/EnvelopeOrbit.astro';
+import FeatureViz from '../components/FeatureViz.astro';
+import PaperPlane from '../components/PaperPlane.astro';
+import JsonLd from '../components/JsonLd.astro';
+import LangSwitcher from '../components/LangSwitcher.astro';
+import { MCP_TOOLS } from '../data/mcp-tools.js';
+import { HTML_LANG, pageUrl } from '../i18n/config.js';
+import { texts as en } from '../i18n/en.js';
+import { texts as es } from '../i18n/es.js';
+import { texts as ja } from '../i18n/ja.js';
+import { texts as ko } from '../i18n/ko.js';
+import { texts as zh } from '../i18n/zh.js';
+
+interface Props {
+  locale: string;
+}
+
+const { locale } = Astro.props;
+
+const dicts = { en, es, ja, ko, zh };
+const t = dicts[locale] || en;
+const htmlLang = HTML_LANG[locale] || locale;
+const pagePath = pageUrl(locale, 'index');
+const currentUrl = `https://openagent.email${pagePath}`;
+
+const rawMail = `From: noreply@github.com
+To: fox-k7d2@yourdomain
+Subject: [GitHub] Verify your email
+
+Here's your GitHub launch code:
+
+  <mark>59162834</mark>
+
+Or <mark>verify your email address</mark> directly:
+https://github.com/users/…/confirm_
+verification/abc123?via_launch_…
+
+This code expires in 10 minutes.`;
+
+const jsonOut = `{
+  <span class="k">"from"</span>: "noreply@github.com",
+  <span class="k">"subject"</span>: "[GitHub] Verify your email",
+  <span class="k">"otp"</span>: {
+    <span class="k">"codes"</span>: [<span class="k">"59162834"</span>],
+    <span class="k">"links"</span>: [
+      <span class="k">"https://github.com/…/confirm_verification/…"</span>
+    ]
+  }
+}`;
+
+// FAQ — visible section below AND FAQPage JSON-LD (Google requires the marked-up
+// content to be on the page, so both render from this single source).
+const faq = [
+  {
+    q: t.faq_q_1,
+    a: t.faq_a_1,
+    link: {
+      href: pageUrl(locale, 'pricing'),
+      text: t.faq_link_1_text,
+      strong: t.faq_link_1_strong,
+    },
+  },
+  {
+    q: t.faq_q_2,
+    a: t.faq_a_2,
+  },
+  {
+    q: t.faq_q_3,
+    a: t.faq_a_3,
+  },
+  {
+    q: t.faq_q_4,
+    a: t.faq_a_4,
+  },
+  {
+    q: t.faq_q_5,
+    a: t.faq_a_5,
+  },
+  {
+    q: t.faq_q_6,
+    a: t.faq_a_6,
+  },
+  {
+    q: t.faq_q_7,
+    a: t.faq_a_7,
+  },
+  {
+    q: t.faq_q_8,
+    a: t.faq_a_8,
+  },
+  {
+    q: t.faq_q_9,
+    a: t.faq_a_9,
+  },
+];
+
+const softwareJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'SoftwareApplication',
+  name: 'openagent.email',
+  applicationCategory: 'DeveloperApplication',
+  operatingSystem: 'Any (Docker)',
+  description: t.jsonld_software_description,
+  url: 'https://openagent.email',
+  license: 'https://www.apache.org/licenses/LICENSE-2.0',
+  isAccessibleForFree: true,
+  offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+  codeRepository: 'https://github.com/openagentemail/openagentemail',
+  downloadUrl: 'https://www.npmjs.com/package/@openagentemail/mcp',
+};
+
+const faqJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: faq.map((item) => ({
+    '@type': 'Question',
+    name: item.q,
+    acceptedAnswer: { '@type': 'Answer', text: item.a },
+  })),
+};
+---
+
+<!doctype html>
+<html lang={htmlLang} class="no-js">
+  <head>
+    <meta charset="utf-8" />
+    <script is:inline>document.documentElement.classList.remove('no-js');</script>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title set:html={t.meta_title}></title>
+    <meta
+      name="description"
+      content={t.meta_description}
+    />
+    <link rel="canonical" href={currentUrl} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preload" href="/fonts/Satoshi-Regular.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/Satoshi-Bold.woff2" as="font" type="font/woff2" crossorigin />
+    <meta property="og:title" content={t.og_title} />
+    <meta
+      property="og:description"
+      content={t.og_description}
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={currentUrl} />
+    <meta property="og:image" content="https://openagent.email/og.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content="https://openagent.email/og.png" />
+    <JsonLd data={softwareJsonLd} />
+    <JsonLd data={faqJsonLd} />
+    <script defer src="https://stats.openagent.email/script.js" data-website-id="86e6eaf7-473c-4c8d-a9bf-ea48c13742c5"></script>
+    <noscript>
+      <style is:global>
+        .reveal { opacity: 1; transform: none; }
+        .stagger { opacity: 1; }
+      </style>
+    </noscript>
+  </head>
+  <body>
+    <nav>
+      <div class="wrap">
+        <a class="brand" href={pageUrl(locale, 'index')} aria-label={t.nav_brand_aria}>
+          <img src="/favicon.svg" alt="" />
+          <span>openagent<span class="gold">.email</span></span>
+        </a>
+        <span class="spacer"></span>
+        <a class="navlink" href={pageUrl(locale, 'compare')}>{t.nav_compare}</a>
+        <a class="navlink" href={pageUrl(locale, 'pricing')}>{t.nav_pricing}</a>
+        <a class="navlink" href="https://github.com/openagentemail/openagentemail">{t.nav_github}</a>
+        <a class="navlink" href={pageUrl(locale, '/docs/')}>{t.nav_docs}</a>
+        <LangSwitcher currentLocale={locale} page="index" />
+      </div>
+    </nav>
+
+    <!-- 1 ── HERO ──────────────────────────────────────────────────────── -->
+    <header class="hero" data-envelope-root>
+      <div class="aurora aurora-1"></div>
+      <div class="aurora aurora-2"></div>
+      <div class="aurora aurora-3"></div>
+      <EnvelopeOrbit />
+      <div class="wrap">
+        <p class="kicker stagger stagger-1">{t.hero_kicker}</p>
+        <h1 class="stagger stagger-2">
+          <Fragment set:html={t.hero_title_line1} /><br />
+          <span class="foil-wrap"><span class="foil-stroke" aria-hidden="true">{t.hero_title_line2}</span><span class="foil foil-fill">{t.hero_title_line2}</span></span>
+        </h1>
+        <p class="sub stagger stagger-3">
+          {t.hero_sub}
+        </p>
+        <ul class="hero-chips stagger stagger-3" aria-label={t.hero_chips_aria}>
+          <li>{t.hero_chip_1}</li>
+          <li>{t.hero_chip_2}</li>
+          <li>{t.hero_chip_3}</li>
+        </ul>
+        <p class="hero-docs stagger stagger-3">
+          <a class="manual-link" href={pageUrl(locale, '/docs/quickstart/')}>{t.hero_doc_quickstart}</a>
+          <a class="manual-link" href={pageUrl(locale, '/docs/guides/connect-your-agent/')}>{t.hero_doc_connect}</a>
+        </p>
+        <div class="cta-row stagger stagger-4">
+          <a class="btn btn-gold" href="https://github.com/openagentemail/openagentemail">{t.hero_cta_github}</a>
+          <a class="btn btn-ghost" href="#demo">{t.hero_cta_demo}</a>
+          <div class="cmdline">
+            <span class="cmd">npx -y @openagentemail/setup</span>
+            <button class="copy-btn" data-copy="npx -y @openagentemail/setup" data-copied-label={t.script_copied} data-reset-label={t.script_copy}><span class="copy-label">{t.hero_copy_btn}</span></button>
+          </div>
+          <a
+            class="npm-badge"
+            href="https://www.npmjs.com/package/@openagentemail/setup"
+            target="_blank"
+            rel="noopener"
+            title={t.hero_npm_badge_title}
+          >
+            <img src="https://img.shields.io/npm/v/@openagentemail/setup?logo=npm" alt={t.hero_npm_badge_alt} />
+          </a>
+        </div>
+        <p class="manual-row stagger stagger-5">
+          <a class="manual-link" href={pageUrl(locale, 'pricing')}>{t.hero_novps_prefix}{t.hero_novps_link}</a>
+        </p>
+      </div>
+    </header>
+
+    <!-- 1.5 ── WHAT IS (quotable AEO definition; visible text, not metadata) -->
+    <section class="what-is" aria-labelledby="what-is-heading">
+      <div class="wrap">
+        <h2 id="what-is-heading" class="reveal">{t.what_is_title}</h2>
+        <p class="reveal">
+          {t.what_is_p1}
+        </p>
+      </div>
+    </section>
+
+    <!-- 2 ── WORKS WITH (marquee) ──────────────────────────────────────── -->
+    <div class="logos">
+      <p>{t.marquee_title}</p>
+      <div class="marquee">
+        <div class="marquee-track">
+          <span class="item"><img src="/icons/claude.svg" alt="" />{t.marquee_claude}</span>
+          <span class="item"><img src="/icons/cursor.svg" alt="" />{t.marquee_cursor}</span>
+          <span class="item"><img src="/icons/windsurf.svg" alt="" />{t.marquee_windsurf}</span>
+          <span class="item"><img src="/icons/docker.svg" alt="" />{t.marquee_docker}</span>
+          <span class="item">{t.marquee_kimi}</span>
+          <span class="item">{t.marquee_mcp}</span>
+          <span class="item">{t.marquee_rest}</span>
+          <span class="item" aria-hidden="true"><img src="/icons/claude.svg" alt="" />{t.marquee_claude}</span>
+          <span class="item" aria-hidden="true"><img src="/icons/cursor.svg" alt="" />{t.marquee_cursor}</span>
+          <span class="item" aria-hidden="true"><img src="/icons/windsurf.svg" alt="" />{t.marquee_windsurf}</span>
+          <span class="item" aria-hidden="true"><img src="/icons/docker.svg" alt="" />{t.marquee_docker}</span>
+          <span class="item" aria-hidden="true">{t.marquee_kimi}</span>
+          <span class="item" aria-hidden="true">{t.marquee_mcp}</span>
+          <span class="item" aria-hidden="true">{t.marquee_rest}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2.5 ── CONNECT YOUR AGENT ── -->
+    <section id="connect">
+      <div class="wrap">
+        <p class="kicker reveal">{t.connect_kicker}</p>
+        <h2 class="reveal">{t.connect_title}</h2>
+        <p class="sub reveal">
+          {t.connect_sub}
+        </p>
+        <div class="cta-row reveal" style="margin-top: 1.75rem">
+          <a class="btn btn-gold" href={pageUrl(locale, '/docs/guides/connect-your-agent/')}>{t.connect_cta_guide}</a>
+          <a class="btn btn-ghost" href={pageUrl(locale, '/docs/reference/mcp-clients/')}>{t.connect_cta_configs}</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3 ── TERMINAL DEMO ─────────────────────────────────────────────── -->
+    <section id="demo">
+      <div class="wrap">
+        <p class="kicker reveal">{t.demo_kicker}</p>
+        <h2 class="reveal">{t.demo_title}</h2>
+        <p class="sub reveal">
+          {t.demo_sub}
+        </p>
+        <div class="terminal reveal" style="margin-top: 2.5rem">
+          <div class="bar">
+            <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+            <span class="title">{t.demo_term_title}</span>
+          </div>
+          <pre id="term" aria-label={t.demo_term_aria}><span id="term-out"></span><span class="cursor" id="term-cursor"></span></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- 3.5 ── REAL MAIL CARDS (fan) ───────────────────────────────────── -->
+    <section>
+      <div class="wrap">
+        <p class="kicker reveal">{t.fan_kicker}</p>
+        <h2 class="reveal">{t.fan_title_1}<br />{t.fan_title_2}</h2>
+        <p class="sub reveal">
+          {t.fan_sub}
+        </p>
+        <div class="fan reveal">
+          <div class="fan-card f-left">
+            <div class="mail-head"><b>{t.fan_card_head_from}</b> noreply@github.com<br /><b>{t.fan_card_head_subject}</b> [GitHub] Your launch code</div>
+            <div class="mail-body">
+              Here's your GitHub launch code, @agent — paste it to finish signing up. It expires in 10 minutes.
+            </div>
+            <span class="code-chip">59162834</span>
+            <div class="extracted">otp.codes → ["59162834"] ✓</div>
+          </div>
+          <div class="fan-card f-mid">
+            <div class="mail-head"><b>{t.fan_card_head_from}</b> service@notice.aliyun.com<br /><b>{t.fan_card_head_subject}</b> 【阿里云】验证码</div>
+            <div class="mail-body">
+              您正在注册阿里云账号，验证码如下，请在 15 分钟内完成验证。工作人员不会索取验证码，请勿泄露。
+            </div>
+            <span class="code-chip">509227</span>
+            <div class="extracted">otp.codes → ["509227"] ✓</div>
+          </div>
+          <div class="fan-card f-right">
+            <div class="mail-head"><b>{t.fan_card_head_from}</b> no-reply@accounts.google.com<br /><b>{t.fan_card_head_subject}</b> Your Google verification code</div>
+            <div class="mail-body">
+              G-482916 is your Google verification code. Don't share it with anyone.
+            </div>
+            <span class="code-chip">G-482916</span>
+            <div class="extracted">otp.codes → ["482916"] ✓</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4 ── FEATURES ──────────────────────────────────────────────────── -->
+    <section>
+      <div class="wrap">
+        <p class="kicker reveal">{t.why_kicker}</p>
+        <h2 class="reveal">{t.why_title_1}<br />{t.why_title_2}</h2>
+        <div class="why-groups" style="margin-top: 3rem">
+          <div class="why-group"><h3 class="why-heading reveal">{t.why_heading_human}</h3><div class="why-grid">
+          <div class="card card-cockpit reveal">
+            <div class="card-copy">
+              <span class="num">{t.card_1_num}</span>
+              <h3>{t.card_1_title}</h3>
+              <p>{t.card_1_desc}</p>
+            </div>
+            <div class="cockpit-stage">
+              <div class="cockpit-shot">
+                <img
+                  src="/images/dashboard-overview.webp"
+                  width="1440"
+                  height="900"
+                  alt={t.card_1_img_alt}
+                />
+              </div>
+            </div>
+          </div>
+          <div class="card reveal">
+            <span class="num">{t.card_2_num}</span>
+            <h3>{t.card_2_title}</h3>
+            <p>{t.card_2_desc}</p>
+            <div class="card-viz" aria-hidden="true">
+              <svg class="viz-phone" viewBox="0 0 220 92" role="img">
+                <rect class="phone-frame" x="6" y="8" width="36" height="76" rx="6" />
+                <rect x="18" y="12" width="12" height="3" rx="1.5" fill="rgba(255,255,255,0.12)" />
+                <path d="M14 28 h20 v12 h-20 z" fill="none" stroke="#fbbf24" stroke-width="1.4" />
+                <path d="M15 29.5 24 36l9-6.5" fill="none" stroke="#fbbf24" stroke-width="1.3" stroke-linecap="round" />
+                <text class="tier-label" x="52" y="18">{t.card_2_tier_1}</text>
+                <path d="M52 26 h14 v9 h-14 z" fill="none" stroke="currentColor" stroke-width="1.1" />
+                <path d="M53 27.2 59 31.5 65 27.2" fill="none" stroke="currentColor" stroke-width="1" />
+                <text class="tier-label" x="52" y="48">{t.card_2_tier_2}</text>
+                <rect x="52" y="52" width="58" height="6" rx="1" fill="rgba(255,255,255,0.08)" />
+                <text class="tier-sub" x="54" y="57">{t.card_2_tier_2_sub}</text>
+                <text class="tier-label" x="124" y="48">{t.card_2_tier_3}</text>
+                <rect x="124" y="52" width="86" height="22" rx="2" fill="rgba(255,255,255,0.06)" stroke="rgba(251,191,36,0.28)" />
+                <text class="tier-sub" x="128" y="61">{t.card_2_tier_3_sub}</text>
+                <circle class="otp-dot" cx="132" cy="68" r="2.1" />
+                <circle class="otp-dot" cx="139" cy="68" r="2.1" />
+                <circle class="otp-dot" cx="146" cy="68" r="2.1" />
+                <text class="tier-sub" x="154" y="70" fill="#fbbf24">{t.card_2_otp_label}</text>
+              </svg>
+            </div>
+          </div>
+          <div class="card reveal">
+            <span class="num">{t.card_3_num}</span>
+            <h3>{t.card_3_title}</h3>
+            <p>{t.card_3_desc}</p>
+            <div class="card-viz" aria-hidden="true">
+              <svg class="viz-sent" viewBox="0 0 220 88" role="img">
+                <path class="flight" d="M18 58 C 48 18, 92 8, 132 22" />
+                <g class="env-fly">
+                  <rect x="126" y="10" width="22" height="15" rx="2" fill="#14161f" stroke="#fbbf24" stroke-width="1.3" />
+                  <path d="M127.5 12.2 137 19.2 146.5 12.2" fill="none" stroke="#fbbf24" stroke-width="1.2" />
+                </g>
+                <line class="ledger-line" x1="10" y1="70" x2="210" y2="70" />
+                <text class="ledger" x="12" y="82">{t.card_3_ledger_sample}</text>
+                <text class="ledger ok" x="176" y="82">{t.card_3_ledger_status}</text>
+              </svg>
+            </div>
+          </div>
+          </div></div>
+          <div class="why-group"><h3 class="why-heading reveal">{t.why_heading_agent}</h3><div class="why-grid">
+          <div class="card reveal">
+            <span class="num">{t.card_4_num}</span>
+            <h3>{t.card_4_title}</h3>
+            <p>{t.card_4_desc}</p>
+            <FeatureViz kind="mcp" />
+          </div>
+          <div class="card reveal">
+            <span class="num">{t.card_5_num}</span>
+            <h3>{t.card_5_title}</h3>
+            <p><Fragment set:html={t.card_5_desc} /></p>
+            <FeatureViz kind="tasks" />
+          </div>
+          <div class="card reveal">
+            <span class="num">{t.card_6_num}</span>
+            <h3>{t.card_6_title}</h3>
+            <p><Fragment set:html={t.card_6_desc} /></p>
+            <FeatureViz kind="identities" />
+          </div>
+          <div class="card reveal">
+            <span class="num">{t.card_7_num}</span>
+            <h3>{t.card_7_title}</h3>
+            <p><Fragment set:html={t.card_7_desc} /></p>
+            <FeatureViz kind="tokens" />
+          </div>
+          <div class="card reveal">
+            <span class="num">{t.card_8_num}</span>
+            <h3>{t.card_8_title}</h3>
+            <p>{t.card_8_desc}</p>
+            <FeatureViz kind="otp" />
+          </div>
+          </div></div>
+          <div class="why-group"><h3 class="why-heading reveal">{t.why_heading_box}</h3><div class="why-grid">
+          <div class="card reveal">
+            <span class="num">{t.card_9_num}</span>
+            <h3>{t.card_9_title}</h3>
+            <p><Fragment set:html={t.card_9_desc} /></p>
+            <FeatureViz kind="safety" labels={{ safety: t.viz_safety }} />
+          </div>
+          <div class="card reveal">
+            <span class="num">{t.card_10_num}</span>
+            <h3>{t.card_10_title}</h3>
+            <p>{t.card_10_desc}</p>
+            <FeatureViz kind="relay" />
+          </div>
+          <div class="card reveal">
+            <span class="num">{t.card_11_num}</span>
+            <h3>{t.card_11_title}</h3>
+            <p><Fragment set:html={t.card_11_desc} /></p>
+            <FeatureViz kind="dns" />
+          </div>
+          </div></div>
+        </div>
+      </div>
+    </section>
+
+    <StampWall labels={{
+      kicker: t.stamp_kicker,
+      title: t.stamp_title,
+      mcpCaption: t.stamp_caption_mcp,
+      rfcCaption: t.stamp_caption_rfc,
+      a2aCaption: t.stamp_caption_a2a,
+      a2aNote: t.stamp_note_a2a,
+      ercCaption: t.stamp_caption_erc,
+    }} />
+
+    <!-- 5 ── HOW IT WORKS ──────────────────────────────────────────────── -->
+    <section>
+      <div class="wrap">
+        <p class="kicker reveal">{t.steps_kicker}</p>
+        <h2 class="reveal">{t.steps_title_1}<br />{t.steps_title_2}</h2>
+        <div class="steps" style="margin-top: 2.5rem" id="steps">
+          <div class="step reveal">
+            <h3>{t.step_1_title}</h3>
+            <p>{t.step_1_desc}</p>
+            <code>docker compose up -d</code>
+          </div>
+          <div class="step reveal">
+            <h3>{t.step_2_title}</h3>
+            <p>{t.step_2_desc}</p>
+            <code>./deploy/dns-records.sh</code>
+          </div>
+          <div class="step reveal">
+            <h3>{t.step_3_title}</h3>
+            <p>{t.step_3_desc}</p>
+            <code>./deploy/doctor.sh</code>
+          </div>
+          <div class="step reveal">
+            <h3>{t.step_4_title}</h3>
+            <p>{t.step_4_desc}</p>
+            <code>POST /v1/identities → fox-k7d2@yourdomain</code>
+          </div>
+          <div class="step reveal">
+            <h3>{t.step_5_title}</h3>
+            <p>{t.step_5_desc}</p>
+            <code>mail_wait_for → otp.codes[0]</code>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 6 ── STATS + CAPABILITIES ──────────────────────────────────────── -->
+    <section>
+      <div class="wrap">
+        <div class="stats" style="grid-template-columns: 1fr; max-width: 18rem; margin-inline: auto;">
+          <div class="stat reveal"><div class="n" data-count={MCP_TOOLS.length}>0</div><div class="l">{t.stat_mcp_tools}</div></div>
+        </div>
+        <div class="caplist reveal">
+          <h3>{t.cap_rest_title}</h3>
+          <ul>
+            <li><code>{t.cap_rest_1_ep}</code> — {t.cap_rest_1_desc}</li>
+            <li><code>{t.cap_rest_2_ep}</code> — {t.cap_rest_2_desc}</li>
+            <li><code>{t.cap_rest_3_ep}</code> — {t.cap_rest_3_desc}</li>
+            <li><code>{t.cap_rest_4_ep}</code> — {t.cap_rest_4_desc}</li>
+            <li><code>{t.cap_rest_5_ep}</code> — {t.cap_rest_5_desc}</li>
+            <li><code>{t.cap_rest_6_ep}</code> — {t.cap_rest_6_desc}</li>
+            <li><code>{t.cap_rest_7_ep}</code> — {t.cap_rest_7_desc}</li>
+            <li><code>{t.cap_rest_8_ep}</code> — {t.cap_rest_8_desc}</li>
+            <li><code>{t.cap_rest_9_ep}</code> — {t.cap_rest_9_desc}</li>
+            <li><code>{t.cap_rest_10_ep}</code> — {t.cap_rest_10_desc}</li>
+            <li><code>{t.cap_rest_11_ep}</code> — {t.cap_rest_11_desc}</li>
+            <li><code>{t.cap_rest_12_ep}</code> — {t.cap_rest_12_desc}</li>
+            <li><code>{t.cap_rest_13_ep}</code> — {t.cap_rest_13_desc}</li>
+            <li><code>{t.cap_rest_14_ep}</code> — {t.cap_rest_14_desc}</li>
+            <li><code>{t.cap_rest_15_ep}</code> — {t.cap_rest_15_desc}</li>
+            <li><code>{t.cap_rest_16_ep}</code> — {t.cap_rest_16_desc}</li>
+            <li><code>{t.cap_rest_17_ep}</code> — {t.cap_rest_17_desc}</li>
+            <li><code>{t.cap_rest_18_ep}</code> — {t.cap_rest_18_desc}</li>
+            <li><code>{t.cap_rest_19_ep}</code> — {t.cap_rest_19_desc}</li>
+          </ul>
+          <h3>{t.cap_mcp_title}</h3>
+          <ul>
+            {MCP_TOOLS.map((tool) => (
+              <li><code>{tool}</code></li>
+            ))}
+          </ul>
+          <h3>{t.cap_corpus_title}</h3>
+          <ul>
+            <li>{t.cap_corpus_1}</li>
+            <li>{t.cap_corpus_2}</li>
+            <li>{t.cap_corpus_3}</li>
+            <li>{t.cap_corpus_4}</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- 7 ── OTP SPOTLIGHT ─────────────────────────────────────────────── -->
+    <section>
+      <div class="wrap">
+        <p class="kicker reveal">{t.otp_kicker}</p>
+        <h2 class="reveal">{t.otp_title}</h2>
+        <p class="sub reveal">
+          {t.otp_sub}
+        </p>
+        <div class="otp-demo" style="margin-top: 2.5rem">
+          <div class="mailbox-raw reveal" set:html={rawMail}></div>
+          <div class="otp-arrow reveal">→</div>
+          <div class="mailbox-json reveal" set:html={jsonOut}></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 8 ── COMPARISON ────────────────────────────────────────────────── -->
+    <section>
+      <div class="wrap">
+        <p class="kicker reveal">{t.cmp_kicker}</p>
+        <h2 class="reveal">{t.cmp_title}</h2>
+        <div class="cmp reveal" style="margin-top: 2.5rem">
+          <table>
+            <thead>
+              <tr>
+                <th></th>
+                <th class="us">{t.cmp_th_openagent}</th>
+                <th>{t.cmp_th_agentmail}</th>
+                <th>{t.cmp_th_mailslurp}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>{t.cmp_row_oss}</td><td class="us"><span class="yes">✓</span> {t.cmp_cell_oss_us}</td><td><span class="no">✗</span></td><td><span class="no">✗</span></td></tr>
+              <tr><td>{t.cmp_row_deploy}</td><td class="us"><span class="yes">✓</span> {t.cmp_cell_deploy_us}</td><td>{t.cmp_cell_deploy_agentmail}</td><td>{t.cmp_cell_deploy_mailslurp}</td></tr>
+              <tr><td>{t.cmp_row_price}</td><td class="us">{t.cmp_cell_price_us}</td><td>{t.cmp_cell_price_agentmail}</td><td>{t.cmp_cell_price_mailslurp}</td></tr>
+              <tr><td>{t.cmp_row_inboxes}</td><td class="us"><span class="yes">✓</span> {t.cmp_cell_inboxes_us}</td><td>{t.cmp_cell_inboxes_agentmail}</td><td>{t.cmp_cell_inboxes_mailslurp}</td></tr>
+              <tr><td>{t.cmp_row_mcp}</td><td class="us"><span class="yes">✓</span></td><td><span class="yes">✓</span></td><td><span class="yes">✓</span> {t.cmp_cell_mcp_mailslurp}</td></tr>
+              <tr><td>{t.cmp_row_otp}</td><td class="us"><span class="yes">✓</span></td><td>{t.cmp_cell_otp_agentmail}</td><td><span class="yes">✓</span></td></tr>
+              <tr><td>{t.cmp_row_residency}</td><td class="us"><span class="yes">{t.cmp_cell_residency_us}</span></td><td>{t.cmp_cell_residency_agentmail}</td><td>{t.cmp_cell_residency_mailslurp}</td></tr>
+              <tr><td>{t.cmp_row_vendor_plane}</td><td class="us"><span class="yes">{t.cmp_cell_vendor_plane_us}</span></td><td>{t.cmp_cell_vendor_plane_agentmail}</td><td>{t.cmp_cell_vendor_plane_mailslurp}</td></tr>
+              <tr><td>{t.cmp_row_run_server}</td><td class="us">{t.cmp_cell_run_server_us}</td><td>{t.cmp_cell_run_server_agentmail}</td><td>{t.cmp_cell_run_server_mailslurp}</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="honest reveal">
+          {t.cmp_honest_note}
+        </p>
+      </div>
+    </section>
+
+    <!-- 8.5 ── WHAT IT TAKES TO RUN ───────────────────────────────────── -->
+    <section>
+      <div class="wrap">
+        <p class="kicker reveal">{t.run_kicker}</p>
+        <h2 class="reveal">{t.run_title_1}<br />{t.run_title_2}</h2>
+        <p class="sub reveal" set:html={t.run_sub} />
+        <div class="grid grid-3" style="margin-top: 2.5rem">
+          <div class="card reveal">
+            <span class="num">{t.run_card_1_badge}</span>
+            <h3>{t.run_card_1_title}</h3>
+            <p><Fragment set:html={t.run_card_1_desc} /></p>
+          </div>
+          <div class="card reveal">
+            <span class="num">{t.run_card_2_badge}</span>
+            <h3>{t.run_card_2_title}</h3>
+            <p>{t.run_card_2_desc}</p>
+          </div>
+          <div class="card reveal">
+            <span class="num">{t.run_card_3_badge}</span>
+            <h3>{t.run_card_3_title}</h3>
+            <p>{t.run_card_3_desc}</p>
+          </div>
+        </div>
+        <p class="honest reveal">
+          {t.run_honest_note}
+        </p>
+      </div>
+    </section>
+
+    <!-- 8.7 ── FAQ ────────────────────────────────────────────────────── -->
+    <section>
+      <div class="wrap">
+        <p class="kicker reveal">{t.faq_kicker}</p>
+        <h2 class="reveal">{t.faq_title}</h2>
+        <div class="faq reveal">
+          {
+            faq.map((item) => (
+              <details>
+                <summary>{item.q}</summary>
+                {item.link ? (
+                  <p>{item.a.slice(0, item.a.indexOf(item.link.text + item.link.strong))}<a href={item.link.href}>{item.link.text}<strong>{item.link.strong}</strong></a>{item.a.slice(item.a.indexOf(item.link.text + item.link.strong) + item.link.text.length + item.link.strong.length)}</p>
+                ) : (
+                  <p>{item.a}</p>
+                )}
+              </details>
+            ))
+          }
+        </div>
+      </div>
+    </section>
+
+    <!-- 9 ── OPEN SOURCE + FINAL CTA ───────────────────────────────────── -->
+    <section class="oss">
+      <div class="wrap">
+        <p class="kicker reveal">{t.oss_kicker}</p>
+        <h2 class="reveal">{t.oss_title}</h2>
+        <p class="sub reveal" style="margin-left: auto; margin-right: auto">
+          {t.oss_sub}
+        </p>
+        <div class="reveal"><span class="badge">{t.oss_badge}</span></div>
+      </div>
+    </section>
+
+    <section class="final">
+      <div class="wrap">
+        <PaperPlane lottie class="reveal" />
+        <h2 class="reveal">{t.cta_heading_1}<br /><span class="gold" set:html={t.cta_heading_2} /></h2>
+        <div class="cta-row reveal">
+          <a class="btn btn-gold" href="https://github.com/openagentemail/openagentemail">{t.cta_btn_github}</a>
+          <a class="btn btn-ghost" href={pageUrl(locale, '/docs/')}>{t.cta_btn_docs}</a>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      <div class="wrap">
+        <div class="cols">
+          <div>
+            <a class="brand" href={pageUrl(locale, 'index')} style="display: flex; align-items: center; gap: 0.6rem; font-weight: 700; text-decoration: none">
+              <img src="/favicon.svg" alt="" style="width: 26px; height: 26px" />
+              <span>openagent<span class="gold">.email</span></span>
+            </a>
+            <p class="tagline">
+              {t.footer_tagline}
+            </p>
+          </div>
+          <div>
+            <h4>{t.footer_product_title}</h4>
+            <ul>
+              <li><a href="https://github.com/openagentemail/openagentemail">{t.footer_product_github}</a></li>
+              <li><a href={pageUrl(locale, 'pricing')}>{t.footer_product_pricing}</a></li>
+              <li><a href={pageUrl(locale, 'compare')}>{t.footer_product_compare}</a></li>
+            </ul>
+          </div>
+          <div>
+            <h4>{t.footer_docs_title}</h4>
+            <ul>
+              <li><a href={pageUrl(locale, '/docs/quickstart/')}>{t.footer_docs_quickstart}</a></li>
+              <li><a href={pageUrl(locale, '/docs/guides/connect-your-agent/')}>{t.footer_docs_connect}</a></li>
+              <li><a href={pageUrl(locale, '/docs/reference/api/')}>{t.footer_docs_api}</a></li>
+              <li><a href={pageUrl(locale, '/docs/guides/security/')}>{t.footer_docs_security}</a></li>
+              <li><a href={pageUrl(locale, '/docs/reference/mcp-clients/')}>{t.footer_docs_mcp_setup}</a></li>
+              <li><a href={pageUrl(locale, '/mcp/')}>{t.footer_docs_mcp_overview}</a></li>
+              <li><a href={pageUrl(locale, '/docs/guides/otp-extraction/')}>{t.footer_docs_otp}</a></li>
+              <li><a href={pageUrl(locale, '/docs/guides/deliverability/')}>{t.footer_docs_deliverability}</a></li>
+            </ul>
+          </div>
+          <div>
+            <h4>{t.footer_project_title}</h4>
+            <ul>
+              <li><a href="https://github.com/openagentemail/openagentemail/blob/main/LICENSE">{t.footer_project_license}</a></li>
+              <li><a href="https://github.com/openagentemail/openagentemail/blob/main/CONTRIBUTING.md">{t.footer_project_contributing}</a></li>
+              <li><a href="https://github.com/openagentemail/openagentemail/issues">{t.footer_project_issues}</a></li>
+              <li><a href={pageUrl(locale, '/privacy-policy')}>{t.footer_project_privacy}</a></li>
+              <li><a href={pageUrl(locale, '/terms-of-service')}>{t.footer_project_terms}</a></li>
+              <li><a href="mailto:support@openagent.email">{t.footer_project_support}</a></li>
+            </ul>
+          </div>
+        </div>
+        <div class="bottom">
+          <span>{t.footer_copyright}</span>
+          <span class="spacer" style="flex: 1"></span>
+          <span>{t.footer_noframework}</span>
+        </div>
+        <div class="badges-row">
+          <a href="https://aiagentsdirectory.com/agent/openagentemail" target="_blank" rel="noopener" title={t.footer_badge_aad_title}>
+            <img src="https://aiagentsdirectory.com/featured-badge.svg?v=2024" alt={t.footer_badge_aad_alt} width="200" height="50" />
+          </a>
+          <a href="https://www.agenthunter.io?utm_source=badge&utm_medium=embed&utm_campaign=openagentemail" target="_blank" rel="noopener noreferrer" style="display: inline-flex; align-items: center; gap: 0.5rem; background-color: #111827; border: 1px solid #374151; padding: 0.5rem 0.75rem; border-radius: 0.5rem; text-decoration: none; font-family: sans-serif; transition: all 0.2s;">
+            <img src="https://www.agenthunter.io/logo-dark.svg" alt="AgentHunter Badge" style="height: 2.5rem; width: 2.5rem;"/>
+            <div style="display: flex; flex-direction: column;">
+              <p style="margin: 0; font-size: 0.75rem; color: #9ca3af;">{t.footer_badge_agenthunter_tag}</p>
+              <p style="margin: 0; font-size: 0.875rem; color: #f9fafb; font-weight: 600;">{t.footer_badge_agenthunter_featured}</p>
+            </div>
+          </a>
+          <a href="https://fazier.com/launches/openagent.email" target="_blank"><img src="https://fazier.com/api/v1//public/badges/launch_badges.svg?badge_type=launched&theme=dark" width=120 alt={t.footer_badge_fazier_alt} /></a>
+          <a href="https://www.launchvault.dev" target="_blank" title={t.footer_badge_launchvault_title}>
+            <img src="https://www.launchvault.dev/images/badges/launch-valut-badge.svg" alt={t.footer_badge_launchvault_alt} style="width: 195px; height: auto;" />
+          </a>
+          <a href="https://newtools.site/item/openagentemail" target="_blank" rel="noopener noreferrer">
+            <img src="https://newtools.site/badges/newtool-dark.png" alt={t.footer_badge_newtools_alt} height="54px" width="auto" />
+          </a>
+        </div>
+      </div>
+    </footer>
+
+    <script>
+      import { pressPostmark } from '../scripts/postmark.js';
+
+      // ── terminal typing loop ──────────────────────────────────────────
+      const SCRIPT = [
+        { t: 'cmd',  text: '$ docker compose up -d\n', speed: 34 },
+        { t: 'ok',   text: ' ✔ openagent-mailserver  Healthy\n ✔ openagent-api         Healthy\n\n', speed: 8 },
+        { t: 'cmd',  text: '$ curl -X POST $API/v1/identities -d \'{"name":"signup-bot"}\'\n', speed: 26 },
+        { t: 'json', text: ' {"address":"fox-k7d2@openagent.email","token":"oa_8f3k…"}\n\n', speed: 10 },
+        { t: 'cmd',  text: '$ agent: mail_wait_for(subjectContains: "verify")\n', speed: 26 },
+        { t: 'wait', text: ' ⏳ waiting for mail', speed: 30 },
+        { t: 'wait', text: ' …', speed: 400 },
+        { t: 'ok',   text: '\n 📩 new mail from noreply@github.com\n', speed: 12 },
+        { t: 'json', text: ' {"otp":{"codes":["59162834"],"links":["https://github.com/…/confirm_verification/…"]}}\n\n', speed: 8 },
+        { t: 'ok',   text: ' 📱 push sent to your phone\n', speed: 12 },
+        { t: 'dim',  text: ' # code extracted. agent proceeds with signup. ✔\n', speed: 16 },
+      ];
+      const CLS = { cmd: 't-cmd', ok: 't-ok', json: 't-json', dim: 't-dim', wait: 't-wait' };
+
+      function runTerminal() {
+        const out = document.getElementById('term-out');
+        if (!out) return;
+        const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        if (reduce) {
+          out.innerHTML = SCRIPT.map((l) => `<span class="${CLS[l.t]}">${esc(l.text)}</span>`).join('');
+          return;
+        }
+        let line = 0;
+        function typeLine() {
+          if (line >= SCRIPT.length) {
+            setTimeout(() => { out.innerHTML = ''; line = 0; typeLine(); }, 6000);
+            return;
+          }
+          const { t, text, speed } = SCRIPT[line];
+          const span = document.createElement('span');
+          span.className = CLS[t];
+          out.appendChild(span);
+          let i = 0;
+          (function tick() {
+            span.textContent = text.slice(0, ++i);
+            if (i < text.length) setTimeout(tick, speed);
+            else { line++; setTimeout(typeLine, t === 'cmd' ? 350 : 120); }
+          })();
+        }
+        typeLine();
+      }
+      function esc(s) {
+        return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      }
+
+      // ── scroll reveal ─────────────────────────────────────────────────
+      const io = new IntersectionObserver(
+        (entries) => entries.forEach((e) => e.isIntersecting && e.target.classList.add('in')),
+        { threshold: 0.12 },
+      );
+      document.querySelectorAll('.reveal').forEach((el) => io.observe(el));
+      document.querySelectorAll('.reveal').forEach((el) => {
+        if (el.getBoundingClientRect().top < window.innerHeight) el.classList.add('in');
+      });
+
+      // ── how-it-works: light the step rail as you scroll ───────────────
+      const stepIO = new IntersectionObserver(
+        (entries) => entries.forEach((e) => e.target.classList.toggle('lit', e.isIntersecting)),
+        { rootMargin: '-35% 0px -35% 0px' },
+      );
+      document.querySelectorAll('#steps .step').forEach((el) => stepIO.observe(el));
+
+      // ── spotlight + fine-pointer card tilt ────────────────────────────
+      const cardFinePointer = window.matchMedia('(pointer: fine)').matches;
+      const reduceCardMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      document.querySelectorAll('.card:not(.card-cockpit)').forEach((card) => {
+        let frame = 0;
+        let pointerX = 0;
+        let pointerY = 0;
+        let pointerIsTouch = false;
+        let resetTimer = 0;
+        const tiltEnabled = cardFinePointer && !reduceCardMotion;
+
+        card.addEventListener(
+          'pointermove',
+          (ev) => {
+            pointerX = ev.clientX;
+            pointerY = ev.clientY;
+            pointerIsTouch = ev.pointerType === 'touch';
+            if (frame) return;
+            frame = requestAnimationFrame(() => {
+              frame = 0;
+              const r = card.getBoundingClientRect();
+              if (!r.width || !r.height) return;
+              const x = Math.max(0, Math.min(r.width, pointerX - r.left));
+              const y = Math.max(0, Math.min(r.height, pointerY - r.top));
+              card.style.setProperty('--mx', `${x}px`);
+              card.style.setProperty('--my', `${y}px`);
+              if (pointerIsTouch || !tiltEnabled) return;
+
+              clearTimeout(resetTimer);
+              const rx = (7 - (y / r.height) * 14).toFixed(2);
+              const ry = (-7 + (x / r.width) * 14).toFixed(2);
+              card.classList.remove('tilt-resetting');
+              card.classList.add('tilt-active');
+              card.style.transform =
+                `perspective(800px) rotateX(${rx}deg) rotateY(${ry}deg) `
+                + 'translateY(var(--card-lift))';
+            });
+          },
+          { passive: true },
+        );
+
+        const resetTilt = () => {
+          if (!tiltEnabled) return;
+          if (frame) {
+            cancelAnimationFrame(frame);
+            frame = 0;
+          }
+          clearTimeout(resetTimer);
+          card.classList.remove('tilt-active');
+          card.classList.add('tilt-resetting');
+          card.style.transform =
+            'perspective(800px) rotateX(0deg) rotateY(0deg) translateY(0px)';
+          resetTimer = window.setTimeout(() => {
+            card.classList.remove('tilt-resetting');
+            card.style.removeProperty('transform');
+          }, 300);
+        };
+        card.addEventListener('pointerleave', resetTilt);
+        card.addEventListener('pointercancel', resetTilt);
+      });
+
+      // ── stat counters ─────────────────────────────────────────────────
+      const countIO = new IntersectionObserver((entries) => {
+        entries.forEach((e) => {
+          if (!e.isIntersecting) return;
+          countIO.unobserve(e.target);
+          const target = Number(e.target.dataset.count);
+          if (window.matchMedia('(prefers-reduced-motion: reduce)').matches || target === 0) {
+            e.target.textContent = String(target);
+            return;
+          }
+          const t0 = performance.now();
+          (function step(now) {
+            const p = Math.min(1, (now - t0) / 1200);
+            e.target.textContent = String(Math.round(target * (1 - Math.pow(1 - p, 3))));
+            if (p < 1) requestAnimationFrame(step);
+          })(t0);
+        });
+      }, { threshold: 0.6 });
+      document.querySelectorAll('[data-count]').forEach((el) => countIO.observe(el));
+
+      // ── copy buttons ──────────────────────────────────────────────────
+      document.querySelectorAll('.copy-btn').forEach((btn) => {
+        const label = btn.querySelector('.copy-label') || btn;
+        const copiedText = btn.dataset.copiedLabel || 'copied ✓';
+        const resetText = btn.dataset.resetLabel || 'copy';
+        btn.addEventListener('click', async () => {
+          try {
+            await navigator.clipboard.writeText(btn.dataset.copy);
+          } catch {
+            return;
+          }
+          pressPostmark(btn, {
+            stateClass: 'copied',
+            onCopied: () => { label.textContent = copiedText; },
+            onReset: () => { label.textContent = resetText; },
+          });
+        });
+      });
+
+      runTerminal();
+    </script>
+
+    <style>
+      .hero-docs {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.45rem 1.15rem;
+        align-items: center;
+        margin: 0.85rem 0 0;
+      }
+      .hero .cta-row {
+        margin-top: 1.35rem;
+      }
+      .what-is {
+        padding: 2.4rem 0 2.6rem;
+      }
+      .what-is h2 {
+        font-size: clamp(1.15rem, 2.4vw, 1.45rem);
+        letter-spacing: -0.015em;
+      }
+      .what-is p {
+        color: var(--ink-dim);
+        font-size: 1.05rem;
+        max-width: 44rem;
+        margin: 0.7rem 0 0;
+        line-height: 1.7;
+      }
+      @media (max-width: 38rem) {
+        nav .wrap {
+          flex-wrap: wrap;
+          height: auto;
+          padding-block: 0.45rem;
+          row-gap: 0.3rem;
+        }
+        :global(.lang-switcher) {
+          margin-left: auto;
+        }
+      }
+      @media (max-width: 34rem) {
+        .hero {
+          padding: 4.5rem 0 3.2rem;
+        }
+        .what-is {
+          padding: 1.8rem 0 2rem;
+        }
+        .what-is p {
+          font-size: 0.98rem;
+        }
+      }
+      .faq {
+        margin-top: 2.5rem;
+        display: grid;
+        gap: 0.8rem;
+      }
+      .faq details {
+        background: var(--bg-card);
+        border: 1px solid var(--line);
+        border-radius: var(--radius);
+        padding: 1.05rem 1.3rem;
+        transition: border-color 0.2s ease;
+      }
+      .faq details[open] {
+        border-color: var(--line-strong);
+      }
+      .faq summary {
+        cursor: pointer;
+        font-weight: 700;
+        list-style: none;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+      }
+      .faq summary::-webkit-details-marker {
+        display: none;
+      }
+      .faq summary::after {
+        content: '+';
+        color: var(--gold);
+        font-size: 1.25rem;
+        font-weight: 400;
+        flex-shrink: 0;
+        transition: transform 0.2s ease;
+      }
+      .faq details[open] summary::after {
+        transform: rotate(45deg);
+      }
+      .faq details p {
+        margin: 0.7rem 0 0.2rem;
+        color: var(--ink-dim);
+        line-height: 1.7;
+      }
+    </style>
+  </body>
+</html>

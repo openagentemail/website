@@ -1,0 +1,40 @@
+{
+  "translationSet": [
+    "index"
+  ],
+  "locales": [
+    "es",
+    "ja",
+    "ko",
+    "zh"
+  ],
+  "sources": [
+    {
+      "page": "index",
+      "file": "src/pages/index.astro",
+      "sha256": "fd2b047e024a04de193933490ffa3f9a68fd7f04433c9bd772c2e1709bce6675"
+    },
+    {
+      "component": "StampWall",
+      "file": "src/components/StampWall.astro",
+      "sha256": "84dadacbac92457afd3ad22791ecc334fe1bdb61281df8b6d925b0107eba3422"
+    },
+    {
+      "component": "FeatureViz",
+      "file": "src/components/FeatureViz.astro",
+      "sha256": "5af35c2c25a95525a9799ebe0e3689cba70b06e9f8aad6ca36262615b2d36920"
+    },
+    {
+      "layout": "IndexPage",
+      "file": "src/layouts/IndexPage.astro",
+      "sha256": "817cba301292038cac2c933b45c266315100e86b62ff4d9a0ec3cf73508b1755"
+    }
+  ],
+  "dicts": {
+    "en": "src/i18n/en.js",
+    "es": "src/i18n/es.js",
+    "ja": "src/i18n/ja.js",
+    "ko": "src/i18n/ko.js",
+    "zh": "src/i18n/zh.js"
+  }
+}
