@@ -22,8 +22,8 @@
 
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { access, readFile } from 'node:fs/promises';
-import { dirname, resolve } from 'node:path';
+import { access, readFile, readdir, writeFile } from 'node:fs/promises';
+import { dirname, resolve, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -212,6 +212,207 @@ export async function checkValues(dicts) {
   return true;
 }
 
+/**
+ * ── Element 1 ~ 5: en-baseline normalization and invariant verification ──
+ */
+
+export function extractBody(html) {
+  const m = html.match(/<body\b[\s\S]*?<\/body>/i);
+  return m ? m[0] : '';
+}
+
+export function normalizeHead(html) {
+  const headMatch = html.match(/<head\b[\s\S]*?<\/head>/i);
+  let head = headMatch ? headMatch[0] : '';
+  if (!head) {
+    const bodyIdx = html.indexOf('<body');
+    head = bodyIdx !== -1 ? html.slice(0, bodyIdx) : '';
+  }
+  head = head.replace(/<style\b[\s\S]*?<\/style>/gi, '');
+  head = head.replace(/<link\b[^>]*\brel=["']?stylesheet["']?[^>]*>/gi, '');
+  return head;
+}
+
+export function extractCssRules(html) {
+  const styles = [...html.matchAll(/<style\b[^>]*>([\s\S]*?)<\/style>/gi)].map((m) => m[1]);
+  const allCss = styles.join('\n');
+  const rules = [];
+  let depth = 0;
+  let current = '';
+  for (let i = 0; i < allCss.length; i++) {
+    const char = allCss[i];
+    current += char;
+    if (char === '{') {
+      depth++;
+    } else if (char === '}') {
+      depth--;
+      if (depth === 0) {
+        const trimmed = current.trim();
+        if (trimmed) rules.push(trimmed);
+        current = '';
+      }
+    }
+  }
+  if (current.trim()) rules.push(current.trim());
+  return rules;
+}
+
+export function extractStylesheetHrefs(html) {
+  const matches = [...html.matchAll(/<link\b[^>]*\brel=["']?stylesheet["']?[^>]*>/gi)];
+  const hrefs = [];
+  for (const m of matches) {
+    const hrefMatch = m[0].match(/\bhref=["']([^"']+)["']/i);
+    if (hrefMatch) {
+      const href = hrefMatch[1].split('?')[0].split('#')[0];
+      if (!href.startsWith('http://') && !href.startsWith('https://')) {
+        hrefs.push(href);
+      }
+    }
+  }
+  return hrefs;
+}
+
+export async function extractStylesheetShas(html, distDir) {
+  const hrefs = extractStylesheetHrefs(html);
+  const shas = [];
+  for (const href of hrefs) {
+    const filePath = join(distDir, href.replace(/^\//, ''));
+    const content = await readFile(filePath);
+    shas.push(computeSha256(content));
+  }
+  return shas.sort();
+}
+
+export async function getEnHtmlFiles(dir) {
+  const files = [];
+  async function walk(d) {
+    for (const ent of await readdir(d, { withFileTypes: true })) {
+      const full = join(d, ent.name);
+      if (ent.isDirectory()) {
+        const rel = relative(dir, full);
+        if (/^(es|ja|ko|zh)(\/|$)/.test(rel)) continue;
+        await walk(full);
+      } else if (ent.name.endsWith('.html')) {
+        const rel = relative(dir, full);
+        if (!/^(es|ja|ko|zh)(\/|$)/.test(rel)) {
+          files.push(rel);
+        }
+      }
+    }
+  }
+  await walk(dir);
+  return files.sort();
+}
+
+export async function computeEnBaseline(distDir = resolve(ROOT, 'dist')) {
+  const relFiles = await getEnHtmlFiles(distDir);
+  const entries = [];
+  for (const rel of relFiles) {
+    const html = await readFile(join(distDir, rel), 'utf8');
+    const body = extractBody(html);
+    const headNorm = normalizeHead(html);
+    const rules = extractCssRules(html).sort();
+    const stylesheets = await extractStylesheetShas(html, distDir);
+
+    entries.push({
+      page: rel,
+      bodySha256: computeSha256(body),
+      headNormSha256: computeSha256(headNorm),
+      rulesSha256: computeSha256(rules.join('\n')),
+      stylesheets,
+    });
+  }
+  return entries;
+}
+
+export async function writeEnBaseline(
+  outPath = resolve(ROOT, 'i18n-en-baseline.json'),
+  distDir = resolve(ROOT, 'dist'),
+) {
+  const entries = await computeEnBaseline(distDir);
+  const json = JSON.stringify(entries, null, 2) + '\n';
+  await writeFile(outPath, json, 'utf8');
+  return entries;
+}
+
+export async function checkEnBaseline(baselineData, distDir = resolve(ROOT, 'dist'), options = {}) {
+  const pages = Array.isArray(baselineData) ? baselineData : baselineData.pages;
+  assert.ok(Array.isArray(pages) && pages.length > 0, 'Baseline data must contain a non-empty list of pages');
+
+  const expectedMap = new Map(pages.map((p) => [p.page, p]));
+
+  const actualPages = await getEnHtmlFiles(distDir);
+  const actualSet = new Set(actualPages);
+
+  const isPartial = Boolean(options.allowPartial || (options.pages && options.pages.length > 0));
+  if (!isPartial) {
+    for (const expectedPage of expectedMap.keys()) {
+      assert.ok(
+        actualSet.has(expectedPage),
+        `EN_BASELINE: Expected page '${expectedPage}' not found in dist`,
+      );
+    }
+    for (const actualPage of actualSet) {
+      assert.ok(
+        expectedMap.has(actualPage),
+        `EN_BASELINE: Unexpected page '${actualPage}' found in dist`,
+      );
+    }
+  }
+
+  const pagesToCheck = options.pages || (isPartial ? [...actualSet].filter((p) => expectedMap.has(p)) : actualPages);
+
+  for (const pageName of pagesToCheck) {
+    const expected = expectedMap.get(pageName);
+    if (!expected) continue;
+
+    const pageFilePath = join(distDir, pageName);
+    const html = await readFile(pageFilePath, 'utf8');
+
+    // Element 1: <body> byte-for-byte identical (bodySha256)
+    const body = extractBody(html);
+    const bodySha = computeSha256(body);
+    assert.equal(
+      bodySha,
+      expected.bodySha256,
+      `EN_BASELINE [${pageName}]: Element 1 (bodySha256) mismatch`,
+    );
+
+    // Element 2: head stripped of <style> and stylesheets byte-for-byte identical (headNormSha256)
+    const headNorm = normalizeHead(html);
+    const headNormSha = computeSha256(headNorm);
+    assert.equal(
+      headNormSha,
+      expected.headNormSha256,
+      `EN_BASELINE [${pageName}]: Element 2 (headNormSha256) mismatch`,
+    );
+
+    // Element 3: inline style rules multiset (sorted list) identical (rulesSha256)
+    const rules = extractCssRules(html).sort();
+    const rulesSha = computeSha256(rules.join('\n'));
+    assert.equal(
+      rulesSha,
+      expected.rulesSha256,
+      `EN_BASELINE [${pageName}]: Element 3 (rulesSha256) mismatch`,
+    );
+
+    // Elements 4 & 5: referenced stylesheet set count and 1-to-1 content hash identical
+    const currStylesheets = (await extractStylesheetShas(html, distDir)).sort();
+    assert.equal(
+      currStylesheets.length,
+      expected.stylesheets.length,
+      `EN_BASELINE [${pageName}]: Element 5 (stylesheets count) mismatch: expected ${expected.stylesheets.length}, got ${currStylesheets.length}`,
+    );
+    assert.deepEqual(
+      currStylesheets,
+      expected.stylesheets,
+      `EN_BASELINE [${pageName}]: Element 4/5 (stylesheets content sha) mismatch`,
+    );
+  }
+
+  return true;
+}
+
 export async function runAllChecks() {
   console.log('[i18n-check] Running i18n sync gate checks...');
   await checkFileParity();
@@ -227,7 +428,23 @@ export async function runAllChecks() {
 
 if (process.argv[1] && resolve(process.argv[1]) === resolve(__filename)) {
   try {
-    await runAllChecks();
+    const distArgIdx = process.argv.indexOf('--dist');
+    const distDir = distArgIdx !== -1 && process.argv[distArgIdx + 1]
+      ? resolve(process.argv[distArgIdx + 1])
+      : resolve(ROOT, 'dist');
+
+    if (process.argv.includes('--write-en-baseline')) {
+      const outPath = resolve(ROOT, 'i18n-en-baseline.json');
+      await writeEnBaseline(outPath, distDir);
+      console.log(`[i18n-check] Wrote en-baseline (${distDir}) -> ${outPath}`);
+    } else if (process.argv.includes('--en-baseline')) {
+      console.log('[i18n-check] Running en-baseline 5-part invariant check...');
+      const baselineData = await readJson('i18n-en-baseline.json');
+      await checkEnBaseline(baselineData, distDir);
+      console.log('[i18n-check] en-baseline 5-part invariant check PASSED.');
+    } else {
+      await runAllChecks();
+    }
   } catch (err) {
     console.error(`\n[i18n-check] FAILED: ${err.message}\n`);
     process.exit(1);

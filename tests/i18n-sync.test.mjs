@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
-import { access, readFile } from 'node:fs/promises';
+import { access, cp, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import test from 'node:test';
-import { dirname, resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parse } from 'parse5';
 
@@ -13,6 +14,8 @@ import {
   validateTextValue,
   computeSha256,
   extractTagsOutline,
+  checkEnBaseline,
+  readJson,
 } from '../scripts/i18n-check.mjs';
 
 import { LOCALES, DEFAULT_LOCALE, HTML_LANG, TRANSLATED_PAGES, pageUrl } from '../src/i18n/config.js';
@@ -375,6 +378,49 @@ if (!isRenderedMode) {
           `[${loc}] REST item ${i + 1} description outside code must not be empty`,
         );
       }
+    }
+  });
+
+  test('G13: Five-part en-baseline invariant check (+ 3 negative controls)', async () => {
+    const baselineData = await readJson('i18n-en-baseline.json');
+
+    // 1. Positive control on actual dist
+    await checkEnBaseline(baselineData, resolve(ROOT, 'dist'));
+
+    // 2. Three negative controls on synthetic/isolated fixture
+    const tempDist = await mkdtemp(join(tmpdir(), 'oae-g13-nc-'));
+    try {
+      const origHtml = await readFile(resolve(ROOT, 'dist/index.html'), 'utf8');
+      await cp(resolve(ROOT, 'dist/_astro'), join(tempDist, '_astro'), { recursive: true });
+
+      // Negative control ①: 改一段 CSS 规则 → fail
+      const tamperedCss = origHtml.replace('opacity: 1;', 'opacity: 0.999;');
+      await writeFile(join(tempDist, 'index.html'), tamperedCss, 'utf8');
+      await assert.rejects(
+        async () => await checkEnBaseline(baselineData, tempDist, { pages: ['index.html'] }),
+        /Element 3 \(rulesSha256\) mismatch/,
+        'Negative control ① must fail when CSS rule is modified',
+      );
+
+      // Negative control ②: 增/删一个样式表引用 → fail
+      const tamperedCssLink = origHtml.replace(/<link\b[^>]*rel=["']?stylesheet["']?[^>]*>/, '');
+      await writeFile(join(tempDist, 'index.html'), tamperedCssLink, 'utf8');
+      await assert.rejects(
+        async () => await checkEnBaseline(baselineData, tempDist, { pages: ['index.html'] }),
+        /Element 5 \(stylesheets count\) mismatch/,
+        'Negative control ② must fail when stylesheet link is removed',
+      );
+
+      // Negative control ③: 改 <body> 一个字节 → fail
+      const tamperedBody = origHtml.replace('<body', '<body data-tampered="1"');
+      await writeFile(join(tempDist, 'index.html'), tamperedBody, 'utf8');
+      await assert.rejects(
+        async () => await checkEnBaseline(baselineData, tempDist, { pages: ['index.html'] }),
+        /Element 1 \(bodySha256\) mismatch/,
+        'Negative control ③ must fail when body is modified by 1 byte',
+      );
+    } finally {
+      await rm(tempDist, { recursive: true, force: true });
     }
   });
 }
