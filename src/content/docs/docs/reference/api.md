@@ -193,6 +193,40 @@ Each summary includes:
 | `hasOtp` | boolean | `true` when OTP extraction found any code or verification-looking link |
 | `source` | `"internal"` \| `"external"` | HMAC mail-stamp classification — fail-closed (see below) |
 
+### Caller list rate limit
+
+`GET /v1/messages` admits **60 requests per rolling 60 seconds per
+authenticated caller** — the ordinary list and `since` share the same bucket.
+Over the limit:
+
+```
+429 {"error":"rate_limited","retryAfterSec":41}
+```
+
+The response carries an integer `Retry-After` header with the same value.
+
+- **Identity key.** The bucket is keyed by the authenticated address,
+  lower-cased — not the raw token and not the `address` query parameter. An
+  identity's token and its OAuth credentials share one budget, and a delegating
+  caller spends its own budget regardless of which mailbox it targets. All admin
+  credentials share a single `list:admin` bucket; admin is not exempt.
+- **Admission order.** Query-schema and ACL failures (`400`, `401`, `403`) do not
+  spend budget. Admission happens synchronously before the first IMAP call, and
+  downstream failures — including a rejected opaque `since` cursor or an IMAP
+  error — are not refunded.
+- **Burst.** Up to 60 requests may be admitted back-to-back; the 61st inside the
+  same window is `429`.
+- **Process-local.** The window is in-process monotonic time and resets when the
+  API restarts. At most 10,000 caller buckets are tracked (60 live stamps each);
+  expired buckets are reclaimed lazily, only when a new caller would exceed that
+  cap. A new caller rejected at full capacity gets a conservative
+  `retryAfterSec: 60` — admission then is not guaranteed.
+- **Not a global guard.** This is a per-caller request-rate bound, not IMAP
+  concurrency or exhaustion protection. Message detail, wait, and Dashboard
+  reads are not covered by this bucket, and multiple instances do not share it —
+  the deployment contract assumes a single instance.
+- **Independent.** It does not change the existing send, MCP, or wait buckets.
+
 ## `GET /v1/messages/:id?address=x@y`
 
 Full message, including extracted OTP codes and links, plus `source`.
@@ -893,7 +927,7 @@ curl "$API/v1/webhooks/whk_01h7x8a.../deliveries?limit=20" --config -
 | Parameter | Type | Notes |
 |---|---|---|
 | `limit` | integer? | Number of records to return (1 to 100, default 20). |
-| `cursor` | string? | Opaque cursor token for forward pagination (max 1024 chars). An invalid cursor—or a cursor pointing to a record evicted from the memory index—returns `400 {"error":"invalid_cursor"}` (callers must restart pagination from the first page without a cursor). |
+| `cursor` | string? | Opaque cursor token for forward pagination (max 1024 chars). An unknown or stale cursor (including one whose row was evicted from the in-memory index) returns `400 {"error":"invalid_cursor"}` (callers must restart pagination from the first page without a cursor). |
 
 The response returns `{"deliveries": [...]}`. When additional pages remain, the response includes `nextCursor` as an opaque string token. When no more pages follow, `nextCursor` is omitted entirely rather than returned as `null`.
 
@@ -1098,5 +1132,5 @@ Delivery outcomes determine whether failures are retried automatically:
 | `401` | Missing/invalid bearer token |
 | `403` | Valid token, disallowed action (identity token outside its scope, non-identity `from`, non-admin managing identities) |
 | `408` | `wait` timed out |
-| `429` | Send rate limit hit — back off `retryAfterSec` |
+| `429` | Send or message-list rate limit hit — back off `retryAfterSec` |
 | `5xx` | Mailserver unreachable or internal error — check `docker compose logs api` |
