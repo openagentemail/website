@@ -362,34 +362,47 @@ if (!isSourceMode) {
       assert.ok(m[0].includes(`config.webhooks.${key}`), `MISMATCH: ${fn} does not use config.webhooks.${key}`);
     }
 
-    // 10. signature verification implementation assertions
-    assert.ok(
-      /export function buildWebhookSignatureHeader\(/.test(src.signing),
-      'MISMATCH: buildWebhookSignatureHeader not exported',
-    );
-    assert.ok(src.signing.includes('Math.floor(nowMs / 1000)'), 'MISMATCH: nowMs timestamp rounding missing in signing');
-    assert.ok(src.signing.includes('v1=${s}'), 'MISMATCH: v1 signature formatting missing in signing');
-    assert.ok(src.signing.includes("createHmac('sha256'"), 'MISMATCH: HMAC-SHA256 algorithm not found in signing');
-    assert.ok(src.signing.includes('${t}.${rawBodyStr}'), 'MISMATCH: signed-payload construction missing in signing');
-    assert.ok(src.signing.includes("Buffer.from(displayedSecret, 'utf8')"), 'MISMATCH: displayed-secret key derivation missing in signing');
-    assert.ok(
-      /export function verifyWebhookSignature\(/.test(src.signing),
-      'MISMATCH: verifyWebhookSignature not exported',
-    );
-    assert.ok(src.signing.includes('timingSafeEqual'), 'MISMATCH: timingSafeEqual constant-time check missing in signing');
+    // 10. signature verification implementation assertions (scoped to function bodies)
+    const signingFn = (name) => {
+      const m = src.signing.match(new RegExp(`export function ${name}\\([\\s\\S]*?\\n\\}`));
+      if (!m) assert.fail(`WEBHOOK-NORMATIVE/PARSE: ${name} body not found in webhook-signing`);
+      return m[0];
+    };
+    const deriveFn = signingFn('deriveWebhookKey');
+    const buildFn = signingFn('buildWebhookSignatureHeader');
+    const verifyFn = signingFn('verifyWebhookSignature');
+    assert.ok(deriveFn.includes("Buffer.from(displayedSecret, 'utf8')"), 'MISMATCH: displayed-secret key derivation missing in deriveWebhookKey');
+    assert.ok(buildFn.includes('Math.floor(nowMs / 1000)'), 'MISMATCH: nowMs timestamp rounding missing in buildWebhookSignatureHeader');
+    assert.ok(buildFn.includes("createHmac('sha256'"), 'MISMATCH: HMAC-SHA256 algorithm missing in buildWebhookSignatureHeader');
+    assert.ok(buildFn.includes('${t}.${rawBodyStr}'), 'MISMATCH: signed-payload construction missing in buildWebhookSignatureHeader');
+    assert.ok(buildFn.includes('v1=${s}'), 'MISMATCH: v1 signature formatting missing in buildWebhookSignatureHeader');
+    assert.ok(verifyFn.includes("createHmac('sha256'"), 'MISMATCH: HMAC-SHA256 algorithm missing in verifyWebhookSignature');
+    assert.ok(verifyFn.includes('${t}.${rawBodyStr}'), 'MISMATCH: signed-payload construction missing in verifyWebhookSignature');
+    assert.ok(verifyFn.includes('timingSafeEqual'), 'MISMATCH: timingSafeEqual constant-time check missing in verifyWebhookSignature');
 
     // 11. dispatch-filter assertions (D3 statements)
+    const sinkMethod = (name) => {
+      const m = src.sink.match(new RegExp(`async ${name}\\([\\s\\S]*?\\n    \\}`));
+      if (!m) assert.fail(`WEBHOOK-NORMATIVE/PARSE: ${name} body not found in webhook-sink`);
+      return m[0];
+    };
+    const handleMailFn = sinkMethod('handleMail');
+    const handleApprovalFn = sinkMethod('handleApproval');
     assert.ok(
-      /state !== 'disabled' && s\.events\.includes\('mail\.received'\)/.test(src.sink),
-      'MISMATCH: mail.received dispatch filter (state + events) not found in webhook-sink',
+      /s\.state !== 'disabled' && s\.events\.includes\('mail\.received'\)/.test(handleMailFn),
+      'MISMATCH: mail.received dispatch filter (state + events) not found in handleMail',
     );
     assert.ok(
-      /sub\.state !== 'disabled'\s*&&\s*sub\.events\.includes\('approval\.requested'\)/.test(src.sink),
-      'MISMATCH: approval.requested dispatch filter (state + events) not found in webhook-sink',
+      /sub\.state !== 'disabled'\s*&&\s*sub\.events\.includes\('approval\.requested'\)/.test(handleApprovalFn),
+      'MISMATCH: approval.requested dispatch filter (state + events) not found in handleApproval',
     );
     assert.ok(
-      /sub\.address === reviewer/.test(src.sink),
-      'MISMATCH: approval reviewer-targeting predicate not found in webhook-sink',
+      /sub\.address === reviewer/.test(handleApprovalFn),
+      'MISMATCH: approval reviewer-targeting predicate not found in handleApproval',
+    );
+    assert.ok(
+      /s\.state === 'unverified'[\s\S]{0,60}?s\.state = 'enabled'/.test(src.delivery),
+      'MISMATCH: unverified -> enabled transition missing in delivery success handling',
     );
     const creationPingFn = src.delivery.match(/export function fireCreationPing\([\s\S]*?\n\}/);
     if (!creationPingFn) assert.fail('WEBHOOK-NORMATIVE/PARSE: fireCreationPing not found');

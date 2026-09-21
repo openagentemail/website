@@ -670,7 +670,7 @@ proxy and iOS/Android steps.
 
 Outbound webhooks deliver real-time HTTP POST notifications to external endpoints when events occur (such as incoming mail or task approval requests). Webhooks are disabled by default (`WEBHOOKS_ENABLED=false`). When enabled, subscriptions can be created and managed per identity address or globally with an admin key.
 
-Business-event deliveries (`mail.received`, `approval.requested`) are dispatched only to subscriptions whose `events` list includes the event type and that are not in the `disabled` state; diagnostic pings (`webhook.ping`) are dispatched regardless of the `events` list. A successful delivery attempt from the `unverified` state transitions the subscription to `enabled`.
+Business events are dispatched only to subscriptions whose `events` list includes the event type and that are not in the `disabled` state at dispatch time; diagnostic pings (`webhook.ping`) are dispatched regardless of the `events` list. A delivery already queued (including its retries) or manually redelivered is gated by the subscription state only, so removing the event type from `events` afterwards does not stop it. A successful delivery attempt from the `unverified` state transitions the subscription to `enabled`.
 
 Webhook endpoints require `WEBHOOKS_ENABLED=true` in server configuration; when disabled, requests return `404 {"error":"webhooks_disabled"}`. Enabling webhooks additionally requires an explicit `TASK_SIGNING_SECRET` of at least 32 characters; existing installations relying on the fallback to `SMTP_PASS` cannot enable webhooks without setting `TASK_SIGNING_SECRET` explicitly, or server startup will abort with a configuration error. OAuth access tokens may read subscriptions but are forbidden from mutating them or revealing signing secrets (`403`).
 
@@ -938,7 +938,7 @@ X-OAE-Signature: t=<unix-timestamp>,v1=<signature-hex>[,v1=<additional-signature
 > **Layer:** Explanatory — observable behaviour only; not normative.
 
 1. **Extract timestamp and signatures**: Parse the `X-OAE-Signature` header by splitting on commas. Extract the integer `t` value and candidate `v1` signature strings. If `t` or `v1` is missing, reject the request.
-2. **Check timestamp tolerance**: Compute `|nowSec - t|`. If the difference exceeds your configured tolerance — the server's `WEBHOOK_TIMESTAMP_TOLERANCE_SEC` (default **300 seconds** / 5 minutes) is a reasonable baseline — reject the request as expired (`timestamp_out_of_range`) to defend against replay attacks.
+2. **Check timestamp tolerance**: Compute `|nowSec - t|`. If the difference exceeds your configured tolerance — the server's `WEBHOOK_TIMESTAMP_TOLERANCE_SEC` (default **300 seconds** / 5 minutes) is a reasonable baseline — reject the request as expired (`timestamp_out_of_range`) to defend against replay attacks. (Within the tolerance window a replayed request still verifies; receivers should also deduplicate events by `id` — see the webhook delivery semantics section.)
 3. **Construct signed payload**: Concatenate the string `t`, a literal dot `.`, and the raw UTF-8 request body bytes:
    ```text
    signedPayload = `${t}.${rawRequestBody}`
