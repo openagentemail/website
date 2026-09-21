@@ -1,0 +1,25 @@
+{
+  "translationSet": [
+    "index"
+  ],
+  "locales": [
+    "es",
+    "ja",
+    "ko",
+    "zh"
+  ],
+  "sources": [
+    {
+      "page": "index",
+      "file": "src/pages/index.astro",
+      "sha256": "fd2b047e024a04de193933490ffa3f9a68fd7f04433c9bd772c2e1709bce6675"
+    }
+  ],
+  "dicts": {
+    "en": "src/i18n/en.js",
+    "es": "src/i18n/es.js",
+    "ja": "src/i18n/ja.js",
+    "ko": "src/i18n/ko.js",
+    "zh": "src/i18n/zh.js"
+  }
+}

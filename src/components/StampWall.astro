@@ -5,6 +5,21 @@
  * 文案逐字锁定，组件内不得改措辞。
  */
 
+interface Props {
+  labels?: {
+    kicker?: string;
+    title?: string;
+    mcpCaption?: string;
+    rfcCaption?: string;
+    a2aCaption?: string;
+    a2aNote?: string;
+    ercCaption?: string;
+    [key: string]: string | undefined;
+  };
+}
+
+const { labels } = Astro.props;
+
 /** 锯齿齿孔环：与 postmark.js serratedRing 同一算法，静态画在 SVG 里 */
 function serratedRing(teeth: number, rOuter: number, rInner: number) {
   const pts: string[] = [];
@@ -25,7 +40,7 @@ const stamps = [
     rot: -7,
     arc: 'MCP 2026-07-28',
     center: 'MCP',
-    caption: 'MCP 2026-07-28 — full dated-spec transport, local and remote',
+    caption: labels?.mcpCaption ?? 'MCP 2026-07-28 — full dated-spec transport, local and remote',
     note: '',
   },
   {
@@ -34,7 +49,7 @@ const stamps = [
     rot: 7,
     arc: 'RFC 9728',
     center: '9728',
-    caption: 'RFC 9728 — OAuth protected-resource metadata',
+    caption: labels?.rfcCaption ?? 'RFC 9728 — OAuth protected-resource metadata',
     note: '',
   },
   {
@@ -44,8 +59,9 @@ const stamps = [
     arc: 'A2A AGENT CARD',
     center: 'A2A',
     caption:
+      labels?.a2aCaption ??
       'A2A-vocabulary Agent Card — aligned with A2A v1.0 discovery format and task-state words, over email transport.',
-    note: "We deliberately don't claim wire-protocol compatibility.",
+    note: labels?.a2aNote ?? "We deliberately don't claim wire-protocol compatibility.",
   },
   {
     id: 'erc',
@@ -53,7 +69,7 @@ const stamps = [
     rot: 7,
     arc: 'ERC-8004',
     center: '8004',
-    caption: 'ERC-8004 export — on the roadmap, opt-in, write-only',
+    caption: labels?.ercCaption ?? 'ERC-8004 export — on the roadmap, opt-in, write-only',
     note: '',
   },
 ] as const;
@@ -61,8 +77,8 @@ const stamps = [
 
 <section class="standards" id="standards">
   <div class="wrap">
-    <p class="kicker reveal">On the record</p>
-    <h2 class="reveal">Speaks the standards — and says exactly how</h2>
+    <p class="kicker reveal">{labels?.kicker ?? 'On the record'}</p>
+    <h2 class="reveal">{labels?.title ?? 'Speaks the standards — and says exactly how'}</h2>
     <ul class="stamp-wall reveal">
       {
         stamps.map((s) => (

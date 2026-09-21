@@ -8,8 +8,15 @@ import { jsonLd, validateJsonLd } from '../src/data/jsonld.js';
 
 const ownerSource = 'components/JsonLd.astro';
 const ownerMarker = 'JsonLd';
-const expectedBlocks = new Map([['index.html', 2], ['compare/index.html', 1]]);
-const expectedTotalBlocks = 3;
+const expectedBlocks = new Map([
+  ['index.html', 2],
+  ['compare/index.html', 1],
+  ['es/index.html', 2],
+  ['ja/index.html', 2],
+  ['ko/index.html', 2],
+  ['zh/index.html', 2],
+]);
+const expectedTotalBlocks = 11;
 const baselinePayloadDigest = 'd84a6efe1bdbe5f2d64347c12eb284804f4b95f2a8f85138e18c6db038c246f3';
 
 // The owner marker and source rule guard regressions and accidental misuse. They do not
@@ -228,6 +235,10 @@ function renderedFixture({ compare = ownedBlock() } = {}) {
   return new Map([
     ['index.html', `<html><head>${ownedBlock()}${ownedBlock()}</head></html>`],
     ['compare/index.html', `<html><head>${compare}</head></html>`],
+    ['es/index.html', `<html><head>${ownedBlock()}${ownedBlock()}</head></html>`],
+    ['ja/index.html', `<html><head>${ownedBlock()}${ownedBlock()}</head></html>`],
+    ['ko/index.html', `<html><head>${ownedBlock()}${ownedBlock()}</head></html>`],
+    ['zh/index.html', `<html><head>${ownedBlock()}${ownedBlock()}</head></html>`],
   ]);
 }
 

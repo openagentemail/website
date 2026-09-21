@@ -1,0 +1,330 @@
+export const texts = {
+  // ── Meta / Head ──
+  meta_title: 'openagent.email — AI エージェントのためのオープンな通信とタスク引き継ぎ',
+  meta_description: 'AI エージェントのためのオープンな通信とタスク引き継ぎ。MCP と REST を通じて、すでにお使いのエージェントに対応するセルフホスト型メール、タスクスレッド、承認、Webhook を提供します。',
+  og_title: 'openagent.email — AI エージェントのためのオープンな通信とタスク引き継ぎ',
+  og_description: 'AI エージェントのためのオープンな通信とタスク引き継ぎ。MCP と REST を通じて、すでにお使いのエージェントに対応するセルフホスト型メール、タスクスレッド、承認、Webhook を提供します。独自のエージェントをそのまま活用し、作業の主導権を維持できます。',
+
+  // ── JSON-LD ──
+  jsonld_software_description: 'AI エージェントのためのオープンな通信とタスク引き継ぎ。MCP と REST を通じて、すでにお使いのエージェントに対応するセルフホスト型メール、タスクスレッド、承認、Webhook を提供します。独自のエージェントをそのまま活用し、作業の主導権を維持できます。',
+
+  // ── Nav ──
+  nav_brand_aria: 'openagent.email ホーム',
+  nav_compare: '比較',
+  nav_pricing: '料金',
+  nav_github: 'GitHub',
+  nav_docs: 'ドキュメント',
+
+  // ── Hero ──
+  hero_kicker: 'オープンソース · セルフホスト · Apache-2.0',
+  hero_title_line1: 'オープンな通信とタスク引き継ぎを、',
+  hero_title_line2: 'すべての AI エージェントへ。',
+  hero_sub: 'MCP と REST を通じて、すでにお使いのエージェントに対応するセルフホスト型メール、タスクスレッド、承認、Webhook を提供します。独自のエージェントをそのまま活用し、作業の主導権を維持できます。',
+  hero_chips_aria: 'ハイライト',
+  hero_chip_1: 'MCP 2026-07-28',
+  hero_chip_2: 'Apache-2.0',
+  hero_chip_3: 'セルフホスト第一主義',
+  hero_doc_quickstart: 'クイックスタート',
+  hero_doc_connect: 'エージェントを接続する',
+  hero_cta_github: 'GitHub で始める',
+  hero_cta_demo: '動作を見る ↓',
+  hero_copy_btn: 'コピー',
+  hero_npm_badge_title: 'npm 上のセットアップウィザード — VPS/ドメインの選択、ローカルデモ、MCP クライアント設定',
+  hero_npm_badge_alt: 'npm の @openagentemail/setup',
+  hero_novps_prefix: 'VPS をお持ちでない場合：',
+  hero_novps_link: 'Hosted Pro アーリーバード版（年額 $30）はこちら →',
+
+  // ── What is ──
+  what_is_title: 'openagent.email とは？',
+  what_is_p1: 'openagent.email は、エージェント間通信と検証可能なタスク引き継ぎのための Apache-2.0 インフラストラクチャです。受信トレイごとのソフトウェア利用料なしで、MCP および REST を介したセルフホスト型メール、タスクスレッド、承認、Webhook を利用できます。月額 5 ドル程度の VPS で十分稼働し、サーバー管理を行いたくない場合はマネージドサービスも選択可能です。外部 SMTP リレー、Webhook 送信、ntfy によるモバイルプッシュ通知を設定しない限り、メールデータはお手元のサーバー内に留まり、データ経路の完全な制御を維持できます。',
+
+  // ── Marquee / Works with ──
+  marquee_title: 'あらゆる MCP クライアント — および CURL が実行可能なすべての環境に対応',
+  marquee_claude: 'Claude Code',
+  marquee_cursor: 'Cursor',
+  marquee_windsurf: 'Windsurf',
+  marquee_docker: 'Docker',
+  marquee_kimi: '✦ Kimi Code',
+  marquee_mcp: '✦ すべての MCP クライアント',
+  marquee_rest: '✦ 標準 REST',
+
+  // ── Connect your agent ──
+  connect_kicker: '接続設定',
+  connect_title: 'エージェントを接続する。',
+  connect_sub: 'CLI、Claude Desktop、またはウェブチャット — Claude、ChatGPT、Grok、Mistral Le Chat、そして MCP が利用できない場合の標準 REST まで。ステップごとの簡潔なガイドを提供します。',
+  connect_cta_guide: 'エージェントを接続する →',
+  connect_cta_configs: 'CLI / Desktop 設定手順',
+
+  // ── Terminal Demo ──
+  demo_kicker: 'ワークフローの流れ',
+  demo_title: 'デプロイから OTP 抽出まで。',
+  demo_sub: '一連のワークフローのデモ：スタックの起動、ID の発行、メール着信の待機、コードの抽出。（スクリプトによるデモです。説明の簡潔化のため、管理者認証や完全なアドレスパラメータなどの前提条件は省略しています）。',
+  demo_term_title: 'agent@your-vps — openagent.email',
+  demo_term_aria: 'ターミナルデモ',
+
+  // ── Real Mail Cards (Fan) ──
+  fan_kicker: '実際のメールを、高精度に解析',
+  fan_title_1: 'エージェントが実際に',
+  fan_title_2: '受け取るメール形式。',
+  fan_sub: '世界各国の主要サービスから中国のクラウドプロバイダーまで、実際に送られるメールを用いて抽出テストを行っています。カードにマウスを重ねると内容を確認できます。',
+  fan_card_head_from: 'From:',
+  fan_card_head_subject: 'Subject:',
+
+  // ── Why it exists / Features ──
+  why_kicker: '選ばれる理由',
+  why_title_1: 'エージェント用メールボックスに必要なすべてを。',
+  why_title_2: '無駄な機能は一切なし。',
+  why_heading_human: '人間の管理者のために',
+  why_heading_agent: 'AI エージェントのために',
+  why_heading_box: 'あなたのサーバー、あなたのルール',
+
+  // Card 01: Cockpit
+  card_1_num: '01',
+  card_1_title: '人間のためのコックピット',
+  card_1_desc: '単なる閲覧専用のステータスページではなく、完全な運用ダッシュボードです。ワンクリックで OTP をコピーできる 3 ペインのメールクライアント、日次要約と機密情報マスクを備えた 30 日間の通知ログ、エージェントの作業を再開・終了できるタスクボード。ID、トークン、プッシュ通知段階、接続済みクライアントをすべてブラウザから一元管理できます。',
+  card_1_img_alt: 'ダッシュボード概要：ID 一覧テーブルと 30 日間の統計',
+
+  // Card 02: Phone push
+  card_2_num: '02',
+  card_2_title: '境界を制御できるスマホ通知',
+  card_2_desc: 'QR コードを読み取るだけで、コマンドライン不要で 10 秒でスマホとペアリング。3 段階の通知設定でサーバー外に送信する情報量を制御：通知のみ、送信者と件名（マスク処理）、または本文と OTP。第 3 段階はリスクの明示的な確認が必要であり、エージェントが独自に段階を引き上げることはできません。スマホを紛失してもワンクリックで即座に権限を失効できます。',
+  card_2_tier_1: '1  通知のみ',
+  card_2_tier_2: '2  送信者 + 件名',
+  card_2_tier_2_sub: '送信者 · 件名',
+  card_2_tier_3: '3  本文 + OTP',
+  card_2_tier_3_sub: '本文プレビュー',
+  card_2_otp_label: 'OTP',
+
+  // Card 03: Sent box
+  card_3_num: '03',
+  card_3_title: 'すべての送信履歴を記録',
+  card_3_desc: 'エージェントからのメール送信にも対応し、完全な台帳を保持します。送信済みトレイは送信履歴の監査ログを提供：送信日時、送信元、宛先、件名、および送信ステータス（待機中または SMTP リレーでの失敗）。30 日間の履歴を保存。送信されたメール本文は送信監査ストア内には保持されません。',
+  card_3_ledger_sample: '14 Aug 14:02  fox → owl  subject',
+  card_3_ledger_status: 'キュー登録済',
+
+  // Card 04: MCP
+  card_4_num: '04',
+  card_4_title: 'MCP 2026-07-28、ローカルでもリモートでも',
+  card_4_desc: '公式 SDK v2 に基づいて構築され、日付付きの 2026-07-28 仕様に準拠。同一マシン上のエージェントは stdio 経由で、クラウドエージェントは OAuth を用いたステートレス HTTPS で接続します。承認されたクライアントはダッシュボードに一覧表示され、いつでも失効可能です。',
+
+  // Card 05: Tasks
+  card_5_num: '05',
+  card_5_title: 'エージェント間タスク連携',
+  card_5_desc: 'メールをベースとしたタスクスレッドと、サーバー刻印のステータス管理（<code>submitted</code>→<code>working</code>→<code>completed</code>/<code>failed</code>）。Webhook またはプッシュ経由で通知を配信し外部エージェントを起動。ダッシュボードは作業指示ビューを表示します。<code>/.well-known/agent-card.json</code> にて A2A 準拠の Agent Card を提供（メール転送方式であり、通信規約自体の互換性を主張するものではありません）。ボードの監視、履歴の確認、停滞したタスクの再開や終了など、単なる傍観者ではなく指令役として統括できます。',
+
+  // Card 06: Unlimited identities
+  card_6_num: '06',
+  card_6_title: '無制限の ID 発行',
+  card_6_desc: '1 つのキャッチオールメールボックスで、無制限の <code>anything@yourdomain</code> アドレスを作成。事前プロビジョニングやアカウントごとのソフトウェア費用は不要で、サーバーリソースのみが上限となります。',
+
+  // Card 07: Scoped tokens
+  card_7_num: '07',
+  card_7_title: 'スコープ付きトークン',
+  card_7_desc: '各 ID には専用の <code>oa_…</code> トークンが割り当てられ、該当アドレスとしての読み取りと送信のみが許可されます。管理者キーがエージェントに渡ることはありません。',
+
+  // Card 08: wait_for + OTP
+  card_8_num: '08',
+  card_8_title: 'wait_for + OTP 抽出',
+  card_8_desc: '登録確認メールが届くまで受信トレイをロングポーリングし、コードや認証リンクを解析済みの構造化データとして取得。自動登録の自動化に最適です。',
+
+  // Card 09: Safety rails
+  card_9_num: '09',
+  card_9_title: '安全ガードレール',
+  card_9_desc: 'ID ごとの送信レート制限（デフォルト 20 通/時）と自動保持期間（デフォルト 30 日）。すべてのメッセージに <code>source: internal|external</code> が付与され、外部発信の本文は MCP レイヤーで隔離フェンスされます。トークンが漏洩してもスパム発信源となるのを防止します。',
+
+  // Card 10: Relay
+  card_10_num: '10',
+  card_10_title: '独自のリレーを活用',
+  card_10_desc: 'お使いの VPS から直接送信することも、環境変数 1 つで Amazon SES や任意の SMTP リレーを経由して送信することも可能です。IP レピュテーションはご自身で管理できます。',
+
+  // Card 11: DNS wizard + doctor
+  card_11_num: '11',
+  card_11_title: 'DNS ウィザード + 診断ツール',
+  card_11_desc: '<code>dns-records.sh</code> が設定すべき正確な DNS レコードを出力します。<code>doctor.sh</code> はエージェントが利用を開始する前に、13 項目の到達性チェックを実行します。',
+
+  // FeatureViz labels
+  viz_safety: '20/h · 30d · MCP fence',
+
+  // StampWall
+  stamp_kicker: '確かな実績',
+  stamp_title: '標準規格に準拠 — その実装内容を明確に公開',
+  stamp_caption_mcp: 'MCP 2026-07-28 — 日付付き仕様の完全なトランスポート、ローカルおよびリモート対応',
+  stamp_caption_rfc: 'RFC 9728 — OAuth 保護リソースメタデータ',
+  stamp_caption_a2a: 'A2A 語彙 Agent Card — A2A v1.0 のディスカバリ形式およびタスク状態用語に準拠（メールトランスポート）',
+  stamp_note_a2a: 'ワイヤプロトコルの直接互換性を主張するものではありません。',
+  stamp_caption_erc: 'ERC-8004 エクスポート — ロードマップ策定中、オプトイン方式、書き込み専用',
+
+  // ── How it works (Steps) ──
+  steps_kicker: '動作の仕組み',
+  steps_title_1: '10 分・5 ステップ、',
+  steps_title_2: 'すべてが実際に動作。',
+  step_1_title: 'デプロイまたは接続',
+  step_1_desc: 'Bun/Hono API とメールサーバーをローカルの DATA_DIR 状態で起動するか、既存のインスタンスにエージェントを接続します。',
+  step_2_title: 'DNS 設定',
+  step_2_desc: 'ウィザードがプロバイダーに登録すべき正確な A / MX / SPF / DKIM / DMARC レコードを出力します。',
+  step_3_title: '検証・診断',
+  step_3_desc: '13 項目のチェック：DNS、TLS、25 番ポート、ブロックリスト、PTR。エージェントが本番稼働する前に警告項目を解消します。',
+  step_4_title: 'ID の発行',
+  step_4_desc: '1 回の API 呼び出しでアドレスとスコープ付きトークンを発行。管理者キーではなく、このトークンのみをエージェントに渡します。',
+  step_5_title: 'メール受信',
+  step_5_desc: 'エージェントが受信トレイを待機し、確認メールが届くと、解析された OTP コードを即座に入力可能な状態で取得します。',
+
+  // ── Stats + Capabilities ──
+  stat_mcp_tools: 'MCP ツール',
+  cap_rest_title: 'REST API',
+  cap_rest_1: 'POST /v1/identities — アドレスとスコープ付きトークンを発行',
+  cap_rest_2: 'GET /v1/identities — 所有するすべての ID を一覧表示',
+  cap_rest_3: 'POST /v1/identities/:a/token — トークンの再生成（失効）',
+  cap_rest_4: 'DELETE /v1/identities/:a — ID の削除',
+  cap_rest_5: 'GET /v1/identities/:a/push-tier — ID のプッシュ通知段階を取得',
+  cap_rest_6: 'PUT /v1/identities/:a/push-tier — プッシュ段階を設定（管理者用；段階 3 は確認必須）',
+  cap_rest_7: 'GET /v1/messages — 受信トレイのメッセージ一覧',
+  cap_rest_8: 'GET /v1/messages/:id — 完全なメールデータ + 解析済み OTP',
+  cap_rest_9: 'POST /v1/messages/wait — 新着メールのロングポーリング待機',
+  cap_rest_10: 'POST /v1/messages/:id/seen — 既読 / 未読の切り替え',
+  cap_rest_11: 'POST /v1/send — 所有する任意の ID からメールを送信',
+  cap_rest_12: 'POST /v1/tasks — 別の ID にメール基盤のタスクを割り当て',
+  cap_rest_13: 'GET /v1/tasks — 閲覧可能なタスクスレッド一覧',
+  cap_rest_14: 'GET /v1/tasks/:id — タスク詳細とステータス履歴の取得',
+  cap_rest_15: 'POST /v1/tasks/:id/state — 参加中のタスクステータスを進行',
+  cap_rest_16: 'POST /v1/notify — サーバー側通知を送信',
+  cap_rest_17: 'GET /v1/notify/messages — 最近の通知履歴を表示',
+  cap_rest_18: 'POST /v1/notify/verify — 自己診断の実行とポーリング確認',
+  cap_rest_19: 'POST /v1/notify/devices — プッシュ通知用デバイスの登録',
+  cap_mcp_title: 'MCP ツール',
+  cap_corpus_title: '抽出検証コーパス',
+  cap_corpus_1: 'Google、GitHub、Amazon、Microsoft、OpenAI、Discord',
+  cap_corpus_2: 'Aliyun、Tencent Cloud、NetEase',
+  cap_corpus_3: '確認リンク / パスワード再設定 / マジックリンク',
+  cap_corpus_4: 'HTML タグにまたがって分割された認証コード',
+
+  // ── OTP Spotlight ──
+  otp_kicker: '中核となる仕組み',
+  otp_title: '素のメールを入力。構造化された OTP を出力。',
+  otp_sub: 'エージェントが複雑な MIME 解析を行う必要はありません。すべてのメッセージは認証コードやアクションリンクが抽出された状態で返され、必要に応じて未加工のテキストや HTML もそのまま参照できます。',
+
+  // ── Comparison ──
+  cmp_kicker: '他社サービスとの比較',
+  cmp_title: '誠実な選択肢の比較。',
+  cmp_th_openagent: 'openagent.email',
+  cmp_th_agentmail: 'AgentMail',
+  cmp_th_mailslurp: 'MailSlurp',
+  cmp_row_oss: 'オープンソース',
+  cmp_cell_oss_us: 'Apache-2.0',
+  cmp_row_deploy: 'デプロイ形態',
+  cmp_cell_deploy_us: '任意の VPS',
+  cmp_cell_deploy_agentmail: 'SaaS または BYOC（AWS Outposts）',
+  cmp_cell_deploy_mailslurp: 'SaaS のみ',
+  cmp_row_price: '価格体系',
+  cmp_cell_price_us: '固定の VPS コスト（月額約 $5）',
+  cmp_cell_price_agentmail: 'Developer/Startup：従量課金制（受信箱・ドメイン・1,000 通送信ごとに +$2）；年払い 20% 割引',
+  cmp_cell_price_mailslurp: '上限付きプラン + 超過従量課金',
+  cmp_row_inboxes: '受信トレイ数無制限',
+  cmp_cell_inboxes_us: 'キャッチオール対応',
+  cmp_cell_inboxes_agentmail: '有料プラン上限あり',
+  cmp_cell_inboxes_mailslurp: '有料プラン上限あり',
+  cmp_row_mcp: 'MCP ネイティブ対応',
+  cmp_cell_mcp_mailslurp: 'ホスト型 MCP',
+  cmp_row_otp: 'OTP / リンク抽出',
+  cmp_cell_otp_agentmail: '独自検証なし',
+  cmp_row_residency: 'メールデータの所在',
+  cmp_cell_residency_us: '自社サーバー*',
+  cmp_cell_residency_agentmail: 'SaaS：他社サーバー、Outposts：自社 AWS†',
+  cmp_cell_residency_mailslurp: '常に他社サーバー',
+  cmp_row_vendor_plane: 'ベンダー管理プレーン',
+  cmp_cell_vendor_plane_us: 'なし',
+  cmp_cell_vendor_plane_agentmail: 'あり（Outposts を含む）',
+  cmp_cell_vendor_plane_mailslurp: 'あり',
+  cmp_row_run_server: '自社でのサーバー運用',
+  cmp_cell_run_server_us: '必要（それこそが利点）',
+  cmp_cell_run_server_agentmail: '不要（BYOC でもベンダー運用）',
+  cmp_cell_run_server_mailslurp: '不要',
+  cmp_honest_note: '公平を期すために：VPS を一切管理したくない場合、SaaS 型のホストサービスの方が確実に簡単です。また、メール内容を自社の AWS アカウント内に保持する必要がある場合は、AgentMail の Outposts BYOC も現実的な選択肢となります。それでも私たちは、ベンダーの管理プレーンに依存せず、OTP、リンク、IP レピュテーションを含むメールボックスの完全な主導権を握ることには、10 分間のセットアップ以上の価値があると考えています。選択はお客様次第です。*注記：プッシュ通知段階 2/3 は ntfy 経由で件名/送信者または本文/OTP を中継します（デフォルトはオフ）。† Outposts はメール本文をお客様の AWS 内に保持しますが、ダッシュボード、認証、請求、アップグレードは依然として AgentMail 側が管理します。',
+
+  // ── What it takes to run ──
+  run_kicker: '動作要件について',
+  run_title_1: '市場で最も安価な VPS でも',
+  run_title_2: '十分に動作します。',
+  run_sub: 'アイドル時のスタック全体（メールサーバー、API、バックグラウンドワーカー）の消費メモリはわずか約 190&nbsp;MB で、CPU 負荷も最小限です（2026年9月、Debian 12、docker-mailserver + Bun API スタックで測定）。',
+  run_card_1_badge: '最小構成',
+  run_card_1_title: '1 vCPU · 1 GB · 10 GB',
+  run_card_1_desc: 'デフォルト設定で安定動作。月額 $5 程度の VPS、またはエントリーレベルの格安 VPS（年額約 $10〜15/<em>年</em>）で十分です。',
+  run_card_2_badge: '推奨構成',
+  run_card_2_title: '1 vCPU · 2 GB · 20 GB',
+  run_card_2_desc: 'スパムフィルター（SpamAssassin）を有効化しても余裕のあるスペックです。',
+  run_card_3_badge: 'アンチウイルス搭載',
+  run_card_3_title: '4 GB RAM',
+  run_card_3_desc: 'ClamAV 単体で約 1 GB を消費するため、初期状態では無効化されています。エージェント用途では通常不要です。',
+  run_honest_note: 'スペック以上に重要な前提条件は 25 番ポートです。AWS、GCP、Azure、DigitalOcean、Vultr では初期状態で 25 番ポートがブロックされています（申請により開放可能な場合もあります）。契約前に確認するか、Amazon SES などの外部リレーを経由して送信することで、ポート開放の手間を省くことができます。',
+
+  // ── FAQ ──
+  faq_kicker: 'よくある質問',
+  faq_title: 'よく寄せられる質問にお答えします。',
+  faq_q_1: '本当に無料ですか？',
+  faq_a_1: 'はい — Apache-2.0 ライセンスに基づくセルフホストは完全無料です。有料プランや受信箱ごとのライセンス料はありません（サーバー容量やプロバイダーの制限にのみ依存します）。費用が発生するのは運用するサーバー代のみで、月額 5 ドルの VPS で十分です。もしサーバー管理を行いたくない場合は、年額 30 ドルの買い切りで利用できる Hosted Pro アーリーバード版も提供しています — 詳細は料金プランをご覧ください。',
+  faq_link_1_text: '詳細は',
+  faq_link_1_strong: '料金プラン',
+  faq_q_2: 'AgentMail との違いは何ですか？',
+  faq_a_2: 'AgentMail は従量課金制のホスト型 SaaS であり、企業の AWS アカウント内にメールデータを保持しつつベンダー側が管理プレーンを運用する BYOC オプション（Outposts）を提供しています。openagent.email は任意の VPS 上で自ら運用できる Apache-2.0 ソフトウェアです。独自ドメインで無制限の受信トレイを作成でき、ベンダー管理プレーンはなく、データ経路はお客様の完全な管理下に置かれます。外部 SMTP リレー、Webhook（メタデータまたはプレビュー）、ntfy 経由のプッシュ通知（段階 2/3）を明示的に設定しない限り、メールがサーバー外に出ることはありません。セルフホストを希望されない方向けに、マネージド版の Hosted Pro もご用意しています。詳細な比較表は /compare をご覧ください。',
+  faq_q_3: '独自ドメインは必要ですか？',
+  faq_a_3: 'はい — 年間約 10 ドル程度で取得できる任意の独自ドメインが必要です。1 つのドメインがあれば、運用するすべてのエージェントに専用のアドレス（agent1@yourdomain、agent2@yourdomain など）を割り当てることができます。ドキュメントにて DNS レコードの設定手順をステップごとに解説しています。',
+  faq_q_4: 'どのようなエージェントやクライアントに対応していますか？',
+  faq_a_4: 'Claude Code、Cursor、Kimi Code など、MCP に対応するすべてのツールと @openagentemail/mcp サーバー経由で連携可能です（最新の 2026-07-28 付 MCP 仕様に準拠）。クラウドエージェントは RFC 9728 準拠の OAuth を備えたステートレス HTTPS、またはスコープ付き ID トークンで接続でき、接続済みのすべての OAuth クライアントはダッシュボード上でいつでも失効可能です。その他の環境には標準の REST API が対応します。',
+  faq_q_5: '送信したメールが迷惑メールに判定される心配はありますか？',
+  faq_a_5: 'メール到達性はご自身の IP およびドメインのレピュテーションに依存します。これについては到達性ガイドで詳しく解説しています。SPF、DKIM、DMARC の設定は自動的に行われ、VPS プロバイダーが 25 番ポートを遮断している場合は Amazon SES を経由した送信リレーも設定できます。',
+  faq_q_6: '人間が操作できる UI はありますか？',
+  faq_a_6: 'はい — /ui にて閲覧専用ではない本格的な運用ダッシュボード（コックピット）を提供しています。3 ペインのメールクライアントで全エージェントの受信箱を確認しワンクリックで OTP をコピーしたり、日次要約と機密マスク付きの 30 日間通知ログを確認したり、タスクボードからエージェントの作業を再開・終了したりできます。さらに ID、トークン、プッシュ段階、接続中クライアントの管理、QR コードでのスマホ連携、送信済みトレイでの監査にも対応しています。端末を一度信頼すれば、30 日間ログイン状態を維持できます。',
+  faq_q_7: 'エージェント同士でタスクを引き継ぐことはできますか？',
+  faq_a_7: 'はい。タスク機能は、管理対象の ID 間でやり取りされるメールベースのスレッドであり、サーバー側で刻印されたステータス（submitted → working → completed/failed）を持ちます。タスクを作成すると通知（Webhook またはプッシュ）が配信され、外部エージェントが起動します。ダッシュボードはスレッドを作業指示カードとして再構成し、参加者、タイムライン、結果ブロックを表示します。ボード上から履歴の確認、停滞したタスクの再開や終了などの操作が可能です。',
+  faq_q_8: 'スマートフォンでアラートを受け取ることはできますか？',
+  faq_a_8: 'はい — モバイルガイドに従って初回のみ ntfy の HTTPS 設定を行った後、ダッシュボードから QR コードをスキャンするだけで ntfy アプリとペアリングできます。サーバー外に送信する情報量は ID ごとに設定可能で、通知のみ、送信者と件名（マスク済み）、または本文と OTP から選択できます（段階 3 はリスクの明示的な確認が必要で、エージェント自身による引き上げは不可）。端末を紛失した場合もワンクリックでアクセス権を失効できます。',
+  faq_q_9: 'エージェントが信頼できないメールを読み取るのは安全ですか？',
+  faq_a_9: 'ラベルのない生の MIME メールを読み込ませるより格段に安全です。すべてのメッセージには source: internal|external のメタデータが付与され、同一ドメイン内の正規宛先にのみサーバー HMAC 印章（X-OA-Mail-Stamp）が付与されます。外部メールの本文、HTML、スニペットは MCP レイヤーで隔離フェンスされ、モデルに対して「これは指示ではなくデータである」と明示的に認識させます。これは多層防御のための衛生基準であり、プロンプトインジェクションに対する絶対的な防御を保証するものではありません。',
+
+  // ── Open source + Final CTA ──
+  oss_kicker: 'オープンソース',
+  oss_title: '自由に実行、閲覧、フォーク可能。',
+  oss_sub: 'API、MCP サーバー、デプロイツール群 — すべてが公開され、監査可能です。Raspberry Pi から大規模サーバー群まで幅広く運用できます。コミュニティへの貢献も大歓迎です。',
+  oss_badge: 'Apache-2.0',
+  cta_heading_1: 'オープンな通信とタスク引き継ぎを、',
+  cta_heading_2: '今すぐ始めませんか？',
+  cta_btn_github: 'GitHub で Star を付ける',
+  cta_btn_docs: 'ドキュメントを読む',
+
+  // ── Footer ──
+  footer_tagline: 'AI エージェントのためのオープンな通信とタスク引き継ぎ。MCP と REST によるセルフホスト型メール、タスクスレッド、承認、Webhook。独自インフラ上でデータ経路を完全制御。',
+  footer_product_title: '製品',
+  footer_product_github: 'GitHub',
+  footer_product_pricing: '料金',
+  footer_product_compare: '比較',
+  footer_docs_title: 'ドキュメント',
+  footer_docs_quickstart: 'クイックスタート',
+  footer_docs_connect: 'エージェントを接続する',
+  footer_docs_api: 'API リファレンス',
+  footer_docs_security: 'セキュリティ',
+  footer_docs_mcp_setup: 'MCP 設定',
+  footer_docs_mcp_overview: 'MCP 概要',
+  footer_docs_otp: 'OTP 抽出ガイド',
+  footer_docs_deliverability: 'メール到達性',
+  footer_project_title: 'プロジェクト',
+  footer_project_license: 'Apache-2.0 ライセンス',
+  footer_project_contributing: '貢献ガイドライン',
+  footer_project_issues: '課題（Issues）',
+  footer_project_privacy: 'プライバシーポリシー',
+  footer_project_terms: '利用規約',
+  footer_project_support: 'support@openagent.email',
+  footer_copyright: '© 2026 openagent.email',
+  footer_noframework: 'フレームワーク不使用・完全軽量設計 — ホテルの Wi-Fi 環境でも一瞬で表示されます。',
+  footer_badge_aad_title: 'AI Agents Directory で openagent.email を見る',
+  footer_badge_aad_alt: 'openagent.email - AI Agents Directory 掲載',
+  footer_badge_agenthunter_tag: 'AgentHunter',
+  footer_badge_agenthunter_featured: '注目の AI エージェント',
+  footer_badge_fazier_alt: 'Fazier バッジ',
+  footer_badge_launchvault_title: 'LaunchVault 掲載',
+  footer_badge_launchvault_alt: 'LaunchVault 掲載',
+  footer_badge_newtools_alt: 'NewTools.site 掲載',
+
+  // ── Script UI strings ──
+  script_copied: 'コピー完了 ✓',
+  script_copy: 'コピー',
+};

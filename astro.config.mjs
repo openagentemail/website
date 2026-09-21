@@ -1,5 +1,6 @@
 import { defineConfig } from 'astro/config';
 import starlight from '@astrojs/starlight';
+import sitemap from '@astrojs/sitemap';
 
 // Static marketing site for openagent.email — no framework islands,
 // a few vanilla-JS enhancements shipped as-is.
@@ -11,6 +12,18 @@ export default defineConfig({
     '/alternatives/mailslurp': '/compare#mailslurp',
   },
   integrations: [
+    sitemap({
+      i18n: {
+        defaultLocale: 'en',
+        locales: {
+          en: 'en',
+          es: 'es',
+          ja: 'ja',
+          ko: 'ko',
+          zh: 'zh-CN',
+        },
+      },
+    }),
     starlight({
       title: 'openagent.email',
       description: 'Self-hosted email for AI agents — docs',

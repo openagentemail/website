@@ -1,6 +1,9 @@
 ---
-interface Props { kind: 'mcp' | 'tasks' | 'identities' | 'tokens' | 'otp' | 'safety' | 'relay' | 'dns' }
-const { kind } = Astro.props;
+interface Props {
+  kind: 'mcp' | 'tasks' | 'identities' | 'tokens' | 'otp' | 'safety' | 'relay' | 'dns';
+  labels?: Record<string, string>;
+}
+const { kind, labels } = Astro.props;
 ---
 
 <div class="card-viz feature-viz" aria-hidden="true">
@@ -55,7 +58,7 @@ const { kind } = Astro.props;
     {kind === 'safety' && <>
       <g class="icon hero-icon" transform="translate(20 6) scale(2.65)"><path d="M4 12v4h16v-4H4M6 16v4h4v-4m0-4V6L8 4 6 6v6M14 16v4h4v-4m0-4V6l-2-2-2 2v6"/></g>
       <g class="icon badge-icon" transform="translate(149 16) scale(1.9)"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></g>
-      <text class="label" x="20" y="69">20/h · 30d · MCP fence</text>
+      <text class="label" x="20" y="69">{labels?.safety ?? '20/h · 30d · MCP fence'}</text>
     </>}
 
     {kind === 'relay' && <>

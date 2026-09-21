@@ -1658,13 +1658,13 @@ assert.equal(pkg.scripts['test:seo-docs'], 'node --test tests/seo-docs.test.mjs'
 assert.equal(pkg.scripts['test:seo-docs-rendered'], 'node tests/seo-docs.test.mjs --check-rendered');
 assert.equal(
   pkg.scripts.prebuild,
-  'npm run test:compare-freshness && npm run test:hosted-checkout && npm run test:mail-security-docs && npm run test:iphone-mail-guide && npm run test:jsonld && npm run test:seo-docs && npm run test:llms-txt && npm run test:mcp-tools && npm run test:mcp-tools-upstream && npm run test:webhook-normative && npm run test:webhook-normative-source',
-  'the canonical lifecycle must preserve all prior gates and append test:webhook-normative + test:webhook-normative-source',
+  'npm run test:compare-freshness && npm run test:hosted-checkout && npm run test:mail-security-docs && npm run test:iphone-mail-guide && npm run test:jsonld && npm run test:seo-docs && npm run test:llms-txt && npm run test:mcp-tools && npm run test:mcp-tools-upstream && npm run test:webhook-normative && npm run test:webhook-normative-source && node scripts/i18n-check.mjs && npm run test:i18n-sync',
+  'the canonical lifecycle must preserve all prior gates and append i18n checks',
 );
 assert.equal(
   pkg.scripts.postbuild,
-  'npm run test:compare-rendered && npm run test:jsonld-rendered && npm run test:seo-docs-rendered && npm run test:llms-txt-rendered && npm run test:mcp-tools-rendered',
-  'postbuild must preserve prior gates and add the seo-docs rendered leg',
+  'npm run test:compare-rendered && npm run test:jsonld-rendered && npm run test:seo-docs-rendered && npm run test:llms-txt-rendered && npm run test:mcp-tools-rendered && npm run test:i18n-sync-rendered',
+  'postbuild must preserve prior gates and add the i18n-sync-rendered leg',
 );
 
 for (const [label, markup] of [

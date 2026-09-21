@@ -1,0 +1,65 @@
+---
+import { LOCALES, DEFAULT_LOCALE, HTML_LANG, pageUrl } from '../i18n/config.js';
+
+interface Props {
+  currentLocale: string;
+  page?: string;
+}
+
+const { currentLocale, page = 'index' } = Astro.props;
+
+const allLocales = [DEFAULT_LOCALE, ...LOCALES];
+
+const LOCALE_LABELS = {
+  en: 'EN',
+  es: 'ES',
+  ja: 'JA',
+  ko: 'KO',
+  zh: 'ZH',
+};
+---
+
+<div class="lang-switcher" aria-label="Language selector">
+  {allLocales.map((loc) => {
+    const isCurrent = loc === currentLocale;
+    const href = pageUrl(loc, page);
+    const hl = HTML_LANG[loc] || loc;
+    return (
+      <a
+        href={href}
+        hreflang={hl}
+        class={`lang-link ${isCurrent ? 'active' : ''}`}
+        aria-current={isCurrent ? 'true' : undefined}
+      >
+        {LOCALE_LABELS[loc] || loc.toUpperCase()}
+      </a>
+    );
+  })}
+</div>
+
+<style>
+  .lang-switcher {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-left: 0.75rem;
+    padding-left: 0.75rem;
+    border-left: 1px solid var(--line, rgba(255, 255, 255, 0.1));
+    font-size: 0.8rem;
+    font-family: var(--mono, monospace);
+  }
+  .lang-link {
+    color: var(--ink-faint, #888);
+    text-decoration: none;
+    padding: 0.15rem 0.35rem;
+    border-radius: 4px;
+    transition: color 0.15s ease, background 0.15s ease;
+  }
+  .lang-link:hover {
+    color: var(--ink, #fff);
+  }
+  .lang-link.active {
+    color: var(--gold, #fbbf24);
+    font-weight: 700;
+  }
+</style>

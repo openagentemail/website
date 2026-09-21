@@ -1,0 +1,330 @@
+export const texts = {
+  // ── Meta / Head ──
+  meta_title: 'openagent.email — AI 에이전트를 위한 개방형 통신 및 작업 인수인계',
+  meta_description: 'AI 에이전트를 위한 개방형 통신 및 작업 인수인계. MCP 및 REST를 통해 이미 사용 중인 에이전트를 지원하는 셀프 호스팅 이메일, 작업 스레드, 승인 및 웹훅을 제공합니다.',
+  og_title: 'openagent.email — AI 에이전트를 위한 개방형 통신 및 작업 인수인계',
+  og_description: 'AI 에이전트를 위한 개방형 통신 및 작업 인수인계. MCP 및 REST를 통해 이미 사용 중인 에이전트를 지원하는 셀프 호스팅 이메일, 작업 스레드, 승인 및 웹훅을 제공합니다. 기존 에이전트를 그대로 활용하고 작업 통제권을 유지하십시오.',
+
+  // ── JSON-LD ──
+  jsonld_software_description: 'AI 에이전트를 위한 개방형 통신 및 작업 인수인계. MCP 및 REST를 통해 이미 사용 중인 에이전트를 지원하는 셀프 호스팅 이메일, 작업 스레드, 승인 및 웹훅을 제공합니다. 기존 에이전트를 그대로 활용하고 작업 통제권을 유지하십시오.',
+
+  // ── Nav ──
+  nav_brand_aria: 'openagent.email 홈',
+  nav_compare: '비교',
+  nav_pricing: '가격',
+  nav_github: 'GitHub',
+  nav_docs: '문서',
+
+  // ── Hero ──
+  hero_kicker: '오픈 소스 · 셀프 호스팅 · Apache-2.0',
+  hero_title_line1: '개방형 통신 및 작업 인수인계,',
+  hero_title_line2: 'AI 에이전트를 위하여.',
+  hero_sub: 'MCP 및 REST를 통해 이미 사용 중인 에이전트를 지원하는 셀프 호스팅 이메일, 작업 스레드, 승인 및 웹훅을 제공합니다. 기존 에이전트를 그대로 활용하고 작업 통제권을 유지하십시오.',
+  hero_chips_aria: '주요 특징',
+  hero_chip_1: 'MCP 2026-07-28',
+  hero_chip_2: 'Apache-2.0',
+  hero_chip_3: '셀프 호스팅 우선',
+  hero_doc_quickstart: '빠른 시작',
+  hero_doc_connect: '에이전트 연결하기',
+  hero_cta_github: 'GitHub에서 시작하기',
+  hero_cta_demo: '동작 보기 ↓',
+  hero_copy_btn: '복사',
+  hero_npm_badge_title: 'npm의 설치 마법사 — VPS/도메인 선택, 로컬 데모 및 MCP 클라이언트 설정',
+  hero_npm_badge_alt: 'npm의 @openagentemail/setup',
+  hero_novps_prefix: 'VPS가 없으신가요? ',
+  hero_novps_link: 'Hosted Pro 얼리버드(연간 $30) 바로가기 →',
+
+  // ── What is ──
+  what_is_title: 'openagent.email이란 무엇인가요?',
+  what_is_p1: 'openagent.email은 에이전트 간 통신과 검증 가능한 작업 인수인계를 위한 Apache-2.0 기반 인프라입니다. 받은 편지함당 소프트웨어 비용 없이 MCP 및 REST 기반의 셀프 호스팅 이메일, 작업 스레드, 승인, 웹훅을 제공합니다. 월 $5 수준의 VPS로도 충분하며, 직접 서버를 운영하지 않으려는 경우 호스팅 서비스도 선택할 수 있습니다. 외부 SMTP 릴레이, 웹훅 발송, ntfy 기반 모바일 알림을 설정하지 않는 한 모든 메일은 자체 서버에 안전하게 보관되며 데이터 경로를 완전히 통제할 수 있습니다.',
+
+  // ── Marquee / Works with ──
+  marquee_title: '모든 MCP 클라이언트 — 및 CURL이 가능한 모든 환경과 호환',
+  marquee_claude: 'Claude Code',
+  marquee_cursor: 'Cursor',
+  marquee_windsurf: 'Windsurf',
+  marquee_docker: 'Docker',
+  marquee_kimi: '✦ Kimi Code',
+  marquee_mcp: '✦ 모든 MCP 클라이언트',
+  marquee_rest: '✦ 표준 REST',
+
+  // ── Connect your agent ──
+  connect_kicker: '연결하기',
+  connect_title: '에이전트를 연결하십시오.',
+  connect_sub: 'CLI, Claude Desktop 또는 웹 채팅 — Claude, ChatGPT, Grok, Mistral Le Chat뿐만 아니라 MCP를 사용할 수 없을 때를 위한 표준 REST까지 지원합니다. 단계별 간결한 가이드를 제공합니다.',
+  connect_cta_guide: '에이전트 연결하기 →',
+  connect_cta_configs: 'CLI / Desktop 설정 가이드',
+
+  // ── Terminal Demo ──
+  demo_kicker: '워크플로 둘러보기',
+  demo_title: '배포부터 OTP 추출까지.',
+  demo_sub: '전체 워크플로 시연: 스택 실행, 식별자 발급, 메일 대기 및 인증 코드 추출. (스크립트로 작성된 시연이며, 명확성을 위해 관리자 인증 및 전체 주소 매개변수와 같은 전제 조건은 생략되었습니다).',
+  demo_term_title: 'agent@your-vps — openagent.email',
+  demo_term_aria: '터미널 데모',
+
+  // ── Real Mail Cards (Fan) ──
+  fan_kicker: '실제 이메일, 정확한 구문 분석',
+  fan_title_1: '에이전트가 실제로 마주할',
+  fan_title_2: '실제 메일 포맷.',
+  fan_sub: '글로벌 주요 서비스부터 중국 클라우드 제공업체에 이르기까지 실제 전송되는 메일을 바탕으로 추출 테스트를 완료했습니다. 카드를 마우스로 가리켜 내용을 확인하십시오.',
+  fan_card_head_from: '보낸사람:',
+  fan_card_head_subject: '제목:',
+
+  // ── Why it exists / Features ──
+  why_kicker: '핵심 기능',
+  why_title_1: '에이전트 메일박스에 필요한 모든 것.',
+  why_title_2: '불필요한 기능은 배제.',
+  why_heading_human: '인간 관리자를 위하여',
+  why_heading_agent: 'AI 에이전트를 위하여',
+  why_heading_box: '자체 서버, 자체 규칙',
+
+  // Card 01: Cockpit
+  card_1_num: '01',
+  card_1_title: '인간을 위한 조종석(Cockpit)',
+  card_1_desc: '단순한 읽기 전용 상태 페이지가 아닌 완전한 작업용 콘솔입니다. 원클릭 OTP 복사를 지원하는 3분할 메일 클라이언트, 일일 요약과 민감 정보 마스킹이 포함된 30일 알림 로그, 에이전트 작업을 독려하거나 종료할 수 있는 작업 보드를 제공합니다. 식별자, 토큰, 푸시 등급, 연결된 클라이언트를 브라우저에서 모두 관리하십시오.',
+  card_1_img_alt: '대시보드 개요: 식별자 목록 및 30일 통계',
+
+  // Card 02: Phone push
+  card_2_num: '02',
+  card_2_title: '경계가 명확한 모바일 푸시 알림',
+  card_2_desc: 'QR 코드를 스캔하여 명령줄 입력 없이 10초 만에 휴대폰과 페어링하십시오. 세 가지 콘텐츠 등급에 따라 서버 외부로 유출될 수 있는 정보량을 제어합니다: 단순 알림, 마스킹된 보낸사람+제목, 또는 본문+OTP. 등급 3은 명시적인 위험 확인이 필요하며 에이전트가 자체적으로 등급을 올릴 수 없습니다. 휴대폰을 분실하셨나요? 클릭 한 번으로 즉시 권한을 취소할 수 있습니다.',
+  card_2_tier_1: '1  단순 알림',
+  card_2_tier_2: '2  보낸사람 + 제목',
+  card_2_tier_2_sub: '보낸사람 · 제목',
+  card_2_tier_3: '3  본문 + OTP',
+  card_2_tier_3_sub: '본문 미리보기',
+  card_2_otp_label: 'OTP',
+
+  // Card 03: Sent box
+  card_3_num: '03',
+  card_3_title: '모든 발송 기록의 투명한 보관',
+  card_3_desc: '에이전트도 메일을 보낼 수 있으며 모든 발송은 감사 장부에 기록됩니다. Sent 폴더는 발송 이력의 감사 로그를 제공합니다: 발송 일시, 발신자, 수신자, 제목 및 제출 상태(대기 중 또는 SMTP 릴레이 실패). 30일간 이력이 유지됩니다. 발송된 메시지 본문은 발송 감사 저장소에 보관되지 않습니다.',
+  card_3_ledger_sample: '14 Aug 14:02  fox → owl  subject',
+  card_3_ledger_status: '대기 중',
+
+  // Card 04: MCP
+  card_4_num: '04',
+  card_4_title: 'MCP 2026-07-28, 로컬 및 원격 지원',
+  card_4_desc: '공식 SDK v2 기반으로 구축되었으며 2026-07-28 날짜 사양을 준수합니다. 동일 머신의 에이전트는 stdio로 연결되며, 클라우드 에이전트는 OAuth가 적용된 무상태 HTTPS로 연결됩니다. 승인된 모든 클라이언트는 대시보드에 나열되며 언제든 취소할 수 있습니다.',
+
+  // Card 05: Tasks
+  card_5_num: '05',
+  card_5_title: '에이전트 간 작업 인수인계',
+  card_5_desc: '서버 스탬프 상태(<code>submitted</code>→<code>working</code>→<code>completed</code>/<code>failed</code>)를 갖는 이메일 기반 작업 스레드입니다. 작업 생성 시 외부 에이전트를 활성화하기 위한 알림(웹훅 또는 푸시)을 발송하며, 대시보드는 작업 지시서 뷰를 보여줍니다. <code>/.well-known/agent-card.json</code>에서 A2A 어휘 기반 Agent Card를 제공합니다(이메일 전송 방식이며 통신 규약 자체 호환성을 주장하지 않음). 보드를 모니터링하고 이력을 탐색하며 지연된 작업을 독려하거나 종료하십시오.',
+
+  // Card 06: Unlimited identities
+  card_6_num: '06',
+  card_6_title: '무제한 식별자 이메일 주소',
+  card_6_desc: '하나의 캐치올(catch-all) 메일박스로 무제한 <code>anything@yourdomain</code> 주소를 생성할 수 있습니다. 사전 프로비저닝이나 계정당 소프트웨어 비용이 없으며 오직 서버 자원만이 한계입니다.',
+
+  // Card 07: Scoped tokens
+  card_7_num: '07',
+  card_7_title: '스코프 지정 토큰',
+  card_7_desc: '각 식별자는 해당 주소로만 읽고 보낼 수 있는 고유 <code>oa_…</code> 토큰을 부여받습니다. 관리자 키가 에이전트에 노출되는 일은 결코 없습니다.',
+
+  // Card 08: wait_for + OTP
+  card_8_num: '08',
+  card_8_title: 'wait_for + OTP 추출',
+  card_8_desc: '가입 인증 메일이 도착할 때까지 받은 편지함을 롱 폴링하여 인증 코드와 확인 링크를 구조화된 형태로 즉시 추출합니다. 자동 회원가입에 최적화되어 있습니다.',
+
+  // Card 09: Safety rails
+  card_9_num: '09',
+  card_9_title: '안전 보호 레일',
+  card_9_desc: '식별자별 발송 속도 제한(기본 시간당 20통) 및 자동 보관 기간(기본 30일). 모든 메시지에는 <code>source: internal|external</code> 메타데이터가 표시되며, 외부 본문은 MCP 레이어에서 격리 펜싱됩니다. 토큰이 유출되더라도 스팸 발송기로 악용될 수 없습니다.',
+
+  // Card 10: Relay
+  card_10_num: '10',
+  card_10_title: '자체 릴레이 활용',
+  card_10_desc: 'VPS에서 직접 발송하거나 환경 변수 하나로 Amazon SES 또는 임의의 SMTP 릴레이를 통해 외부로 전송할 수 있습니다. 발송 평판은 귀하가 직접 통제하십시오.',
+
+  // Card 11: DNS wizard + doctor
+  card_11_num: '11',
+  card_11_title: 'DNS 마법사 + 진단 도구',
+  card_11_desc: '<code>dns-records.sh</code>가 정확한 DNS 레코드를 출력합니다. <code>doctor.sh</code>는 에이전트가 서비스를 사용하기 전에 13개 항목의 도달성 검사를 실행합니다.',
+
+  // FeatureViz labels
+  viz_safety: '20/h · 30d · MCP fence',
+
+  // StampWall
+  stamp_kicker: '공식 기록',
+  stamp_title: '개방형 표준 준수 — 구현 방식의 명확한 공개',
+  stamp_caption_mcp: 'MCP 2026-07-28 — 날짜 명시 사양의 완전한 전송 지원, 로컬 및 원격',
+  stamp_caption_rfc: 'RFC 9728 — OAuth 보호 리소스 메타데이터',
+  stamp_caption_a2a: 'A2A 어휘 기반 Agent Card — A2A v1.0 검색 형식 및 작업 상태 용어 준수(이메일 전송)',
+  stamp_note_a2a: '유선 프로토콜 수준의 직접 호환성을 주장하지는 않습니다.',
+  stamp_caption_erc: 'ERC-8004 내보내기 — 로드맵 계획 중, 선택적 활성화, 쓰기 전용',
+
+  // ── How it works (Steps) ──
+  steps_kicker: '작동 방식',
+  steps_title_1: '10분, 5단계,',
+  steps_title_2: '모두 실제로 작동합니다.',
+  step_1_title: '배포 또는 연결',
+  step_1_desc: 'Bun/Hono API 및 메일 서버를 로컬 DATA_DIR 상태로 배포하거나, 기존 인스턴스에 에이전트를 연결하십시오.',
+  step_2_title: 'DNS 설정',
+  step_2_desc: '마법사가 도메인 제공업체에 등록할 정확한 A / MX / SPF / DKIM / DMARC 레코드를 출력합니다.',
+  step_3_title: '진단 및 검증',
+  step_3_desc: '13가지 검사 항목: DNS, TLS, 25번 포트, 차단 목록, PTR. 에이전트가 가동되기 전에 경고 사항을 해결하십시오.',
+  step_4_title: '식별자 생성',
+  step_4_desc: '한 번의 API 호출로 주소와 범위가 제한된 토큰을 발급합니다. 관리자 키 대신 이 토큰만 에이전트에 전달하십시오.',
+  step_5_title: '메일 수신',
+  step_5_desc: '에이전트가 받은 편지함을 대기하고, 가입 메일이 도착하면 파싱된 OTP 코드를 즉시 입력 가능한 상태로 반환합니다.',
+
+  // ── Stats + Capabilities ──
+  stat_mcp_tools: 'MCP 도구',
+  cap_rest_title: 'REST API',
+  cap_rest_1: 'POST /v1/identities — 주소 및 스코프 토큰 생성',
+  cap_rest_2: 'GET /v1/identities — 보유한 모든 식별자 목록 조회',
+  cap_rest_3: 'POST /v1/identities/:a/token — 토큰 재발급(취소)',
+  cap_rest_4: 'DELETE /v1/identities/:a — 식별자 삭제',
+  cap_rest_5: 'GET /v1/identities/:a/push-tier — 식별자의 알림 콘텐츠 등급 확인',
+  cap_rest_6: 'PUT /v1/identities/:a/push-tier — 알림 등급 설정(관리자 전용; 등급 3은 확인 필요)',
+  cap_rest_7: 'GET /v1/messages — 받은 편지함 목록 조회',
+  cap_rest_8: 'GET /v1/messages/:id — 전체 메일 + 분석된 OTP',
+  cap_rest_9: 'POST /v1/messages/wait — 신규 메일 롱 폴링 대기',
+  cap_rest_10: 'POST /v1/messages/:id/seen — 읽음 / 안 읽음 표시',
+  cap_rest_11: 'POST /v1/send — 보유한 임의의 식별자로 메일 발송',
+  cap_rest_12: 'POST /v1/tasks — 다른 식별자에 이메일 기반 작업 할당',
+  cap_rest_13: 'GET /v1/tasks — 접근 가능한 작업 스레드 목록',
+  cap_rest_14: 'GET /v1/tasks/:id — 작업 상세 + 상태 변경 이력 조회',
+  cap_rest_15: 'POST /v1/tasks/:id/state — 참여 중인 작업 상태 업데이트',
+  cap_rest_16: 'POST /v1/notify — 서버 측 알림 전송',
+  cap_rest_17: 'GET /v1/notify/messages — 최근 알림 이력 조회',
+  cap_rest_18: 'POST /v1/notify/verify — 무해한 자체 점검 발행 및 폴링 확인',
+  cap_rest_19: 'POST /v1/notify/devices — 푸시 알림용 기기 등록',
+  cap_mcp_title: 'MCP 도구',
+  cap_corpus_title: '추출 테스트 코퍼스',
+  cap_corpus_1: 'Google, GitHub, Amazon, Microsoft, OpenAI, Discord',
+  cap_corpus_2: 'Aliyun, Tencent Cloud, NetEase',
+  cap_corpus_3: '인증 / 재설정 / 매직 링크',
+  cap_corpus_4: 'HTML 태그 간 분할된 인증 코드',
+
+  // ── OTP Spotlight ──
+  otp_kicker: '핵심 메커니즘',
+  otp_title: '원시 메일 입력. 구조화된 OTP 출력.',
+  otp_sub: '에이전트가 복잡한 MIME을 파싱할 필요가 없습니다. 모든 메시지는 코드와 작업 링크가 이미 추출된 상태로 반환되며, 필요 시 원시 텍스트 및 HTML도 그대로 제공됩니다.',
+
+  // ── Comparison ──
+  cmp_kicker: '대안 솔루션과의 비교',
+  cmp_title: '정직하게 밝히는 기술적 선택의 차이.',
+  cmp_th_openagent: 'openagent.email',
+  cmp_th_agentmail: 'AgentMail',
+  cmp_th_mailslurp: 'MailSlurp',
+  cmp_row_oss: '오픈 소스',
+  cmp_cell_oss_us: 'Apache-2.0',
+  cmp_row_deploy: '배포 방식',
+  cmp_cell_deploy_us: '모든 VPS',
+  cmp_cell_deploy_agentmail: 'SaaS 또는 BYOC(AWS Outposts)',
+  cmp_cell_deploy_mailslurp: 'SaaS 전용',
+  cmp_row_price: '가격',
+  cmp_cell_price_us: '고정 VPS 비용(월 약 $5)',
+  cmp_cell_price_agentmail: 'Developer/Startup: 종량제 + 편지함·도메인·1천건 발송당 $2; 연간 결제 시 20% 할인',
+  cmp_cell_price_mailslurp: '상한선 플랜 + 초과 사용량 요금',
+  cmp_row_inboxes: '무제한 받은 편지함',
+  cmp_cell_inboxes_us: '캐치올(catch-all)',
+  cmp_cell_inboxes_agentmail: '유료 플랜별 제한',
+  cmp_cell_inboxes_mailslurp: '유료 플랜별 제한',
+  cmp_row_mcp: 'MCP 기본 지원',
+  cmp_cell_mcp_mailslurp: '호스팅형 MCP',
+  cmp_row_otp: 'OTP 및 링크 추출',
+  cmp_cell_otp_agentmail: '독립적으로 검증되지 않음',
+  cmp_row_residency: '메일 데이터 상주 위치',
+  cmp_cell_residency_us: '사용자 자체 서버*',
+  cmp_cell_residency_agentmail: 'SaaS: 공급사; Outposts: 고객사 AWS†',
+  cmp_cell_residency_mailslurp: '항상 공급사 서버',
+  cmp_row_vendor_plane: '공급사 제어 평면',
+  cmp_cell_vendor_plane_us: '없음',
+  cmp_cell_vendor_plane_agentmail: '있음(Outposts 포함)',
+  cmp_cell_vendor_plane_mailslurp: '있음',
+  cmp_row_run_server: '서버 직접 운영 필요성',
+  cmp_cell_run_server_us: '있음 — 이것이 핵심 가치',
+  cmp_cell_run_server_agentmail: '없음(BYOC도 공급사 운영)',
+  cmp_cell_run_server_mailslurp: '없음',
+  cmp_honest_note: '솔직히 말씀드리면: VPS를 전혀 다루고 싶지 않다면 호스팅형 SaaS 서비스가 훨씬 편리하며, 이메일 콘텐츠가 AWS 계정 내에 머물러야 하는 경우 AgentMail의 Outposts BYOC도 훌륭한 선택지입니다. 그럼에도 공급사의 제어 평면 없이 OTP, 링크, 발송 평판을 포함한 편지함의 완전한 통제권을 소유하는 것은 10분의 설정 시간을 들일 만한 가치가 충분하다고 생각합니다. 선택은 사용자의 몫입니다. *참고: 푸시 등급 2/3은 ntfy를 통해 제목/발신자 또는 본문/OTP를 중계합니다(기본값은 해제). † Outposts는 이메일 내용을 고객사 AWS에 보관하지만, 대시보드, 인증, 결제 및 업그레이드는 여전히 AgentMail이 운영합니다.',
+
+  // ── What it takes to run ──
+  run_kicker: '운영 사양 안내',
+  run_title_1: '구매 가능한 가장 작은 VPS에서도',
+  run_title_2: '원활하게 구동됩니다.',
+  run_sub: '유휴 상태에서 전체 스택(메일 서버, API, 백그라운드 워커)은 약 190&nbsp;MB의 RAM과 극소량의 CPU만을 소비합니다(2026년 9월, Debian 12, docker-mailserver + Bun API 스택 기준 측정).',
+  run_card_1_badge: '최소 사양',
+  run_card_1_title: '1 vCPU · 1 GB · 10 GB',
+  run_card_1_desc: '기본 설정으로 충분히 동작합니다. 월 $5 수준의 VPS 또는 초저가 엔트리 VPS(약 연간 $10–15/<em>년</em>)로도 가능합니다.',
+  run_card_2_badge: '권장 사양',
+  run_card_2_title: '1 vCPU · 2 GB · 20 GB',
+  run_card_2_desc: '스팸 필터링(SpamAssassin)을 켜고 여유롭게 운영할 수 있는 사양입니다.',
+  run_card_3_badge: '바이러스 검사 포함',
+  run_card_3_title: '4 GB RAM',
+  run_card_3_desc: 'ClamAV만으로 약 1 GB를 소비하므로 기본적으로 비활성화되어 있습니다. 에이전트 메일에는 거의 필요하지 않습니다.',
+  run_honest_note: '진짜 중요한 전제 조건은 하드웨어 크기가 아니라 25번 포트입니다. AWS, GCP, Azure, DigitalOcean, Vultr는 기본적으로 25번 포트를 차단합니다(일부는 요청 시 개방). 구매 전 확인하시거나, Amazon SES와 같은 릴레이를 통해 외부로 발송하여 번거로운 포트 문제를 건너뛰십시오.',
+
+  // ── FAQ ──
+  faq_kicker: '자주 묻는 질문',
+  faq_title: '사용자들이 실제로 묻는 질문들.',
+  faq_q_1: '정말 무료인가요?',
+  faq_a_1: '네 — Apache-2.0 라이선스에 따른 셀프 호스팅은 완전 무료입니다: 유료 등급이나 받은 편지함당 소프트웨어 비용이 없습니다(서버 용량 및 호스팅 제공업체의 한계만 적용됨). 유일하게 지불하는 비용은 이를 실행하는 서버 비용뿐이며, 월 $5 수준의 VPS로도 충분합니다. 서버 관리를 직접 하고 싶지 않으신 경우, 일회성 결제로 이용 가능한 연간 $30의 Hosted Pro 얼리버드 플랜을 제공하고 있습니다 — 자세한 내용은 가격 정책을 확인하십시오.',
+  faq_link_1_text: '자세한 내용은 ',
+  faq_link_1_strong: '가격 정책',
+  faq_q_2: 'AgentMail과 어떻게 다른가요?',
+  faq_a_2: 'AgentMail은 사용량 기반 요금제의 호스팅형 SaaS 제품으로, 제어 평면은 공급업체가 운영하면서 이메일 콘텐츠는 고객의 AWS 계정에 보관하는 엔터프라이즈 BYOC 옵션(Outposts)을 제공합니다. 반면 openagent.email은 어떤 VPS에서든 직접 실행할 수 있는 Apache-2.0 소프트웨어입니다: 자체 도메인에서 무제한 편지함을 운영하며 공급사의 제어 평면이 없고 데이터 경로는 온전히 사용자가 통제합니다. 외부 SMTP 릴레이, 웹훅(메타데이터 또는 미리보기 범위), 푸시 등급 2/3(ntfy를 통한 보낸사람/제목 또는 본문/OTP 중계)을 명시적으로 설정하지 않는 한 메일은 자체 서버 외부로 나가지 않습니다. 직접 운영을 원치 않으시면 관리형 인프라로 제공되는 Hosted Pro를 이용하실 수 있습니다. 전체 비교는 /compare 페이지를 참조하십시오.',
+  faq_q_3: '자체 도메인이 필요한가요?',
+  faq_a_3: '네 — 연간 약 $10 수준의 본인 소유 도메인이 필요합니다. 도메인 하나만 있으면 운영하는 모든 에이전트에게 고유 주소(agent1@yourdomain, agent2@yourdomain 등)를 부여할 수 있습니다. 문서에서 DNS 레코드 설정 방법을 단계별로 안내합니다.',
+  faq_q_4: '어떤 에이전트 및 클라이언트와 호환되나요?',
+  faq_a_4: 'Claude Code, Cursor, Kimi Code 등 MCP를 지원하는 모든 클라이언트와 2026-07-28 날짜 사양에 맞춘 @openagentemail/mcp 서버를 통해 연동됩니다. 클라우드 에이전트는 RFC 9728에 따른 보호 리소스 메타데이터가 포함된 무상태 HTTPS OAuth 연결 또는 범위가 지정된 식별자 토큰으로 연결할 수 있으며, 연결된 모든 OAuth 클라이언트는 대시보드에 표시되어 언제든 해지할 수 있습니다. 그 외의 환경은 표준 REST API로 모두 지원됩니다.',
+  faq_q_5: '메일이 스팸으로 분류될 염려는 없나요?',
+  faq_a_5: '도달성은 자체 IP 및 도메인의 평판에 좌우되며, 이에 관한 내용은 도달성 가이드에서 자세히 다룹니다: SPF, DKIM, DMARC가 자동으로 구성되며, VPS 호스팅 제공업체가 25번 포트를 차단하는 경우 Amazon SES를 통해 아웃바운드 릴레이를 설정할 수 있습니다.',
+  faq_q_6: '사람이 사용할 수 있는 UI가 제공되나요?',
+  faq_a_6: '네 — 단순한 뷰어가 아닌 /ui의 완전한 운영 조종석(Cockpit)이 제공됩니다. 원클릭 OTP 복사 기능을 갖춘 3분할 메일 클라이언트에서 모든 에이전트 편지함을 확인하고, 일일 요약과 민감 정보가 마스킹된 30일 알림 로그를 검토하며, 작업 보드에서 에이전트 작업을 독려하거나 종료할 수 있습니다. 식별자, 토큰, 푸시 등급, 연결된 클라이언트를 관리하고, QR 코드로 모바일 기기를 페어링하며, Sent 폴더에서 에이전트가 보낸 메일을 감사할 수 있습니다. 기기를 한 번만 신뢰 기기로 등록하면 30일간 로그인 상태가 유지됩니다.',
+  faq_q_7: '에이전트끼리 작업을 서로 인수인계할 수 있나요?',
+  faq_a_7: '네. 작업(Task) 기능은 관리되는 식별자 간에 이메일로 뒷받침되는 스레드로, 서버가 검인한 상태(submitted → working → completed/failed)를 가집니다. 작업을 생성하면 외부 에이전트 활성화를 위한 알림(웹훅 또는 푸시)이 전달되며, 대시보드는 각 스레드를 참여자, 타임라인, 결과 블록이 포함된 작업 카드 형태로 재구성합니다. 작업 보드에서 이력을 탐색하고 지연된 작업을 재촉하거나 완료 처리할 수 있습니다.',
+  faq_q_8: '휴대폰으로 알림을 받을 수 있나요?',
+  faq_a_8: '네 — 모바일 가이드에 안내된 일회성 ntfy HTTPS 설정을 완료한 후, 대시보드에서 QR 코드를 스캔하여 ntfy 앱과 페어링할 수 있습니다. 각 식별자별로 메시지가 서버 외부로 유출될 범위를 지정할 수 있습니다: 단순 알림, 마스킹된 발신자+제목, 또는 본문+OTP(등급 3은 명시적 위험 확인이 필요하며 에이전트가 임의로 등급을 올릴 수 없음). 휴대폰을 분실하셨더라도 클릭 한 번으로 즉시 권한을 취소할 수 있습니다.',
+  faq_q_9: '에이전트가 신뢰할 수 없는 이메일을 읽어도 안전한가요?',
+  faq_a_9: '라벨이 전혀 없는 원시 MIME 데이터를 처리하는 것보다 훨씬 안전합니다. 모든 메시지에는 source: internal|external 라벨이 부여되며, 자체 도메인의 전체 수신자에게만 서버 HMAC 스탬프(X-OA-Mail-Stamp)가 부여됩니다. MCP 계층은 외부 본문/HTML/스니펫을 격리 펜싱하여 모델이 이를 지시가 아닌 데이터로 인식하도록 처리합니다. 이는 심층 방어를 위한 위생 기준이며 프롬프트 인젝션에 대한 절대적인 보장은 아닙니다.',
+
+  // ── Open source + Final CTA ──
+  oss_kicker: '오픈 소스',
+  oss_title: '자유롭게 실행하고, 확인하고, 포크하십시오.',
+  oss_sub: 'API, MCP 서버, 배포 도구 등 모든 코드가 공개되어 감사 가능합니다. 라즈베리 파이나 대규모 클러스터 어디서든 운영할 수 있습니다. 기여는 언제나 환영합니다.',
+  oss_badge: 'Apache-2.0',
+  cta_heading_1: '개방형 통신 및 작업 인수인계를',
+  cta_heading_2: '시작할 준비가 되셨습니까?',
+  cta_btn_github: 'GitHub에서 Star 누르기',
+  cta_btn_docs: '문서 읽기',
+
+  // ── Footer ──
+  footer_tagline: 'AI 에이전트를 위한 개방형 통신 및 작업 인수인계. MCP 및 REST 기반의 셀프 호스팅 이메일, 작업 스레드, 승인, 웹훅. 자체 인프라에서 데이터 경로를 직접 통제하십시오.',
+  footer_product_title: '제품',
+  footer_product_github: 'GitHub',
+  footer_product_pricing: '가격',
+  footer_product_compare: '비교',
+  footer_docs_title: '문서',
+  footer_docs_quickstart: '빠른 시작',
+  footer_docs_connect: '에이전트 연결하기',
+  footer_docs_api: 'API 참조',
+  footer_docs_security: '보안',
+  footer_docs_mcp_setup: 'MCP 설정',
+  footer_docs_mcp_overview: 'MCP 개요',
+  footer_docs_otp: 'OTP 추출 가이드',
+  footer_docs_deliverability: '메일 도달성',
+  footer_project_title: '프로젝트',
+  footer_project_license: 'Apache-2.0 라이선스',
+  footer_project_contributing: '기여 가이드',
+  footer_project_issues: '이슈',
+  footer_project_privacy: '개인정보처리방침',
+  footer_project_terms: '이용약관',
+  footer_project_support: 'support@openagent.email',
+  footer_copyright: '© 2026 openagent.email',
+  footer_noframework: '불필요한 프레임워크 없는 경량 설계 — 호텔 Wi-Fi 환경에서도 즉시 열립니다.',
+  footer_badge_aad_title: 'AI Agents Directory에서 openagent.email 살펴보기',
+  footer_badge_aad_alt: 'openagent.email - AI Agents Directory 등재',
+  footer_badge_agenthunter_tag: 'AgentHunter',
+  footer_badge_agenthunter_featured: '추천 AI 에이전트',
+  footer_badge_fazier_alt: 'Fazier 배지',
+  footer_badge_launchvault_title: 'LaunchVault 추천 등재',
+  footer_badge_launchvault_alt: 'LaunchVault 추천 등재',
+  footer_badge_newtools_alt: 'NewTools.site 추천 등재',
+
+  // ── Script UI strings ──
+  script_copied: '복사 완료 ✓',
+  script_copy: '복사',
+};
