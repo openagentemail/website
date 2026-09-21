@@ -16,7 +16,7 @@
  * HTML Whitelist scanning notes:
  * Scanned on canonical src/i18n/en.js:
  * Command: node -e "import('./src/i18n/en.js').then(m => { const counts = {}; for (const v of Object.values(m.texts)) { for (const match of v.matchAll(/<([a-z0-9]+)(\s+[^>]*)?>|<\/([a-z0-9]+)>/gi)) { const t = (match[1]||match[3]).toLowerCase(); counts[t] = (counts[t]||0)+1; } } console.log(counts); })"
- * Counts: { code: 20, em: 2 } (code: 10 open, 10 close; em: 1 open, 1 close)
+ * Counts: { code: 22, em: 2 } (code: 11 open, 11 close; em: 1 open, 1 close)
  * Whitelist: ['code', 'em']
  */
 
@@ -32,6 +32,22 @@ const ROOT = resolve(__dirname, '..');
 
 export const ALLOWED_HTML_TAGS = Object.freeze(['code', 'em']);
 const ALLOWED_TAGS_REGEX = /<\/?(code|em)>/gi;
+
+/**
+ * Mapping from translation-set page id → layout component name.
+ * The layout file for a page is `src/layouts/<name>.astro`.
+ */
+export const PAGE_TO_LAYOUT = Object.freeze({
+  index: 'IndexPage',
+  compare: 'ComparePage',
+  pricing: 'PricingPage',
+  mcp: 'McpPage',
+  contact: 'ContactPage',
+  'alternatives/agentmail': 'AgentmailPage',
+  'privacy-policy': 'PrivacyPolicyPage',
+  'terms-of-service': 'TermsOfServicePage',
+  'refund-policy': 'RefundPolicyPage',
+});
 
 export async function readJson(relativePath) {
   const fullPath = resolve(ROOT, relativePath);
@@ -138,24 +154,24 @@ export async function checkStructureParity(dicts, sourceFiles) {
     );
   }
 
-  // Check layout vs source index.astro
-  let enSrc = sourceFiles?.en;
-  let layoutSrc = sourceFiles?.layout;
-  if (!enSrc) {
-    enSrc = await readFile(resolve(ROOT, 'src/pages/index.astro'), 'utf8');
-  }
-  if (!layoutSrc) {
-    layoutSrc = await readFile(resolve(ROOT, 'src/layouts/IndexPage.astro'), 'utf8');
-  }
+  // Check every translated page's source vs its layout component (heading outline + <pre> count).
+  const sync = await readJson('i18n-sync.json');
+  for (const page of sync.translationSet) {
+    const layoutName = PAGE_TO_LAYOUT[page];
+    assert.ok(layoutName, `STRUCTURE_PARITY: No layout mapping for page '${page}'`);
+    const sourcePath = `src/pages/${page}.astro`;
+    const layoutPath = `src/layouts/${layoutName}.astro`;
+    const enSrc = sourceFiles?.[sourcePath] ?? await readFile(resolve(ROOT, sourcePath), 'utf8');
+    const layoutSrc = sourceFiles?.[layoutPath] ?? await readFile(resolve(ROOT, layoutPath), 'utf8');
+    const enOutline = extractTagsOutline(enSrc);
+    const layoutOutline = extractTagsOutline(layoutSrc);
 
-  const enOutline = extractTagsOutline(enSrc);
-  const layoutOutline = extractTagsOutline(layoutSrc);
-
-  assert.deepEqual(
-    layoutOutline,
-    enOutline,
-    'STRUCTURE_PARITY: Heading outline and <pre> count mismatch between index.astro and IndexPage.astro',
-  );
+    assert.deepEqual(
+      layoutOutline,
+      enOutline,
+      `STRUCTURE_PARITY: Heading outline and <pre> count mismatch between ${sourcePath} and ${layoutPath}`,
+    );
+  }
 
   return true;
 }

@@ -1,0 +1,334 @@
+---
+import '../styles/global.css';
+import PaperPlane from '../components/PaperPlane.astro';
+import JsonLd from '../components/JsonLd.astro';
+import LangSwitcher from '../components/LangSwitcher.astro';
+import { agentmailLastChecked, agentmailSources } from '../data/agentmailSources.js';
+import { mailslurpLastChecked, mailslurpSources } from '../data/mailslurpSources.js';
+import { HTML_LANG, pageUrl } from '../i18n/config.js';
+import { texts as en } from '../i18n/en.js';
+import { texts as es } from '../i18n/es.js';
+import { texts as ja } from '../i18n/ja.js';
+import { texts as ko } from '../i18n/ko.js';
+import { texts as zh } from '../i18n/zh.js';
+
+interface Props {
+  locale: string;
+}
+
+const { locale } = Astro.props;
+const dicts = { en, es, ja, ko, zh };
+const t = dicts[locale] || en;
+const htmlLang = HTML_LANG[locale] || locale;
+const canonicalUrl = `https://openagent.email${pageUrl(locale, 'compare')}/`;
+const documentTitle = t.compare_meta_title;
+
+// FAQ — visible section below AND FAQPage JSON-LD (single source of truth).
+const faq = [
+  { q: t.compare_faq_q_1, a: t.compare_faq_a_1 },
+  { q: t.compare_faq_q_2, a: t.compare_faq_a_2 },
+  { q: t.compare_faq_q_3, a: t.compare_faq_a_3 },
+  { q: t.compare_faq_q_4, a: t.compare_faq_a_4 },
+  { q: t.compare_faq_q_5, a: t.compare_faq_a_5 },
+];
+
+const faqJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: faq.map((item) => ({
+    '@type': 'Question',
+    name: item.q,
+    acceptedAnswer: { '@type': 'Answer', text: item.a },
+  })),
+};
+---
+
+<!doctype html>
+<html lang={htmlLang}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{documentTitle}</title>
+    <meta name="description" content={t.compare_meta_description} />
+    <link rel="canonical" href={canonicalUrl} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preload" href="/fonts/Satoshi-Regular.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/Satoshi-Bold.woff2" as="font" type="font/woff2" crossorigin />
+    <script defer src="https://stats.openagent.email/script.js" data-website-id="86e6eaf7-473c-4c8d-a9bf-ea48c13742c5"></script>
+    <JsonLd data={faqJsonLd} />
+  </head>
+  <body>
+    <nav>
+      <div class="wrap">
+        <a class="brand" href={pageUrl(locale, 'index')} aria-label={t.nav_brand_aria}>
+          <img src="/favicon.svg" alt="" />
+          <span>openagent<span class="gold">.email</span></span>
+        </a>
+        <span class="spacer"></span>
+        <a class="navlink" href={pageUrl(locale, 'compare')}>{t.nav_compare}</a>
+        <a class="navlink" href={pageUrl(locale, 'pricing')}>{t.nav_pricing}</a>
+        <a class="navlink" href="https://github.com/openagentemail/openagentemail">{t.nav_github}</a>
+        <a class="navlink" href={pageUrl(locale, '/docs/')}>{t.nav_docs}</a>
+        <LangSwitcher currentLocale={locale} page="compare" />
+      </div>
+    </nav>
+
+    <main class="legal wrap legal-wide">
+      <div class="compare-shell">
+        <header class="compare-hero">
+          <h1>{t.compare_h1}</h1>
+          <p class="lede">{t.compare_lede}</p>
+          <p class="hero-docs">
+            <a href={pageUrl(locale, '/docs/quickstart/')}>{t.compare_hero_deploy}</a>
+            <a href={pageUrl(locale, '/docs/guides/connect-your-agent/')}>{t.compare_hero_connect}</a>
+          </p>
+        </header>
+        <section class="picks" aria-labelledby="picks-heading">
+          <h2 id="picks-heading">{t.compare_picks_heading}</h2>
+          <p class="picks-note">{t.compare_picks_note}</p>
+          <div class="pick-grid">
+            <article class="pick-card">
+              <h3>{t.compare_pick_oa}</h3>
+              <p>{t.compare_pick_oa_desc}</p>
+            </article>
+            <article class="pick-card">
+              <h3>{t.compare_pick_agentmail}</h3>
+              <p>{t.compare_pick_agentmail_desc}</p>
+            </article>
+            <article class="pick-card">
+              <h3>{t.compare_pick_mailslurp}</h3>
+              <p>{t.compare_pick_mailslurp_desc}</p>
+            </article>
+          </div>
+        </section>
+        <div class="table-wrap"><table class="compare"><thead><tr><th></th><th>{t.compare_pick_oa}</th><th>{t.compare_pick_agentmail}</th><th>{t.compare_pick_mailslurp}</th></tr></thead><tbody>
+          <tr><td>{t.compare_tbl_r1_label}</td><td>{t.compare_tbl_r1_oa}</td><td>{t.compare_tbl_r1_am}</td><td>{t.compare_tbl_r1_ms}</td></tr>
+          <tr><td>{t.compare_tbl_r2_label}</td><td>{t.compare_tbl_r2_oa}</td><td>{t.compare_tbl_r2_am}</td><td>{t.compare_tbl_r2_ms}</td></tr>
+          <tr><td>{t.compare_tbl_r3_label}</td><td>{t.compare_tbl_r3_oa}</td><td>{t.compare_tbl_r3_am}</td><td>{t.compare_tbl_r3_ms}</td></tr>
+          <tr><td>{t.compare_tbl_r4_label}</td><td>{t.compare_tbl_r4_oa}</td><td>{t.compare_tbl_r4_am}</td><td>{t.compare_tbl_r4_ms}</td></tr>
+          <tr><td>{t.compare_tbl_r5_label}</td><td>{t.compare_tbl_r5_oa}</td><td>{t.compare_tbl_r5_am}</td><td>{t.compare_tbl_r5_ms}</td></tr>
+          <tr><td>{t.compare_tbl_r6_label}</td><td>{t.compare_tbl_r6_oa}</td><td>{t.compare_tbl_r6_am}</td><td>{t.compare_tbl_r6_ms}</td></tr>
+          <tr><td>{t.compare_tbl_r7_label}</td><td>{t.compare_tbl_r7_oa}</td><td>{t.compare_tbl_r7_am}</td><td>{t.compare_tbl_r7_ms}</td></tr>
+          <tr><td>{t.compare_tbl_r8_label}</td><td>{t.compare_tbl_r8_oa}</td><td>{t.compare_tbl_r8_am}</td><td>{t.compare_tbl_r8_ms}</td></tr>
+          <tr><td>{t.compare_tbl_r9_label}</td><td>{t.compare_tbl_r9_oa}</td><td>{t.compare_tbl_r9_am}</td><td>{t.compare_tbl_r9_ms}</td></tr>
+          <tr><td>{t.compare_tbl_r10_label}</td><td>{t.compare_tbl_r10_oa}</td><td>{t.compare_tbl_r10_am}</td><td>{t.compare_tbl_r10_ms}</td></tr>
+        </tbody></table></div>
+        <p class="last-checked">{t.compare_lastchecked_a}{agentmailLastChecked}{t.compare_lastchecked_b}{mailslurpLastChecked}{t.compare_lastchecked_c}<span data-vendor="agentmail">{t.compare_sources_agentmail}{agentmailSources.map((source, index) => <Fragment><a href={source.href} rel="noopener noreferrer">{source.label}</a>{index < agentmailSources.length - 1 ? ', ' : ''}</Fragment>)}{t.punct_end}</span> <span data-vendor="mailslurp">{t.compare_sources_mailslurp}{mailslurpSources.map((source, index) => <Fragment><a href={source.href} rel="noopener noreferrer">{source.label}</a>{index < mailslurpSources.length - 1 ? ', ' : ''}</Fragment>)}{t.punct_end}</span></p>
+        {/* 8-19 脚注：只复述官方 incident 页，不写超出该页的结论 */}
+        <p class="note compare-footnote">{t.compare_footnote}</p>
+
+        <div class="dims">
+          <article class="dim-card">
+            <h2>{t.compare_dim_oss_title}</h2>
+            <p>{t.compare_dim_oss_desc}</p>
+          </article>
+          <article class="dim-card">
+            <h2>{t.compare_dim_deploy_title}</h2>
+            <p>{t.compare_dim_deploy_desc}</p>
+          </article>
+          <article class="dim-card">
+            <h2>{t.compare_dim_price_title}</h2>
+            <p>{t.compare_dim_price_desc}</p>
+          </article>
+          <article class="dim-card">
+            <h2>{t.compare_dim_inboxes_title}</h2>
+            <p><Fragment set:html={t.compare_dim_inboxes_desc} /></p>
+          </article>
+          <article class="dim-card">
+            <h2>{t.compare_dim_mcp_title}</h2>
+            <p>{t.compare_dim_mcp_desc}</p>
+          </article>
+          <article class="dim-card">
+            <h2>{t.compare_dim_otp_title}</h2>
+            <p>{t.compare_dim_otp_desc}</p>
+          </article>
+          <article class="dim-card">
+            <h2>{t.compare_dim_residency_title}</h2>
+            <p>{t.compare_dim_residency_desc}</p>
+          </article>
+          <article class="dim-card">
+            <h2>{t.compare_dim_vendor_title}</h2>
+            <p>{t.compare_dim_vendor_desc}</p>
+          </article>
+          <article class="dim-card">
+            <h2>{t.compare_dim_server_title}</h2>
+            <p>{t.compare_dim_server_desc}</p>
+          </article>
+        </div>
+
+        <div class="dims detail">
+          <h2 id="agentmail">{t.compare_detail_agentmail_title}</h2>
+          <p>{t.compare_detail_agentmail_desc}</p>
+          <p class="note">{t.compare_detail_agentmail_note}</p>
+
+          <h2 id="mailslurp">{t.compare_detail_workflows_title}</h2>
+          <p>{t.compare_detail_workflows_desc}</p>
+        </div>
+
+        <section class="faq" aria-labelledby="faq-heading">
+          <h2 id="faq-heading">{t.compare_faq_heading}</h2>
+          {
+            faq.map((item) => (
+              <article>
+                <h3>{item.q}</h3>
+                <p>{item.a}</p>
+              </article>
+            ))
+          }
+        </section>
+
+        <div class="cta-final">
+          <PaperPlane lottie />
+          <div class="cta-row">
+            <a class="btn btn-gold" href={pageUrl(locale, '/docs/quickstart/')}>{t.compare_cta_deploy}</a>
+            <a class="btn btn-ghost" href={pageUrl(locale, '/docs/guides/connect-your-agent/')}>{t.compare_cta_connect}</a>
+            <a class="btn btn-ghost" href={pageUrl(locale, 'pricing')}>{t.compare_cta_pricing}</a>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <footer>
+      <div class="wrap">
+        <div class="bottom" style="border-top: none; padding-top: 0">
+          <span>{t.legal_footer_copyright}</span>
+          <span class="spacer" style="flex: 1"></span>
+          <a href={pageUrl(locale, 'pricing')}>{t.legal_footer_pricing}</a>
+          <a href={pageUrl(locale, 'privacy-policy')}>{t.legal_footer_privacy}</a>
+          <a href={pageUrl(locale, 'terms-of-service')}>{t.legal_footer_terms}</a>
+          <a href={pageUrl(locale, 'refund-policy')}>{t.legal_footer_refunds}</a>
+          <a href={pageUrl(locale, 'contact')}>{t.legal_footer_contact}</a>
+          <a href="mailto:support@openagent.email">{t.legal_footer_support}</a>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>
+
+<style>
+  .legal {
+    max-width: 44rem;
+    padding: 3.5rem 1.5rem 5rem;
+  }
+  .legal.legal-wide { max-width: 72rem; }
+  .legal h1 {
+    font-size: clamp(2rem, 5vw, 2.8rem);
+    margin-bottom: 0.4rem;
+  }
+  .legal .updated {
+    color: var(--ink-faint);
+    font-size: 0.85rem;
+    margin: 0 0 2.5rem;
+  }
+  .legal h2 {
+    font-size: 1.25rem;
+    margin: 2.2rem 0 0.6rem;
+  }
+  .legal p,
+  .legal li {
+    color: var(--ink-dim);
+    line-height: 1.7;
+  }
+  .legal ul {
+    padding-left: 1.2rem;
+    display: grid;
+    gap: 0.35rem;
+    margin: 0.6rem 0;
+  }
+  .legal a {
+    color: var(--gold);
+    text-decoration: none;
+  }
+  .legal a:hover {
+    text-decoration: underline;
+  }
+  .legal .lede {
+    font-size: 1.08rem;
+    color: var(--ink);
+  }
+
+  .compare-shell { width: 100%; max-width: var(--max); margin-inline: auto; }
+  .compare-hero {
+    position: relative;
+    padding-bottom: 2.5rem;
+    border-bottom: 1px solid var(--line);
+    overflow-x: clip;
+  }
+  .compare-hero h1 {
+    font-size: clamp(1.5rem, 7vw, 2.8rem);
+    overflow-wrap: break-word;
+    max-width: 100%;
+  }
+  .compare-hero .lede { max-width: 48rem; margin-bottom: 0; }
+  .hero-docs { display: flex; flex-wrap: wrap; gap: 0.85rem 1.4rem; margin: 1.1rem 0 0; font-size: 0.92rem; }
+  .picks { margin: 2rem 0 0; }
+  .picks > h2 { font-size: 1.18rem; margin: 0 0 0.45rem; }
+  .picks-note { margin: 0 0 1rem; font-size: 0.92rem; }
+  .pick-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.2rem; }
+  .pick-card { min-width: 0; padding: 1.25rem 1.4rem; border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg-card); }
+  .pick-card h3 { font-size: 1rem; margin: 0 0 0.5rem; color: var(--gold); }
+  .pick-card p { margin: 0; }
+  .table-wrap { width: 100%; overflow-x:auto; margin:2rem 0 3.5rem; border: 1px solid var(--line); border-radius: 14px; background: var(--bg-card); box-shadow: 0 24px 70px rgba(0,0,0,.24); }
+  .compare { width:100%; min-width:42rem; border-collapse:collapse; }
+  .compare th,.compare td { border-bottom:1px solid var(--line); padding:.82rem 1rem; text-align:left; vertical-align:top; line-height:1.5; }
+  .compare tr:last-child td { border-bottom: 0; }
+  .compare th,.compare td:first-child { color:var(--ink); font-weight:700; }
+  .compare th:nth-child(2),.compare td:nth-child(2) { background: rgba(251,191,36,.055); }
+  .compare th:nth-child(2) { color: var(--gold); border-top: 2px solid var(--gold); }
+  .last-checked { margin: -2.6rem 0 0.6rem; color: var(--ink-dim); font-family: var(--mono); font-size: 0.78rem; }
+  .compare-footnote { margin: 0 0 3.5rem; font-size: 0.9rem; }
+
+  .dims { counter-reset: dim; }
+  .dims:not(.detail) { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.2rem; margin: 0 0 3.5rem; }
+  .dim-card { min-width: 0; padding: 1.5rem; border: 1px solid var(--line); border-radius: var(--radius); background: var(--bg-card); }
+  .dims > h2,
+  .dim-card > h2 {
+    counter-increment: dim;
+    display: flex;
+    align-items: baseline;
+    gap: 0.7rem;
+    font-size: 1.18rem;
+    margin: 0 0 0.6rem;
+  }
+  .dims > h2::before,
+  .dim-card > h2::before {
+    content: '0' counter(dim);
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    letter-spacing: 0.08em;
+    color: var(--gold);
+    border: 1px solid rgba(251, 191, 36, 0.4);
+    border-radius: 999px;
+    padding: 0.08rem 0.5rem;
+    flex-shrink: 0;
+    align-self: center;
+  }
+  .dims > h2 { margin: 2.2rem 0 0.6rem; }
+  .dim-card > h2 { margin: 0 0 0.6rem; }
+  .dim-card > p { margin: 0; }
+  .dims.detail { max-width: 75ch; margin: 0 auto 3.5rem; }
+  .dims.detail > h2::before { content: none; }
+  .dims.detail > h2 { color: var(--gold); font-size: 1.05rem; }
+  .note { color: var(--ink-dim); line-height: 1.7; }
+
+  .faq { max-width: 75ch; margin: 0 auto 3.5rem; }
+  .faq > h2 { font-size: 1.18rem; margin: 0 0 1.1rem; }
+  .faq article { padding: 1.05rem 0; border-bottom: 1px solid var(--line); }
+  .faq article:last-child { border-bottom: 0; padding-bottom: 0; }
+  .faq h3 { font-size: 1.02rem; margin: 0 0 0.45rem; }
+  .faq p { margin: 0; }
+
+  .cta-final { margin-top: 2.6rem; text-align: center; border-top: 1px solid var(--line); padding-top: 1.5rem; }
+  .cta-final .lottie-final { margin-bottom: 0.4rem; }
+  .cta-row { margin-top: 1.2rem; display: flex; flex-wrap: wrap; gap: 0.9rem; justify-content: center; }
+  .cta-row .btn-gold { color: #111; }
+  .cta-row .btn-ghost { color: var(--ink); }
+  .cta-row .btn:hover { text-decoration: none; }
+
+  @media (max-width: 48rem) {
+    .compare-hero { padding-bottom: 2rem; }
+    .pick-grid { grid-template-columns: 1fr; }
+    .dims:not(.detail) { grid-template-columns: 1fr; }
+    .dim-card { padding: 1.25rem; }
+  }
+</style>

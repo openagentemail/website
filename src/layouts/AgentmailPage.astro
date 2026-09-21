@@ -1,0 +1,260 @@
+---
+import '../styles/global.css';
+import LangSwitcher from '../components/LangSwitcher.astro';
+import { HTML_LANG, pageUrl } from '../i18n/config.js';
+import { agentmailLastChecked, agentmailSources } from '../data/agentmailSources.js';
+import { texts as en } from '../i18n/en.js';
+import { texts as es } from '../i18n/es.js';
+import { texts as ja } from '../i18n/ja.js';
+import { texts as ko } from '../i18n/ko.js';
+import { texts as zh } from '../i18n/zh.js';
+
+interface Props {
+  locale: string;
+}
+
+const { locale } = Astro.props;
+const dicts = { en, es, ja, ko, zh };
+const t = dicts[locale] || en;
+const htmlLang = HTML_LANG[locale] || locale;
+const canonicalUrl = `https://openagent.email${pageUrl(locale, 'alternatives/agentmail')}/`;
+const documentTitle = t.agentmail_meta_title;
+---
+
+<!doctype html>
+<html lang={htmlLang}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{documentTitle}</title>
+    <meta name="description" content={t.agentmail_meta_description} />
+    <link rel="canonical" href={canonicalUrl} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preload" href="/fonts/Satoshi-Regular.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/Satoshi-Bold.woff2" as="font" type="font/woff2" crossorigin />
+    <script defer src="https://stats.openagent.email/script.js" data-website-id="86e6eaf7-473c-4c8d-a9bf-ea48c13742c5"></script>
+  </head>
+  <body>
+    <nav>
+      <div class="wrap">
+        <a class="brand" href={pageUrl(locale, 'index')} aria-label={t.nav_brand_aria}>
+          <img src="/favicon.svg" alt="" />
+          <span>openagent<span class="gold">.email</span></span>
+        </a>
+        <span class="spacer"></span>
+        <a class="navlink" href={pageUrl(locale, 'compare')}>{t.nav_compare}</a>
+        <a class="navlink" href={pageUrl(locale, 'pricing')}>{t.nav_pricing}</a>
+        <a class="navlink" href="https://github.com/openagentemail/openagentemail">{t.nav_github}</a>
+        <a class="navlink" href={pageUrl(locale, '/docs/')}>{t.nav_docs}</a>
+        <LangSwitcher currentLocale={locale} page="alternatives/agentmail" />
+      </div>
+    </nav>
+
+    <main class="legal wrap">
+      <h1>{t.agentmail_h1}</h1>
+      <p class="lede">
+        {t.agentmail_lede}
+      </p>
+      <p class="compare-link">
+        <a href={pageUrl(locale, 'compare')}>{t.agentmail_compare_link}</a>
+      </p>
+
+      <h2 id="decide-heading">{t.agentmail_decide_heading}</h2>
+      <p class="note">{t.agentmail_note}</p>
+      <div class="decision-grid">
+        <article>
+          <h3>{t.agentmail_grid_control_title}</h3>
+          <p>
+            {t.agentmail_grid_control_desc}
+          </p>
+        </article>
+        <article>
+          <h3>{t.agentmail_grid_data_title}</h3>
+          <p>
+            {t.agentmail_grid_data_desc}
+          </p>
+        </article>
+        <article>
+          <h3>{t.agentmail_grid_econ_title}</h3>
+          <p>
+            {t.agentmail_grid_econ_desc}
+          </p>
+        </article>
+        <article>
+          <h3>{t.agentmail_grid_integration_title}</h3>
+          <p>
+            {t.agentmail_grid_integration_desc}
+          </p>
+        </article>
+      </div>
+      <p class="last-checked">
+        {t.agentmail_lastchecked_a}{agentmailLastChecked}{t.punct_end}
+        <span data-vendor="agentmail">
+          {t.agentmail_sources}{
+            agentmailSources.map((source, index) => (
+              <Fragment>
+                <a href={source.href} rel="noopener noreferrer">{source.label}</a>
+                {index < agentmailSources.length - 1 ? ', ' : ''}
+              </Fragment>
+            ))
+          }{t.punct_end}
+        </span>
+      </p>
+
+      <div class="cta-row">
+        <a class="btn btn-gold" href={pageUrl(locale, '/docs/quickstart/')}>{t.agentmail_cta_deploy}</a>
+        <a class="btn btn-ghost" href={pageUrl(locale, '/docs/guides/connect-your-agent/')}>{t.agentmail_cta_connect}</a>
+      </div>
+    </main>
+
+    <footer>
+      <div class="wrap">
+        <div class="bottom" style="border-top: none; padding-top: 0">
+          <span>{t.legal_footer_copyright}</span>
+          <span class="spacer" style="flex: 1"></span>
+          <a href={pageUrl(locale, 'pricing')}>{t.legal_footer_pricing}</a>
+          <a href={pageUrl(locale, 'privacy-policy')}>{t.legal_footer_privacy}</a>
+          <a href={pageUrl(locale, 'terms-of-service')}>{t.legal_footer_terms}</a>
+          <a href={pageUrl(locale, 'refund-policy')}>{t.legal_footer_refunds}</a>
+          <a href={pageUrl(locale, 'contact')}>{t.legal_footer_contact}</a>
+          <a href="mailto:support@openagent.email">{t.legal_footer_support}</a>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>
+
+<style>
+  .legal {
+    max-width: 44rem;
+    padding: 3.5rem 1.5rem 5rem;
+  }
+  .legal.legal-wide { max-width: 72rem; }
+  .legal h1 {
+    font-size: clamp(2rem, 5vw, 2.8rem);
+    margin-bottom: 0.4rem;
+  }
+  .legal .updated {
+    color: var(--ink-faint);
+    font-size: 0.85rem;
+    margin: 0 0 2.5rem;
+  }
+  .legal h2 {
+    font-size: 1.25rem;
+    margin: 2.2rem 0 0.6rem;
+  }
+  .legal p,
+  .legal li {
+    color: var(--ink-dim);
+    line-height: 1.7;
+  }
+  .legal ul {
+    padding-left: 1.2rem;
+    display: grid;
+    gap: 0.35rem;
+    margin: 0.6rem 0;
+  }
+  .legal a {
+    color: var(--gold);
+    text-decoration: none;
+  }
+  .legal a:hover {
+    text-decoration: underline;
+  }
+  .legal .lede {
+    font-size: 1.08rem;
+    color: var(--ink);
+  }
+
+  :global(html),
+  :global(body) {
+    overflow-x: clip;
+    max-width: 100vw;
+  }
+  :global(nav .wrap) {
+    max-width: 100%;
+    min-width: 0;
+  }
+  h1 {
+    font-size: clamp(2rem, 5vw, 2.8rem);
+    margin-bottom: 0.4rem;
+  }
+  h2 {
+    font-size: 1.25rem;
+    margin: 2.2rem 0 0.6rem;
+  }
+  p {
+    color: var(--ink-dim);
+    line-height: 1.7;
+  }
+  .lede {
+    font-size: 1.08rem;
+    color: var(--ink);
+  }
+  a {
+    color: var(--gold);
+    text-decoration: none;
+  }
+  a:hover { text-decoration: underline; }
+  .compare-link {
+    margin: 0.85rem 0 0;
+    font-size: 1.02rem;
+    font-weight: 700;
+  }
+  .note {
+    margin: 0 0 1rem;
+    font-size: 0.92rem;
+  }
+  .decision-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.2rem;
+    margin: 0 0 1.4rem;
+  }
+  .decision-grid article {
+    min-width: 0;
+    padding: 1.25rem 1.4rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--bg-card);
+  }
+  .decision-grid h3 {
+    font-size: 1rem;
+    margin: 0 0 0.5rem;
+    color: var(--gold);
+  }
+  .decision-grid p {
+    margin: 0;
+    overflow-wrap: break-word;
+  }
+  .last-checked {
+    color: var(--ink-dim);
+    font-family: var(--mono);
+    font-size: 0.78rem;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    max-width: 100%;
+  }
+  .cta-row {
+    margin-top: 1.6rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.9rem;
+    max-width: 100%;
+  }
+  .cta-row .btn-gold { color: #111; }
+  .cta-row .btn-ghost { color: var(--ink); }
+  .cta-row .btn:hover { text-decoration: none; }
+
+  @media (max-width: 40rem) {
+    :global(nav .wrap) {
+      width: 100%;
+      flex-wrap: wrap;
+      height: auto;
+      min-height: 3.8rem;
+      row-gap: 0.3rem;
+    }
+    .decision-grid { grid-template-columns: 1fr; }
+    .decision-grid article { padding: 1.15rem 1.2rem; }
+  }
+</style>

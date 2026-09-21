@@ -9,7 +9,17 @@ export const HTML_LANG = {
   zh: 'zh-CN',
 };
 
-export const TRANSLATED_PAGES = ['index'];
+export const TRANSLATED_PAGES = [
+  'index',
+  'compare',
+  'pricing',
+  'mcp',
+  'contact',
+  'alternatives/agentmail',
+  'privacy-policy',
+  'terms-of-service',
+  'refund-policy',
+];
 
 /**
  * Generates an internal URL for a locale and page identifier.
