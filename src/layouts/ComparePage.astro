@@ -331,4 +331,15 @@ const faqJsonLd = {
     .dims:not(.detail) { grid-template-columns: 1fr; }
     .dim-card { padding: 1.25rem; }
   }
+  @media (max-width: 38rem) {
+    nav .wrap {
+      flex-wrap: wrap;
+      height: auto;
+      padding-block: 0.45rem;
+      row-gap: 0.3rem;
+    }
+    :global(.lang-switcher) {
+      margin-left: auto;
+    }
+  }
 </style>

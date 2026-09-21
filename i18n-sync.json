@@ -85,22 +85,22 @@
     {
       "layout": "ComparePage",
       "file": "src/layouts/ComparePage.astro",
-      "sha256": "48b745ad1ea0e1e2a55fc438353bf5b9a88f8b019781e53fa09b28fe37cf9e8b"
+      "sha256": "203215aa371120ec99422a3c6093ac5a908e04bf2403e64f660061785b242abd"
     },
     {
       "layout": "PricingPage",
       "file": "src/layouts/PricingPage.astro",
-      "sha256": "febf5df1a045b0d81ae2887bea9724fb879ffab1651f5cb86d508c81d3e60ac1"
+      "sha256": "c5b1bc6409cee2a882481f112c03dd0be26d945de7a99ea9efd75432eacd2bb2"
     },
     {
       "layout": "McpPage",
       "file": "src/layouts/McpPage.astro",
-      "sha256": "6f6feaaeab9dab9052d8bf9715c531ca40758772869d21cf6b608509ee867569"
+      "sha256": "e5c755faca2f9ed0d91457849352d3625f8088198cde4192b013dd45b13f4f23"
     },
     {
       "layout": "ContactPage",
       "file": "src/layouts/ContactPage.astro",
-      "sha256": "034ec5ac8345b3422774f0ccf269d90ae2a07e435924bff743437cb81eebb587"
+      "sha256": "5934cbc0419fcc3a482de3282f3c5a18faf2fc1c5646def5931bc291a2b30d1b"
     },
     {
       "layout": "AgentmailPage",
@@ -110,17 +110,17 @@
     {
       "layout": "PrivacyPolicyPage",
       "file": "src/layouts/PrivacyPolicyPage.astro",
-      "sha256": "022681869c9238a4d574740d7c06103bc8c5bfb7e2f85417beb56451e33ed7d0"
+      "sha256": "3aaca639f389a1330f44ee1f7dc60be6ddbd56c9913a94e5332a170dc1139c5a"
     },
     {
       "layout": "TermsOfServicePage",
       "file": "src/layouts/TermsOfServicePage.astro",
-      "sha256": "b3fd7908215b4bded924153636d66e743f2fac49a5fa3b3a7fbf290e6519b300"
+      "sha256": "de533c6e5cc1bb785cb4063829f3c0fa18ca4077fac7eacb12eb108fc628cbff"
     },
     {
       "layout": "RefundPolicyPage",
       "file": "src/layouts/RefundPolicyPage.astro",
-      "sha256": "b6a5ae11af2cbea7b5fc3212805a6190991fbcd3ed9c08298c41c5706b33810e"
+      "sha256": "7f98a5e523c18ca1e30afabb79df2a608708b56f0372a6f4601e6b1301bfab6a"
     }
   ],
   "dicts": {

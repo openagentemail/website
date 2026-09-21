@@ -234,4 +234,15 @@ const documentTitle = `${t.pricing_title} — openagent.email`;
     box-sizing: border-box;
   }
   @media (max-width: 43.99rem) { .plan .tagline { min-height: 0; } }
+  @media (max-width: 38rem) {
+    nav .wrap {
+      flex-wrap: wrap;
+      height: auto;
+      padding-block: 0.45rem;
+      row-gap: 0.3rem;
+    }
+    :global(.lang-switcher) {
+      margin-left: auto;
+    }
+  }
 </style>

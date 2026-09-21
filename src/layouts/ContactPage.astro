@@ -118,4 +118,15 @@ const documentTitle = `${t.contact_title} — openagent.email`;
     font-size: 1.08rem;
     color: var(--ink);
   }
+  @media (max-width: 38rem) {
+    nav .wrap {
+      flex-wrap: wrap;
+      height: auto;
+      padding-block: 0.45rem;
+      row-gap: 0.3rem;
+    }
+    :global(.lang-switcher) {
+      margin-left: auto;
+    }
+  }
 </style>
