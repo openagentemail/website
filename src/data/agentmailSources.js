@@ -1,4 +1,5 @@
-const approvedAgentmailHosts = new Set(['www.agentmail.to', 'docs.agentmail.to']);
+// 以冻结数组导出供测试精确钉住；freeze + ESM 只读导入绑定，导入方无法在运行时放宽白名单。
+export const approvedAgentmailHosts = Object.freeze(['docs.agentmail.to', 'www.agentmail.to']);
 
 export const agentmailLastChecked = '2026-08-30';
 
@@ -21,7 +22,7 @@ export function assertOfficialAgentmailSources(sources) {
     } catch {
       throw new Error(`AgentMail source must use HTTPS on an approved AgentMail host: ${source.href}`);
     }
-    if (url.protocol !== 'https:' || !approvedAgentmailHosts.has(url.hostname)) {
+    if (url.protocol !== 'https:' || !approvedAgentmailHosts.includes(url.hostname)) {
       throw new Error(`AgentMail source must use HTTPS on an approved AgentMail host: ${source.href}`);
     }
   }

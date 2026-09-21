@@ -37,14 +37,17 @@ const jsonOut = `{
 const faq = [
   {
     q: 'Is it really free?',
-    a: 'Yes — self-hosting is free and unlimited under the Apache-2.0 license: no paid tier, no usage limits, no per-inbox pricing. The only thing you pay for is the server you run it on, and a $5/mo VPS is enough. If you would rather not run a server, Hosted Pro Early Bird is now available for $30/year as a one-time payment — see our pricing.',
-    // Rendered as raw HTML: build-time static content only; never use dynamic data (stored-XSS guard).
-    aHtml: 'Yes — self-hosting is free and unlimited under the Apache-2.0 license: no paid tier, no usage limits, no per-inbox pricing. The only thing you pay for is the server you run it on, and a $5/mo VPS is enough. If you would rather not run a server, Hosted Pro Early Bird is now available for $30/year as a one-time payment — <a href="/pricing">see our <strong>pricing</strong></a>.',
+    a: 'Yes — self-hosting is free under the Apache-2.0 license: no paid tier, no per-inbox fees (subject only to your server capacity and provider limits). The only thing you pay for is the server you run it on, and a VPS from $5/mo is enough. If you would rather not run a server, Hosted Pro Early Bird is now available for $30/year as a one-time payment — see our pricing.',
+    link: {
+      href: '/pricing',
+      text: 'see our ',
+      strong: 'pricing',
+    },
   },
   {
     q: 'How is it different from AgentMail?',
     // BYOC Outposts：邮件内容可留在客户 AWS，但 vendor 控制面仍在 —— 与真自建区分
-    a: 'AgentMail is a hosted SaaS product (usage-based pricing), with an enterprise BYOC option (Outposts) that keeps email content in your AWS account while they still run the control plane. openagent.email is Apache-2.0 software you run yourself on any VPS: unlimited inboxes on your own domain, no vendor control plane, and your mail never leaves a machine you own — unless you opt into outbound SMTP relays, or push tiers 2/3 which relay subject/from or body/OTP via ntfy. See the full comparison at /compare.',
+    a: 'AgentMail is a hosted SaaS product (usage-based pricing), with an enterprise BYOC option (Outposts) that keeps email content in your AWS account while they still run the control plane. openagent.email is Apache-2.0 software you run yourself on any VPS: unlimited inboxes on your own domain, no vendor control plane, and data paths remain under your control. Mail stays on your server unless you route outbound through external SMTP relays, configure webhooks (metadata or preview scope), or opt into push tiers 2/3 (which relay sender/subject or body/OTP via ntfy). Hosted Pro runs on managed infrastructure if you prefer not to self-host. See the full comparison at /compare.',
   },
   {
     q: 'Do I need my own domain?',
@@ -67,7 +70,7 @@ const faq = [
   // #22 / tasks：agent 间工单交接（服务端戳状态 + 唤醒收单方 + Dashboard 工单视图）
   {
     q: 'Can agents hand work to each other?',
-    a: 'Yes. Tasks are email-backed threads between managed identities, with server-stamped states (submitted → working → completed/failed). Creating a task wakes the receiving agent; the dashboard rebuilds each thread into a work-order card with participants, a timeline, and a result block. From the board you can page through history, nudge a stuck task, or close one out.',
+    a: 'Yes. Tasks are email-backed threads between managed identities, with server-stamped states (submitted → working → completed/failed). Creating a task delivers notifications (via webhook or push) for external agent activation; the dashboard rebuilds each thread into a work-order card with participants, a timeline, and a result block. From the board you can page through history, nudge a stuck task, or close one out.',
   },
   // 业主逐字新增：手机推送 / ntfy 扫码配对 + 三档出境 + 一键撤销
   {
@@ -88,7 +91,7 @@ const softwareJsonLd = {
   applicationCategory: 'DeveloperApplication',
   operatingSystem: 'Any (Docker)',
   description:
-    'Open-source, self-hosted email and task handoffs for AI agents. Unlimited inboxes on your own domain, with OTP extraction, agent-to-agent task threads, approvals, webhooks, and push notifications built in. REST API and MCP server.',
+    'Open communication and task handoffs for AI agents. Self-hosted email, task threads, approvals, and webhooks over MCP and REST—for the agents you already use. Bring your own agents. Keep control of the work.',
   url: 'https://openagent.email',
   license: 'https://www.apache.org/licenses/LICENSE-2.0',
   isAccessibleForFree: true,
@@ -114,18 +117,18 @@ const faqJsonLd = {
     <meta charset="utf-8" />
     <script is:inline>document.documentElement.classList.remove('no-js');</script>
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>openagent.email — Agent Email &amp; Task Handoffs, Self-Hosted</title>
+    <title>openagent.email — Open Communication &amp; Task Handoffs for AI Agents</title>
     <meta
       name="description"
-      content="Self-hosted email &amp; task handoffs for AI agents — the open-source AgentMail alternative. Unlimited mailboxes on your domain, over MCP + REST."
+      content="Open communication and task handoffs for AI agents. Self-hosted email, task threads, approvals, and webhooks over MCP and REST—for the agents you already use."
     />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="preload" href="/fonts/Satoshi-Regular.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" href="/fonts/Satoshi-Bold.woff2" as="font" type="font/woff2" crossorigin />
-    <meta property="og:title" content="openagent.email — Agent Email &amp; Task Handoffs, Self-Hosted" />
+    <meta property="og:title" content="openagent.email — Open Communication &amp; Task Handoffs for AI Agents" />
     <meta
       property="og:description"
-      content="Self-hosted email and task handoffs for AI agents. Unlimited agent mailboxes on your own domain — task threads, approvals, and webhooks over MCP and REST. Open-source AgentMail alternative, Apache-2.0."
+      content="Open communication and task handoffs for AI agents. Self-hosted email, task threads, approvals, and webhooks over MCP and REST—for the agents you already use. Bring your own agents. Keep control of the work."
     />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://openagent.email" />
@@ -168,13 +171,12 @@ const faqJsonLd = {
       <div class="wrap">
         <p class="kicker stagger stagger-1">Open source · Self-hosted · Apache-2.0</p>
         <h1 class="stagger stagger-2">
-          Email for your agents.<br />
-          <span class="foil-wrap"><span class="foil-stroke" aria-hidden="true">Owned by you.</span><span class="foil foil-fill">Owned by you.</span></span>
+          Open communication &amp; task handoffs<br />
+          <span class="foil-wrap"><span class="foil-stroke" aria-hidden="true">for AI agents.</span><span class="foil foil-fill">for AI agents.</span></span>
         </h1>
         <p class="sub stagger stagger-3">
-          Self-hosted email and task handoffs for the agents you already use. Unlimited real
-          mailboxes on your own domain — over REST and MCP — with OTP extraction,
-          agent-to-agent tasks, and phone push built in. One guided command gets you started.
+          Self-hosted email, task threads, approvals, and webhooks over MCP and REST—for the agents
+          you already use. Bring your own agents. Keep control of the work.
         </p>
         {/* Hero 布局不动：只在副标题下加一排低调小徽章 */}
         <ul class="hero-chips stagger stagger-3" aria-label="Highlights">
@@ -214,11 +216,11 @@ const faqJsonLd = {
       <div class="wrap">
         <h2 id="what-is-heading" class="reveal">What is openagent.email?</h2>
         <p class="reveal">
-          openagent.email is Apache-2.0 software you run yourself: agent mailboxes on your own
-          domain, over MCP and REST, with OTP and link extraction and no per-inbox fees. A $5 VPS
-          is enough; a hosted service is optional if you would rather not run a server. Mail stays
-          on a machine you own unless you opt into outbound SMTP relays, or push tiers 2/3 which
-          relay subject/from or body/OTP via ntfy.
+          openagent.email is Apache-2.0 infrastructure for agent communication and inspectable task handoffs:
+          self-hosted email, task threads, approvals, and webhooks over MCP and REST, with no per-inbox software fees.
+          A VPS from $5/mo is enough; a hosted service is optional if you prefer not to run a server.
+          Data paths remain user-controlled: mail stays on your server unless you route outbound via SMTP relays,
+          dispatch webhooks, or enable phone push notifications via ntfy.
         </p>
       </div>
     </section>
@@ -265,11 +267,11 @@ const faqJsonLd = {
     <!-- 3 ── TERMINAL DEMO ─────────────────────────────────────────────── -->
     <section id="demo">
       <div class="wrap">
-        <p class="kicker reveal">Live workflow</p>
-        <h2 class="reveal">From deploy to OTP, in one terminal.</h2>
+        <p class="kicker reveal">Workflow walkthrough</p>
+        <h2 class="reveal">From deploy to OTP extraction.</h2>
         <p class="sub reveal">
-          This is the actual loop your agent runs: create an identity, trigger a signup, wait for
-          the mail, read the code. Typed out for you below — no video, no mockup.
+          An illustrative walkthrough of the workflow: start the stack, mint an identity, wait for
+          mail, and extract the code. (Scripted walkthrough; prerequisites such as admin auth and full address parameters are omitted for clarity).
         </p>
         <div class="terminal reveal" style="margin-top: 2.5rem">
           <div class="bar">
@@ -371,11 +373,11 @@ const faqJsonLd = {
               </svg>
             </div>
           </div>
-          {/* 卡3 Sent box：新增。信封航线 + 时间戳账 */}
+          {/* 卡3 Sent box：信封航线 + 时间戳账 */}
           <div class="card reveal">
             <span class="num">03</span>
             <h3>Every send, on the record</h3>
-            <p>Agents can send mail too — and you get the ledger. The Sent folder shows what went out: when, from whom, to whom, the subject, and whether it landed (with the failure reason when it didn't). 30 days of history. Message bodies are never stored.</p>
+            <p>Agents can send mail too — and you get the ledger. The Sent folder provides an audit ledger of outbound submissions: when, from whom, to whom, the subject, and submission status (queued or failed at SMTP relay). 30 days of history. Outbound message bodies are not retained in the send-audit store.</p>
             <div class="card-viz" aria-hidden="true">
               <svg class="viz-sent" viewBox="0 0 220 88" role="img">
                 <path class="flight" d="M18 58 C 48 18, 92 8, 132 22" />
@@ -398,18 +400,18 @@ const faqJsonLd = {
             <p>Built on the official SDK v2, current to the dated 2026-07-28 spec. Agents on the same box connect over stdio; cloud agents connect over stateless HTTPS with OAuth. Every authorized client is listed in the dashboard — and revocable.</p>
             <FeatureViz kind="mcp" />
           </div>
-          {/* 卡5 Tasks：保留现有正文，只在末尾补批准尾句 */}
+          {/* 卡5 Tasks：邮件工单线程 + 服务端状态戳 + Dashboard 工单视图 */}
           <div class="card reveal">
             <span class="num">05</span>
             <h3>Agent-to-agent tasks</h3>
             {/* #22：邮件工单线程 + 服务端状态戳 + Dashboard 工单视图 + A2A Agent Card */}
-            <p>Email-backed task threads with server-stamped states (<code>submitted</code>→<code>working</code>→<code>completed</code>/<code>failed</code>). The receiving agent is woken; the dashboard shows a work-order view. A2A-vocabulary Agent Card at <code>/.well-known/agent-card.json</code> (email transport — not wire-protocol claim). Watch the board, page through history, nudge a stuck task or close one out — you're the dispatcher, not just the observer.</p>
+            <p>Email-backed task threads with server-stamped states (<code>submitted</code>→<code>working</code>→<code>completed</code>/<code>failed</code>). Task notifications dispatch over webhooks or push for external agent activation; the dashboard shows a work-order view. A2A-vocabulary Agent Card at <code>/.well-known/agent-card.json</code> (email transport — not wire-protocol claim). Watch the board, page through history, nudge a stuck task or close one out — you're the dispatcher, not just the observer.</p>
             <FeatureViz kind="tasks" />
           </div>
           <div class="card reveal">
             <span class="num">06</span>
             <h3>Unlimited identities</h3>
-            <p>One catch-all mailbox, unlimited <code>anything@yourdomain</code> addresses. No provisioning, no per-inbox cost, no caps.</p>
+            <p>One catch-all mailbox, unlimited <code>anything@yourdomain</code> addresses. No provisioning and no per-inbox software fee; bounded only by your server resources.</p>
             <FeatureViz kind="identities" />
           </div>
           <div class="card reveal">
@@ -459,8 +461,8 @@ const faqJsonLd = {
         <h2 class="reveal">Ten minutes, five steps,<br />every one of them real.</h2>
         <div class="steps" style="margin-top: 2.5rem" id="steps">
           <div class="step reveal">
-            <h3>Deploy</h3>
-            <p>Clone, set three env vars, bring the stack up. Two containers: docker-mailserver plus the API.</p>
+            <h3>Deploy or connect</h3>
+            <p>Deploy the Bun/Hono API and mail server with local DATA_DIR state, or connect your agent to an existing instance.</p>
             <code>docker compose up -d</code>
           </div>
           <div class="step reveal">
@@ -490,15 +492,9 @@ const faqJsonLd = {
     <!-- 6 ── STATS + CAPABILITIES ──────────────────────────────────────── -->
     <section>
       <div class="wrap">
-        <div class="stats">
-          {/* 口径：公开端点含 /healthz 与 /.well-known/*，不含 /ui/*；测试 = api 531 + mcp 20 + setup 33 */}
-          <div class="stat reveal"><div class="n" data-count="22">0</div><div class="l">REST endpoints</div></div>
+        <div class="stats" style="grid-template-columns: 1fr; max-width: 18rem; margin-inline: auto;">
           <div class="stat reveal"><div class="n" data-count={MCP_TOOLS.length}>0</div><div class="l">MCP tools</div></div>
-          <div class="stat reveal"><div class="n" data-count="584">0</div><div class="l">automated tests</div></div>
-          {/* 诚实限定：tier 2/3 会经 ntfy 送出元数据/正文/OTP；* 脚注用既有 .honest，不加 CSS */}
-          <div class="stat reveal"><div class="n" data-count="0">0</div><div class="l">bytes of mail leaving your infra*</div></div>
         </div>
-        <p class="honest reveal">*unless you opt into push tiers 2/3, which relay via ntfy</p>
         <div class="caplist reveal">
           <h3>REST API</h3>
           <ul>
@@ -602,14 +598,14 @@ const faqJsonLd = {
         <p class="kicker reveal">Before you ask</p>
         <h2 class="reveal">Runs on the smallest VPS<br />you can buy.</h2>
         <p class="sub reveal">
-          Measured on our own production instance, sitting idle: the whole stack — mail server,
-          API, everything — sips about 190&nbsp;MB of RAM and roughly zero CPU.
+          Sitting idle, the whole stack — mail server, API, and background workers — sips ~190&nbsp;MB
+          of RAM and minimal CPU (measured on Debian 12, docker-mailserver + Bun API stack, September 2026).
         </p>
         <div class="grid grid-3" style="margin-top: 2.5rem">
           <div class="card reveal">
             <span class="num">MINIMUM</span>
             <h3>1 vCPU · 1 GB · 10 GB</h3>
-            <p>Works with the defaults. That's a $5/mo VPS — or a $10–15/<em>year</em> deal box.</p>
+            <p>Works with the defaults. VPS from $5/mo — or entry-level low-cost VPS deals (~$10–15/<em>year</em>).</p>
           </div>
           <div class="card reveal">
             <span class="num">COMFORTABLE</span>
@@ -640,7 +636,11 @@ const faqJsonLd = {
             faq.map((item) => (
               <details>
                 <summary>{item.q}</summary>
-                {'aHtml' in item ? <p set:html={item.aHtml} /> : <p>{item.a}</p>}
+                {item.link ? (
+                  <p>{item.a.slice(0, item.a.indexOf(item.link.text + item.link.strong))}<a href={item.link.href}>{item.link.text}<strong>{item.link.strong}</strong></a>{item.a.slice(item.a.indexOf(item.link.text + item.link.strong) + item.link.text.length + item.link.strong.length)}</p>
+                ) : (
+                  <p>{item.a}</p>
+                )}
               </details>
             ))
           }
@@ -667,7 +667,7 @@ const faqJsonLd = {
              "contact-email" by Deedy Intern Team (Lottie Simple License), recolored
              to brand gold. Player: lottie-web v5.13.0 (MIT), vendored, loaded only here. -->
         <PaperPlane lottie class="reveal" />
-        <h2 class="reveal">Ready to give your agents<br /><span class="gold">their own inbox?</span></h2>
+        <h2 class="reveal">Ready for open communication<br /><span class="gold">&amp; task handoffs?</span></h2>
         <div class="cta-row reveal">
           <a class="btn btn-gold" href="https://github.com/openagentemail/openagentemail">Star on GitHub</a>
           <a class="btn btn-ghost" href="/docs/">Read the docs</a>
@@ -684,11 +684,8 @@ const faqJsonLd = {
               <span>openagent<span class="gold">.email</span></span>
             </a>
             <p class="tagline">
-              Self-hosted email &amp; task handoffs for AI agents. Unlimited inboxes on your own domain — your mail
-              never leaves a machine you own
-              <small title="Outbound SMTP relays for sending; push tiers 2/3 relay subject/from or body/OTP via ntfy">
-                — unless you opt into relays or push tiers 2/3
-              </small>.
+              Open communication and task handoffs for AI agents. Self-hosted email, task threads,
+              approvals, and webhooks over MCP and REST. User-controlled data paths on your own infrastructure.
             </p>
           </div>
           <div>

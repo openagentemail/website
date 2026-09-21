@@ -30,8 +30,8 @@ const pageDescription =
     </li>
     <li>
       <strong>Hosted connector.</strong> Web chat products connect to the hosted MCP
-      URL over OAuth. Click paths for Claude, ChatGPT, Grok, and related clients are
-      in <a href="/docs/guides/connect-your-agent/">Connect your agent</a>.
+      URL over OAuth. Tested connection paths for Claude, ChatGPT, Grok, and related clients are
+      in <a href="/docs/guides/connect-your-agent/">Connect your agent</a> (naming clients indicates tested compatibility, not vendor endorsement).
     </li>
   </ul>
 
@@ -40,6 +40,7 @@ const pageDescription =
     <li><a href="/docs/quickstart/">Quickstart</a></li>
     <li><a href="/docs/guides/connect-your-agent/">Connect your agent</a></li>
     <li><a href="/docs/reference/mcp-clients/">MCP client setup</a></li>
+    <li><a href="/docs/guides/tasks/">Agent tasks</a></li>
     <li><a href="/docs/guides/public-mcp/">Exposing MCP publicly</a></li>
     <li><a href="/docs/reference/api/">REST API</a></li>
     <li><a href="/docs/guides/otp-extraction/">OTP extraction</a></li>
@@ -54,7 +55,7 @@ const pageDescription =
   <p>
     Follow <a href="/docs/guides/connect-your-agent/">Connect your agent</a> and paste
     the matching config from <a href="/docs/reference/mcp-clients/">MCP client setup</a>.
-    Claude Desktop and Cursor both speak MCP over local stdio or HTTP.
+    Claude Desktop and Cursor connect to MCP over local stdio or remote HTTP with your scoped token or OAuth.
   </p>
 
   <h2>Do I need a public MCP URL?</h2>
@@ -66,8 +67,8 @@ const pageDescription =
 
   <h2>Can I use REST instead of MCP?</h2>
   <p>
-    Yes. The <a href="/docs/reference/api/">REST API</a> exposes the same mailbox,
-    including the wait/read flow in the
-    <a href="/docs/guides/otp-extraction/">OTP extraction</a> guide.
+    Yes. The <a href="/docs/reference/api/">REST API</a> exposes the same mailbox and task endpoints,
+    including the wait/read flow in the <a href="/docs/guides/otp-extraction/">OTP extraction</a> guide
+    and task threads in the <a href="/docs/guides/tasks/">Tasks guide</a>.
   </p>
 </Legal>
