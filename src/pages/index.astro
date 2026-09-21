@@ -38,8 +38,11 @@ const faq = [
   {
     q: 'Is it really free?',
     a: 'Yes — self-hosting is free and unlimited under the Apache-2.0 license: no paid tier, no usage limits, no per-inbox pricing. The only thing you pay for is the server you run it on, and a $5/mo VPS is enough. If you would rather not run a server, Hosted Pro Early Bird is now available for $30/year as a one-time payment — see our pricing.',
-    // Rendered as raw HTML: build-time static content only; never use dynamic data (stored-XSS guard).
-    aHtml: 'Yes — self-hosting is free and unlimited under the Apache-2.0 license: no paid tier, no usage limits, no per-inbox pricing. The only thing you pay for is the server you run it on, and a $5/mo VPS is enough. If you would rather not run a server, Hosted Pro Early Bird is now available for $30/year as a one-time payment — <a href="/pricing">see our <strong>pricing</strong></a>.',
+    link: {
+      href: '/pricing',
+      text: 'see our ',
+      strong: 'pricing',
+    },
   },
   {
     q: 'How is it different from AgentMail?',
@@ -640,7 +643,11 @@ const faqJsonLd = {
             faq.map((item) => (
               <details>
                 <summary>{item.q}</summary>
-                {'aHtml' in item ? <p set:html={item.aHtml} /> : <p>{item.a}</p>}
+                {item.link ? (
+                  <p>{item.a.slice(0, item.a.indexOf(item.link.text + item.link.strong))}<a href={item.link.href}>{item.link.text}<strong>{item.link.strong}</strong></a>{item.a.slice(item.a.indexOf(item.link.text + item.link.strong) + item.link.text.length + item.link.strong.length)}</p>
+                ) : (
+                  <p>{item.a}</p>
+                )}
               </details>
             ))
           }

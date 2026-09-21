@@ -84,6 +84,20 @@ const ownerComponent = await readFile(new URL('../src/components/JsonLd.astro', 
 assert.match(ownerComponent, /data-jsonld-owner="JsonLd"/, 'The owner component must emit its provenance marker');
 assert.match(ownerComponent, /validateJsonLd\(jsonLd\(data\)\)/, 'The owner must validate immediately before its set:html sink');
 
+// --- FAQ structured rendering backstop (#53) ---
+
+const homepageSource = await readFile(new URL('../src/pages/index.astro', import.meta.url), 'utf8');
+assert.equal(
+  homepageSource.includes('aHtml'),
+  false,
+  'The FAQ data must not define a raw aHtml property (#53)',
+);
+assert.equal(
+  homepageSource.includes('set:html={item.'),
+  false,
+  'The FAQ section must not render answers through a raw HTML sink (#53)',
+);
+
 // --- rendered output, after the build ---
 
 if (process.argv.includes('--check-rendered')) {
@@ -104,6 +118,13 @@ if (process.argv.includes('--check-rendered')) {
   const compareHead = descendants(compareDocument).find((node) => node.nodeName === 'head');
   assert.ok(compareHead, 'Built compare page must have a document head');
   assert.equal(jsonLdBlocks(compareHead).length, 1, 'The compare JsonLd component must still render into the Legal head slot');
+
+  const renderedIndex = renderedBySurface.get('index.html');
+  assert.match(
+    renderedIndex,
+    /<a href="\/pricing"[^>]*>see our <strong[^>]*>pricing<\/strong><\/a>\./,
+    'Rendered FAQ must preserve the structured /pricing link (#53)',
+  );
 }
 
 // Deleting the owner marker from a rendered artifact must turn the provenance gate red.
