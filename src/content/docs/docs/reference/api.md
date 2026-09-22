@@ -390,9 +390,9 @@ Lease and state mutation fallback:
 
 | Stage | Status | `body` | Meaning |
 |---|---|---|---|
-| `POST /v1/tasks/:id/{claim,lease,release,claim-lost,decision,state}` and the console task-mutation path, when a failure is not mapped to a domain error | `502` | `{error:"task_operation_failed"}` (no `taskId`) | These paths **do deliver mail during the write stage** (lease-journal delivery, approval-terminal delivery, remind, update notification), so an SMTP delivery failure is **one possible cause** — but the same code also covers unmapped/internal failures (for example `task_leases_disabled`). The previous `smtp_error` label attributed all of them to SMTP alone. Mapped domain errors keep their own codes and statuses. |
+| `POST /v1/tasks/:id/{claim,lease,release,claim-lost,decision,state}` and the console task-mutation path, when a failure is not mapped to a domain error | `502` | `{error:"task_operation_failed"}` (no `taskId`) | These paths **do deliver mail during the write stage** (lease-journal delivery, approval-terminal delivery, remind, update notification), so an SMTP delivery failure is **one possible cause** — but the same code also covers unmapped/internal failures. The previous `smtp_error` label attributed all of them to SMTP alone. Mapped domain errors keep their own codes and statuses. |
 
-Monitoring note: this fallback carries **no** `taskId`, so on these routes the pre/post-create `taskId` test above does not apply; the server-side `console.warn` on the mutate paths is the primary attribution aid.
+Monitoring note: this fallback carries **no** `taskId`, so on these routes the pre/post-create `taskId` test above does not apply; the server-side `console.warn` on the mutate paths is the primary attribution aid — **except** on `/lease` (renew) and `/release`, which log only static messages without the underlying exception, so for those two routes the response alone cannot distinguish an SMTP failure from an internal one.
 
 ## `GET /v1/tasks?state=`
 
