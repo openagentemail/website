@@ -372,6 +372,18 @@ Approval task validation errors:
 - `400 {"error":"approval_action_too_large"}`: Serialized `action` JSON exceeds 65,536 bytes.
 - `400 {"error":"approval_action_too_deep"}`: `action` nesting depth exceeds 10.
 
+Wait-path failure codes:
+
+| Stage | Status | `body` | Meaning |
+|---|---|---|---|
+| Not created | `502` | `{error:"smtp_error"}` (no `id`) | SMTP or validation failed; **no task** exists |
+| Created, journal error | `503` | `{error:"lease_journal_*", taskId, created:true}` | Task **exists**; the lease journal is unavailable |
+| Created, other wait-stage error | `502` | `{error:"wait_failed", taskId, created:true}` | Task **exists**; the wait did not complete |
+| Wait slots full | `429` | `{error:"too_many_waits", retryAfterSec, taskId}` | Task **exists**; call `task_get` later |
+
+Monitoring note: on a `502`, the presence or absence of `taskId` is what distinguishes
+pre-creation from post-creation failures (no new metric or log field is added).
+
 ## `GET /v1/tasks?state=`
 
 List task threads. Identity tokens see only threads where they are one of the
