@@ -376,13 +376,15 @@ Wait-path failure codes:
 
 | Stage | Status | `body` | Meaning |
 |---|---|---|---|
-| Not created | `502` | `{error:"smtp_error"}` (no `id`) | SMTP or validation failed; **no task** exists |
+| Not created, no task ID returned | `502` | `{error:"smtp_error"}` (no `taskId`) | SMTP or validation failed on the create path — **no task ID is returned**; an ID-less error is *not* proof the message was never accepted (see the note below) |
 | Created, journal error | `503` | `{error:"lease_journal_*", taskId, created:true}` | Task **exists**; the lease journal is unavailable |
 | Created, other wait-stage error | `502` | `{error:"wait_failed", taskId, created:true}` | Task **exists**; the wait did not complete |
-| Wait slots full | `429` | `{error:"too_many_waits", retryAfterSec, taskId}` | Task **exists**; call `task_get` later |
+| Wait slots full | `429` | `{error:"too_many_waits", retryAfterSec, taskId}` | Task **exists**; read it later with `GET /v1/tasks/:id` (MCP `task_get`) |
 
 Monitoring note: on a `502`, the presence or absence of `taskId` is what distinguishes
-pre-creation from post-creation failures (no new metric or log field is added).
+pre-creation from post-creation failures (no new metric or log field is added). An error
+without a `taskId` is **not** proof that SMTP never accepted the task: reconcile your task
+list before attempting another create (the API deliberately performs no automatic POST retry).
 
 ## `GET /v1/tasks?state=`
 
@@ -1144,5 +1146,5 @@ Delivery outcomes determine whether failures are retried automatically:
 | `401` | Missing/invalid bearer token |
 | `403` | Valid token, disallowed action (identity token outside its scope, non-identity `from`, non-admin managing identities) |
 | `408` | `wait` timed out |
-| `429` | Send or message-list rate limit hit — back off `retryAfterSec` |
+| `429` | Rate limit hit — send, message-list, or task-wait slots; back off `retryAfterSec` |
 | `5xx` | Mailserver unreachable or internal error — check `docker compose logs api` |
