@@ -399,7 +399,7 @@ Two mutation errors that are mapped rather than falling back (listed for complet
 | Stage | Status | `body` | Meaning |
 |---|---|---|---|
 | Lease operation while the lease feature is disabled | `409` | `{error:"task_leases_disabled"}` | Same code and status as the route-level guard; the service layer raises the same code |
-| Approval decision that does not match the task's stored approval record | `409` | `{error:"invalid_approval_decision_event"}` | `digest`, `decision`, or `reviewer` disagrees with the stored approval |
+| Approval decision whose generated decision event disagrees with the stored approval record | `409` | `{error:"invalid_approval_decision_event"}` | Server-side consistency check on the decision event the server builds (digest taken from the stored approval, reviewer from the authenticated actor, decision from the request); a mismatch is an internal invariant failure, not a client-supplied field error |
 
 ## `GET /v1/tasks?state=`
 
