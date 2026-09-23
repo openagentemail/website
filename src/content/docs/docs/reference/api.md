@@ -394,6 +394,13 @@ Lease and state mutation fallback:
 
 Monitoring note: this fallback carries **no** `taskId`, so on these routes the pre/post-create `taskId` test above does not apply; the server-side `console.warn` on the mutate paths is the primary attribution aid — **except** on `/lease` (renew) and `/release`, which log only static messages without the underlying exception, so for those two routes the response alone cannot distinguish an SMTP failure from an internal one.
 
+Two mutation errors that are mapped rather than falling back (listed for completeness):
+
+| Stage | Status | `body` | Meaning |
+|---|---|---|---|
+| Lease operation while the lease feature is disabled | `409` | `{error:"task_leases_disabled"}` | Same code and status as the route-level guard; the service layer raises the same code |
+| Approval decision whose generated decision event disagrees with the stored approval record | `409` | `{error:"invalid_approval_decision_event"}` | Server-side consistency check on the decision event the server builds (digest taken from the stored approval, reviewer from the authenticated actor, decision from the request); a mismatch is an internal invariant failure, not a client-supplied field error |
+
 ## `GET /v1/tasks?state=`
 
 List task threads. Identity tokens see only threads where they are one of the
