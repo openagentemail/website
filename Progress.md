@@ -160,3 +160,9 @@
 - 实现了什么：复核 Umami 3.2.0 tracker（4655 字节，SHA256 1ad1145d19d4558c20f5469ca4a5fc50a1a46f860858c9c91bfcd56fd29a522a）后放入 public/vendor，12 个调用点改为该同源路径并设置 data-host-url。
 - 遇到什么错误：既有测试钉死 prebuild/postbuild 全文；i18n 源哈希与英文 head 基线失配；首页和 /zh/ 的 pageview 要等到 load 才发出。
 - 如何解决：保留既有 prebuild/postbuild 全部旧 legs，并在末尾追加 test:analytics 与 test:analytics-rendered；只更新被改文件的哈希；浏览器测试等待 load。三项负控复红后已恢复。未 commit/push/PR。
+
+## 2026-10-01 #54B
+
+- 实现了什么：把 Astro 钉到 7.3.5、Starlight 钉到 0.42.5，并补上 peer `@astrojs/markdown-remark@7.3.1`。注册 Starlight 的空 i18n 集合。英文基线只由这一头的真实 `dist` 重写。
+- 遇到什么错误：干净重解锁后构建在 G13 红，因为 Astro 7 压缩空白、Starlight 0.42 改了菜单和侧栏标记。空 i18n 目录会告警。
+- 如何解决：不手改哈希、不关闸。用同环境 Astro 5 产物逐页对过可见文本后，才写入基线。sitemap 3.7.3 与 parse5 7.3.0 未动。未 commit/push/PR。
