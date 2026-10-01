@@ -153,3 +153,10 @@
 1. 先 `npm install` 再 `npm run build`（24 pages，含新指南页）。
 2. 本地 main 已与 origin/main 对齐，直接开 `feat/connect-your-agent-guide`；push 重试。
 3. Mistral 明确写 `https://mcp.openagent.email/mcp` 并警示勿用 inbox 域；Progress 恢复 FAQ R4 后再追加本轮日志。
+# Progress
+
+## 2026-10-01 #54A
+
+- 实现了什么：复核 Umami 3.2.0 tracker（4655 字节，SHA256 1ad1145d19d4558c20f5469ca4a5fc50a1a46f860858c9c91bfcd56fd29a522a）后放入 public/vendor，12 个调用点改为该同源路径并设置 data-host-url。
+- 遇到什么错误：既有测试钉死 prebuild/postbuild 全文；i18n 源哈希与英文 head 基线失配；首页和 /zh/ 的 pageview 要等到 load 才发出。
+- 如何解决：保留既有 prebuild/postbuild 全部旧 legs，并在末尾追加 test:analytics 与 test:analytics-rendered；只更新被改文件的哈希；浏览器测试等待 load。三项负控复红后已恢复。未 commit/push/PR。
