@@ -1,0 +1,32 @@
+来源 URL: https://stats.openagent.email/script.js
+抓取时间: 2026-10-01T13:50:55Z
+响应: 4655 bytes; SHA256 1ad1145d19d4558c20f5469ca4a5fc50a1a46f860858c9c91bfcd56fd29a522a
+响应头: Last-Modified Wed, 24 Jun 2026 23:36:36 GMT; ETag W/"122f-19efbfe1fa0"
+上游: https://github.com/umami-software/umami/blob/v3.2.0/src/tracker/index.js
+上游源文件 SHA256: 415775c106cf2e751ec562198c9c6f58013c79a7b34e25841df67556cffdb97d
+版本: umami 3.2.0。用 rollup@4.61.1、@rollup/plugin-replace@6.0.3、@rollup/plugin-terser@1.0.0、terser@5.46.1，在 Node v22.22.3 上把 __COLLECT_API_HOST__ 置空、__COLLECT_API_ENDPOINT__ 置为 /api/send，重建结果与本次抓取字节级一致。v3.1.0 源码没有 data-auto-pageview 与 x-umami-website-id；v3.3.0 起 tracker 改为 TypeScript。压缩字节内无版本号与许可证文本。
+许可证: MIT。以下为 tag v3.2.0 LICENSE 原文，SHA256 d59f69c3a56253a150adfc42b41acd49e9024410ad087c58a23d506623258dfe。分发必须保留版权与许可声明。
+更新: 禁止在线构建抓取、代理、重定向或就地改字节。更新须重新抓取并核定来源、许可证与版本后，换新的完整 SHA256 文件名，再改 12 个调用点。
+资产: /vendor/umami-1ad1145d19d4558c20f5469ca4a5fc50a1a46f860858c9c91bfcd56fd29a522a.js
+
+MIT License
+
+Copyright (c) 2022 Umami Software, Inc. <hello@umami.is>
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
