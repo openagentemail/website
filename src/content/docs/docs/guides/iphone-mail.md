@@ -12,11 +12,13 @@ which identity each message was for.
 This is for humans who want to check in on their agents from a phone; agents
 themselves keep using MCP or the REST API.
 
-**Using a hosted mailbox we run for you?** The same setup works — no server of
-your own needed. Use your instance domain as the host name for both incoming
-and outgoing mail (for example `derek.oa-email.com`), the catch-all address
-`agent@<your-instance>.oa-email.com` as the username, and the mail password
-shown once when you claimed your instance.
+**Using a hosted mailbox we run for you?** The same setup works — no server
+of your own needed. Skip the server-side steps below (the certificate and
+`.env` parts are already taken care of) and go straight to
+[Settings](#settings): use your instance domain as the host name for both
+incoming and outgoing mail (for example `derek.oa-email.com`), the catch-all
+address `agent@<your-instance>.oa-email.com` as the username, and the mail
+password shown once when you claimed your instance.
 
 ## Prerequisite: a publicly trusted certificate
 
