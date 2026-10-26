@@ -302,7 +302,7 @@
   },
   {
     "page": "pricing/index.html",
-    "bodySha256": "f4789defa28269fdb9a67df8a1ea5f036c72a72d5df72fa8a7f0a105b3f6a199",
+    "bodySha256": "c85ef3cca1624deee935dc634c41f97c978ddf84aa596b5713c8f33f081bea72",
     "headNormSha256": "8c798e6c6ec5ee2463db8a508dacebaeee962052c634bd5233b8baae1cf76c67",
     "rulesSha256": "669127522eb4b9110c5a68314f56f303da847a1c78f90c4a200217d27b03b99f",
     "stylesheets": [
@@ -336,7 +336,7 @@
   },
   {
     "page": "terms-of-service/index.html",
-    "bodySha256": "86cc80186c42b2bab3bfc6f509811aa117cd9ae58d303b5e7277fc58e6268ce4",
+    "bodySha256": "f207ce49f0c4682e1092cfa96c2ddac0391682404cde8fe502d606c46c062481",
     "headNormSha256": "45a1253d3a5cdffe0731b9a1df27d9187662ec86b9f16173b915becebc94136f",
     "rulesSha256": "9e7c85a78cde5448edb7800e3b9323568f54971d46cc090a99010893c206eba6",
     "stylesheets": [

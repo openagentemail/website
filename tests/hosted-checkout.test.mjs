@@ -26,6 +26,7 @@ assert.doesNotMatch(pricing, /Available now/, 'Hosted badge must not say Availab
 assert.match(pricing, /Early birds keep the \$30\.00\/year price when they renew/, 'Hosted benefits must preserve the renewal price');
 assert.match(pricing, /Early bird — \$30\.00 for a full year \(regular \$5\.00\/month\)\. One-time payment, no\s+auto-renewal; early birds keep \$30\.00\/yr on renewal\. Secure checkout via Creem — Alipay\s+supported\./, 'Hosted payment and offer copy must match the approved facts');
 assert.match(pricing, /Hosted Pro Early Bird is a one-time \$30\.00 payment for one year, with no auto-renewal\./, 'Notes must state the public early-bird offer');
+assert.match(pricing, /Hosted Pro sending is transactional email only/, 'Pricing notes must state hosted sending is transactional-only');
 assert.match(pricing, /openagent\.email is free and open source\. Hosted Pro Early Bird is available for \$30\.00\/year as a one-time payment\./, 'Pricing meta must state the public offer');
 assert.doesNotMatch(pricing, /Apple Pay|credit card/i, 'Hosted checkout copy must not promise unavailable payment methods');
 assert.match(layout, /href="\/refund-policy"/, 'Legal navigation must link the approved refund policy');
@@ -44,10 +45,12 @@ assert.doesNotMatch(homepage, /join the early-bird plan/i, 'Homepage CTA must no
 assert.match(homepage, /If you would rather not run a server, Hosted Pro Early Bird is now available for \$30\/year as a one-time payment — see our pricing\./, 'Homepage FAQ must state the public early-bird offer');
 assert.match(homepage, /<a class="manual-link" href="\/pricing">No VPS\? Hosted Pro Early Bird is \$30\/year →<\/a>/, 'Homepage hero secondary must state the offer and still link /pricing');
 assert.doesNotMatch(terms, /subscription basis|billed monthly or yearly|free 3-day trial|cancel anytime|paid period|subscription fees/i, 'Terms must not describe a retired subscription offer');
-assert.match(terms, /Effective August 31, 2026/, 'Terms must show the publication date of the live annual offer');
+assert.match(terms, /Effective October 26, 2026/, 'Terms must show the publication date of the live annual offer');
 assert.match(terms, /Hosted Pro Early Bird is a one-time \$30\.00 payment for one year, with no automatic renewal\./, 'Terms must state the one-time annual offer');
 assert.match(terms, /Early Bird customers may renew for another year at the \$30\.00\/year Early Bird price\./, 'Terms must state the approved renewal terms');
 assert.match(terms, /Refund Policy/, 'Terms must direct refund requests to the refund policy');
+assert.match(terms, /transactional email only/, 'Terms must state hosted outbound sending is transactional-only');
+assert.match(terms, /Marketing or bulk email is not allowed/, 'Terms must ban marketing and bulk email on hosted instances');
 
 // Hosted Pro customer data and support disclosures must match the public offer.
 const privacyCopy = normalizeWhitespace(privacy);

@@ -481,6 +481,7 @@ export const texts = {
   pricing_hosted_cta: 'Buy Hosted Pro — $30 one-time →',
   pricing_notes_title: 'Notes',
   pricing_notes_li1: 'Hosted Pro Early Bird is a one-time $30.00 payment for one year, with no auto-renewal.',
+  pricing_notes_transactional: 'Hosted Pro sending is transactional email only (agent notifications, confirmations, task reports) — no marketing or bulk email.',
   pricing_notes_li2: 'Questions? Email ',
 
   // ── C2: MCP page ──
@@ -581,7 +582,7 @@ export const texts = {
   // ── C2: Terms of service page ──
   terms_title: 'Terms of service',
   terms_description: 'Terms of service for the openagent.email website, software, and hosted service.',
-  terms_updated: 'Effective August 31, 2026',
+  terms_updated: 'Effective October 26, 2026',
   terms_lede: 'openagent.email is free, open-source software with an optional hosted service. These terms cover the use of this website, the software, and the hosted service.',
   terms_software_title: 'The software',
   terms_software_body_a: 'openagent.email is released under the ',
@@ -596,6 +597,7 @@ export const texts = {
   terms_hosted_li3_a: 'Refund requests are governed by our ',
   terms_hosted_li3_link: 'Refund Policy',
   terms_hosted_li3_b: '. Where a refund is required by applicable law, it will be issued through the Merchant of Record.',
+  terms_hosted_relay: 'Hosted instances send outbound email through a third-party relay whose rules we must enforce: transactional email only — for example, agent notifications, confirmations, and task reports. Marketing or bulk email is not allowed, and sending it may lead to suspension of your instance.',
   terms_hosted_li4: 'The hosted service may only be used for lawful email activity. If you breach these terms (including spam, abuse, or unlawful use), we may suspend or terminate your access immediately, and you remain liable for any charges already incurred.',
   terms_hosted_li5: 'The hosted service is provided "as is" during the early-access period. We aim for high availability but do not guarantee uninterrupted service.',
   terms_website_title: 'This website',

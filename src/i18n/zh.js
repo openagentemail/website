@@ -474,6 +474,7 @@ export const texts = {
   pricing_hosted_cta: '购买 Hosted Pro — $30 一次性 →',
   pricing_notes_title: '备注',
   pricing_notes_li1: 'Hosted Pro Early Bird 是全年一次性支付 $30.00，无自动续费。',
+  pricing_notes_transactional: 'Hosted Pro 的发信仅限事务性邮件（Agent 通知、确认信、任务报告），不支持营销或群发邮件。',
   pricing_notes_li2: '有疑问？请发送邮件至 ',
 
   // ── C2: MCP page ──
@@ -574,7 +575,7 @@ export const texts = {
   // ── C2: Terms of service page ──
   terms_title: '服务条款',
   terms_description: 'openagent.email 网站、软件和托管服务的服务条款。',
-  terms_updated: '2026 年 8 月 31 日生效',
+  terms_updated: '2026 年 10 月 26 日生效',
   terms_lede: 'openagent.email 是附带可选托管服务的免费开源软件。本条款涵盖本网站、软件及托管服务的使用。',
   terms_software_title: '软件',
   terms_software_body_a: 'openagent.email 依据 ',
@@ -591,6 +592,7 @@ export const texts = {
   terms_hosted_li3_b: ' 约束。若适用法律要求退款，将通过 Merchant of Record 发放。',
   terms_hosted_li4: '托管服务仅可用于合法的邮件活动。若您违反本条款（包括垃圾邮件、滥用或非法使用），我们可立即暂停或终止您的访问，且您仍需承担已产生的费用。',
   terms_hosted_li5: '托管服务在早期访问期间按"原样"提供。我们力求高可用，但不保证服务不中断。',
+  terms_hosted_relay: '托管实例通过第三方中继发送出站邮件，我们必须执行其规则：仅限事务性邮件——例如 Agent 通知、确认信和任务报告。不允许发送营销或群发邮件，违规发送可能导致您的实例被暂停。',
   terms_website_title: '本网站',
   terms_website_body: '本网站内容仅供一般参考。我们可随时更改或删除。第三方站点（GitHub、npm 等）的链接仅为方便提供，我们对其内容不负责。',
   terms_liability_title: '责任限制',
