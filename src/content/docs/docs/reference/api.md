@@ -351,6 +351,10 @@ accepted, or an error reply — starts the cooldown from that moment. An
 hourly-quota rejection, or a failure that never reached the SMTP server,
 releases the reservation and does not start the cooldown.
 
+The cooldown table holds at most 10000 sender × recipient pairs. When it is
+full, a new auto-reply is also rejected with the same `429`
+`auto_reply_cooldown`, and unexpired entries are not evicted.
+
 Each identity is limited to `SEND_RATE_LIMIT` messages per rolling hour
 (default 20, `0` disables), including auto-replies. The cooldown check runs
 first. Over the limit:
