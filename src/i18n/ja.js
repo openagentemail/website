@@ -474,6 +474,7 @@ export const texts = {
   pricing_hosted_cta: 'Hosted Pro を購入 — $30 1 回払い →',
   pricing_notes_title: '注意事項',
   pricing_notes_li1: 'Hosted Pro Early Bird は 1 年間の 1 回払い $30.00 で、自動更新はありません。',
+  pricing_notes_transactional: 'Hosted Pro の送信はトランザクションメール（エージェント通知、確認、タスクレポート）専用です。マーケティングメールや一括メールはご利用いただけません。',
   pricing_notes_li2: 'ご質問は ',
 
   // ── C2: MCP page ──
@@ -574,7 +575,7 @@ export const texts = {
   // ── C2: Terms of service page ──
   terms_title: '利用規約',
   terms_description: 'openagent.email のウェブサイト、ソフトウェア、ホステッドサービスに関する利用規約。',
-  terms_updated: '2026 年 8 月 31 日施行',
+  terms_updated: '2026 年 10 月 26 日施行',
   terms_lede: 'openagent.email は、オプションのホステッドサービスを備えた無料のオープンソースソフトウェアです。本規約は、このウェブサイト、ソフトウェア、ホステッドサービスの利用を対象とします。',
   terms_software_title: 'ソフトウェア',
   terms_software_body_a: 'openagent.email は ',
@@ -589,6 +590,7 @@ export const texts = {
   terms_hosted_li3_a: '返金リクエストは、私たちの ',
   terms_hosted_li3_link: '返金ポリシー',
   terms_hosted_li3_b: ' に従います。適用法で返金が要求される場合、Merchant of Record を通じて発行されます。',
+  terms_hosted_relay: 'ホスト型インスタンスの送信メールはサードパーティのリレー経由で送られ、私たちはそのルールを適用する必要があります。許可されるのはトランザクションメール（エージェントからの通知、確認、タスクレポートなど）のみです。マーケティングメールや一括送信メールは許可されず、送信した場合インスタンスが停止されることがあります。',
   terms_hosted_li4: 'ホステッドサービスは合法的なメール活動にのみ使用できます。本規約に違反した場合（スパム、悪用、違法使用を含む）、私たちはアクセスを即時に停止または終了でき、既に発生した料金の責任は引き続きあなたにあります。',
   terms_hosted_li5: 'ホステッドサービスは早期アクセス期間中「現状のまま」提供されます。高可用性を目指しますが、中断のないサービスを保証するものではありません。',
   terms_website_title: 'このウェブサイト',

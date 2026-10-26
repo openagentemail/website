@@ -474,6 +474,7 @@ export const texts = {
   pricing_hosted_cta: 'Comprar Hosted Pro — $30 pago único →',
   pricing_notes_title: 'Notas',
   pricing_notes_li1: 'Hosted Pro Early Bird es un pago único de $30.00 por un año, sin renovación automática.',
+  pricing_notes_transactional: 'El envío con Hosted Pro es solo para correo transaccional (notificaciones de agentes, confirmaciones, informes de tareas): no se permite correo de marketing ni masivo.',
   pricing_notes_li2: '¿Preguntas? Escriba a ',
 
   // ── C2: MCP page ──
@@ -574,7 +575,7 @@ export const texts = {
   // ── C2: Terms of service page ──
   terms_title: 'Términos del servicio',
   terms_description: 'Términos del servicio para el sitio web, el software y el servicio alojado de openagent.email.',
-  terms_updated: 'En vigor desde el 31 de agosto de 2026',
+  terms_updated: 'En vigor desde el 26 de octubre de 2026',
   terms_lede: 'openagent.email es software gratuito y de código abierto con un servicio alojado opcional. Estos términos cubren el uso de este sitio web, el software y el servicio alojado.',
   terms_software_title: 'El software',
   terms_software_body_a: 'openagent.email se publica bajo la ',
@@ -589,6 +590,7 @@ export const texts = {
   terms_hosted_li3_a: 'Las solicitudes de reembolso se rigen por nuestra ',
   terms_hosted_li3_link: 'Política de reembolso',
   terms_hosted_li3_b: '. Cuando la ley aplicable exija un reembolso, se emitirá a través del Merchant of Record.',
+  terms_hosted_relay: 'Las instancias alojadas envían el correo saliente a través de un relay de terceros cuyas reglas debemos hacer cumplir: solo correo transaccional — por ejemplo, notificaciones de agentes, confirmaciones e informes de tareas. No se permite el correo de marketing ni masivo, y enviarlo puede provocar la suspensión de su instancia.',
   terms_hosted_li4: 'El servicio alojado solo puede usarse para actividad de correo lícita. Si incumple estos términos (incluidos spam, abuso o uso ilícito), podemos suspender o cancelar su acceso de inmediato, y usted seguirá siendo responsable de los cargos ya incurridos.',
   terms_hosted_li5: 'El servicio alojado se proporciona "tal cual" durante el periodo de acceso anticipado. Buscamos una alta disponibilidad, pero no garantizamos un servicio ininterrumpido.',
   terms_website_title: 'Este sitio web',

@@ -30,7 +30,7 @@
     {
       "page": "pricing",
       "file": "src/pages/pricing.astro",
-      "sha256": "d81b61322a1e30230b37678d5d0212bca798988c77e04411e2b8105dac1d51d5"
+      "sha256": "45572106a3e885119611a31484fc32cb04c95829fe0d8131b5fdbfc4ed720dff"
     },
     {
       "page": "mcp",
@@ -55,7 +55,7 @@
     {
       "page": "terms-of-service",
       "file": "src/pages/terms-of-service.astro",
-      "sha256": "fd945f6a35ad5d068eebbb25f5dc0b7b5dff80c262c75f63c925c5fc83a4e8ef"
+      "sha256": "9b2ab7eac15a4a601f7f523b916c86537712675f186673933d02b3dbed81a80e"
     },
     {
       "page": "refund-policy",
@@ -90,7 +90,7 @@
     {
       "layout": "PricingPage",
       "file": "src/layouts/PricingPage.astro",
-      "sha256": "eaf34f3e47f1670099f3f3baf054ce983b450e5e028346400748c887e0bdfa3a"
+      "sha256": "d9cca253fae1f6ecabaddc48ff4e8257124d3e267c4b965741e1d8c821fbd8e4"
     },
     {
       "layout": "McpPage",
@@ -115,7 +115,7 @@
     {
       "layout": "TermsOfServicePage",
       "file": "src/layouts/TermsOfServicePage.astro",
-      "sha256": "3dc9180326055729e3d7b8ce79c2acadf82ea1eb969399f2acdf7fce32c03203"
+      "sha256": "dd74242b1d2daf94d76528306c4c213256ef43e3fe8b88ea0ca521c8152858bf"
     },
     {
       "layout": "RefundPolicyPage",

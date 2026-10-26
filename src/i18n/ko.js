@@ -474,6 +474,7 @@ export const texts = {
   pricing_hosted_cta: 'Hosted Pro 구매 — $30 1회 결제 →',
   pricing_notes_title: '참고',
   pricing_notes_li1: 'Hosted Pro Early Bird는 1년간 1회 결제 $30.00이며 자동 갱신이 없습니다.',
+  pricing_notes_transactional: 'Hosted Pro 발송은 트랜잭션 이메일(에이전트 알림, 확인, 작업 보고서)만 지원하며, 마케팅 또는 대량 이메일은 지원하지 않습니다.',
   pricing_notes_li2: '문의사항은 ',
 
   // ── C2: MCP page ──
@@ -574,7 +575,7 @@ export const texts = {
   // ── C2: Terms of service page ──
   terms_title: '서비스 약관',
   terms_description: 'openagent.email 웹사이트, 소프트웨어, 호스팅 서비스에 관한 서비스 약관.',
-  terms_updated: '2026년 8월 31일 시행',
+  terms_updated: '2026년 10월 26일 시행',
   terms_lede: 'openagent.email은 선택적인 호스팅 서비스를 갖춘 무료 오픈소스 소프트웨어입니다. 본 약관은 이 웹사이트, 소프트웨어, 호스팅 서비스의 사용에 적용됩니다.',
   terms_software_title: '소프트웨어',
   terms_software_body_a: 'openagent.email은 ',
@@ -589,6 +590,7 @@ export const texts = {
   terms_hosted_li3_a: '환불 요청은 당사의 ',
   terms_hosted_li3_link: '환불 정책',
   terms_hosted_li3_b: ' 을 따릅니다. 관련 법률에서 환불이 요구되는 경우 Merchant of Record를 통해 발행됩니다.',
+  terms_hosted_relay: '호스티드 인스턴스의 발신 이메일은 서드파티 릴레이를 통해 전송되며, 우리는 해당 제공업체의 규칙을 적용해야 합니다. 트랜잭션 이메일(예: 에이전트 알림, 확인, 작업 보고서)만 허용됩니다. 마케팅 또는 대량 이메일은 허용되지 않으며, 발송 시 인스턴스가 정지될 수 있습니다.',
   terms_hosted_li4: '호스팅 서비스는 합법적인 이메일 활동에만 사용할 수 있습니다. 본 약관을 위반하면(스팸, 악용, 불법 사용 포함) 당사는 즉시 접근을 중단하거나 종료할 수 있으며, 이미 발생한 요금에 대한 책임은 계속 사용자에게 있습니다.',
   terms_hosted_li5: '호스팅 서비스는 얼리 액세스 기간 동안 "있는 그대로" 제공됩니다. 높은 가용성을 목표로 하지만 중단 없는 서비스를 보장하지는 않습니다.',
   terms_website_title: '이 웹사이트',
