@@ -115,7 +115,8 @@ extends the `/ui`-only vhost pattern above for `/mcp`, `/oauth/*`,
 Every identity is capped at `SEND_RATE_LIMIT` messages per rolling hour
 (default **20**, `0` disables). This is the circuit breaker for two failure
 modes: an agent stuck in a send loop, and a leaked token being used for spam.
-One identity hitting the cap does not slow down the others.
+One identity hitting the cap does not slow down the others. Auto-replies
+count toward the same cap.
 
 Over the limit returns:
 
@@ -123,7 +124,23 @@ Over the limit returns:
 429 {"error":"rate_limited","limit":20,"retryAfterSec":1234}
 ```
 
-Note the limiter is in-memory: an API restart resets the windows.
+`POST /v1/send` with `autoReply: true` also cools down per sender identity and
+recipient. `AUTO_REPLY_COOLDOWN_SEC` defaults to **300** seconds; `0` disables
+it; a non-integer, negative, NaN, or value above 86400 falls back to 300.
+`false`, or omitting `autoReply`, does not set `Auto-Submitted: auto-replied`
+and does not read or write that table. If any recipient is still cooling
+down, the whole send is rejected and the hourly quota is not charged:
+
+```
+429 {"error":"auto_reply_cooldown","retryAfterSec":300}
+```
+
+Both windows are rebuilt from `send-log.jsonl` when the API starts, so a
+restart keeps them. Replay counts `queued` rows plus failed rows the SMTP
+server answered. Local failures that never reached the SMTP server, older
+failed rows with no `failureKind`, `rate_limited` rows, and a send whose log
+line was lost, are not counted. The cooldown replay includes only
+`autoReply: true` rows that are still inside `AUTO_REPLY_COOLDOWN_SEC`.
 
 ## 4. Retention
 

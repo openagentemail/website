@@ -54,7 +54,8 @@ file explains every value; these are the important ones:
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` | The same mailbox account's outgoing-mail settings. |
 | `ALLOWED_SEND_DOMAINS` | Domains identities may use in their `From` address. Normally just `DOMAIN`. |
 | `UI_ENABLED` | Set `false` to remove the built-in human inbox at `/ui`. |
-| `SEND_RATE_LIMIT` | Per-identity messages per rolling hour; `0` turns it off. |
+| `SEND_RATE_LIMIT` | Per-identity messages per rolling hour; `0` turns it off. Rebuilt from `send-log.jsonl` on API start: queued rows plus failed rows the SMTP server answered. Local failures that never reached the SMTP server, and a send whose log line was lost, are not counted. |
+| `AUTO_REPLY_COOLDOWN_SEC` | Seconds between `autoReply: true` sends for one sender and one recipient. Default 300; `0` turns it off. Invalid values, and values above 86400, fall back to 300. Plain mail does not use it. Rebuilt from the same send log on start. |
 | `RETENTION_DAYS` | Days to keep mail; `0` keeps it forever. |
 
 The regular compose stack intentionally accepts the bundled mailserver's
