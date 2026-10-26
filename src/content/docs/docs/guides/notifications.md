@@ -12,6 +12,7 @@ The default is a server-only loop. It supports `notify_verify`, manual
 agent/user notifications, and mail-arrival alerts without opening ntfy to the
 internet. [Phone delivery](/docs/guides/phone-notifications/) is optional and
 uses a separate public HTTPS hostname. Webhooks are not part of this feature.
+Outbound event delivery is the separate [Webhooks](/docs/reference/api/#webhooks) API.
 
 ## Bring it up safely
 

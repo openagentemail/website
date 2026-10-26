@@ -160,7 +160,7 @@ one on the spot.
 | `mail_read_message(address, id)` | Full message: `text`, optional `html`, `otp.codes` / `otp.links`, `links`, `source`, and optional `taskId`/`taskState` |
 | `mail_mark_seen(address, id, seen?)` | Mark read (default) or unread — reading never changes the flag by itself |
 | `mail_wait_for(address, fromContains?, subjectContains?, timeoutSec?)` | Block until a matching message arrives. Schema allows up to 600s; the API clamps with `MCP_MAX_WAIT_SECONDS` (default **60**). Same detail fields as `mail_read_message` |
-| `mail_send(from, to, subject, text, html?)` | Send from an existing identity |
+| `mail_send(from, to, subject, text, html?, autoReply?)` | Send from an existing identity. Optional `autoReply` follows [`POST /v1/send`](/docs/reference/api/#post-v1send): only `true` sets `Auto-Submitted: auto-replied` and uses the auto-reply cooldown |
 | `notify_user(title, message, level?, tags?)` | Human-alert notification. Identity tokens need the server-side `canNotifyUser` grant; no ntfy topic or credential |
 | `notify_agent(name, title, message, level?, tags?)` | Wake a named agent by identity **localpart** (e.g. `qa-bot`). Server owns topics/credentials |
 | `notify_check(since?)` | Read this identity's recent notifications (`since` is an optional ntfy duration/timestamp filter) |

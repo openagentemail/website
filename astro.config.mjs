@@ -43,8 +43,9 @@ export default defineConfig({
           tag: 'script',
           attrs: {
             defer: true,
-            src: 'https://stats.openagent.email/script.js',
+            src: '/vendor/umami-1ad1145d19d4558c20f5469ca4a5fc50a1a46f860858c9c91bfcd56fd29a522a.js',
             'data-website-id': '86e6eaf7-473c-4c8d-a9bf-ea48c13742c5',
+            'data-host-url': 'https://stats.openagent.email',
           },
         },
       ],

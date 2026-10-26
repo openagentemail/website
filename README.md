@@ -2,7 +2,7 @@
 
 Marketing site and docs for [openagent.email](https://openagent.email) — open communication and task handoffs for AI agents.
 
-- Stack: [Astro](https://astro.build) 5 + [Starlight](https://starlight.astro.build)
+- Stack: [Astro](https://astro.build) 7.3.5 + [Starlight](https://starlight.astro.build) 0.42.5
 - Pages: `src/pages/` (home, pricing, legal, alternatives)
 - Docs: `src/content/docs/docs/` → `/docs/`
 - Connect guide: `/docs/guides/connect-your-agent/` (CLI / desktop / web chat)

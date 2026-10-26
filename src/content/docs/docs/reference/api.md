@@ -226,6 +226,8 @@ The response carries an integer `Retry-After` header with the same value.
   reads are not covered by this bucket, and multiple instances do not share it —
   the deployment contract assumes a single instance.
 - **Independent.** It does not change the existing send, MCP, or wait buckets.
+  The restart reset above is only this list budget. The hourly send window is
+  rebuilt from `send-log.jsonl` on startup; see `POST /v1/send`.
 
 ## `GET /v1/messages/:id?address=x@y`
 
@@ -316,17 +318,63 @@ curl -X POST $API/v1/send \
 | Field | Type | Notes |
 |---|---|---|
 | `from` | string | An existing identity (required) |
-| `to` | string | Recipient (required) |
+| `to` | string \| string[] | One recipient, or a list of recipients (required) |
 | `subject` | string | Required |
 | `text` | string | Plain-text body (required) |
 | `html` | string? | Optional HTML alternative |
+| `autoReply` | boolean? | Optional. Only `true` sets `Auto-Submitted: auto-replied` and uses the cooldown below |
+
+`autoReply` has to be a boolean when it is present. Only `true` makes the
+server set `Auto-Submitted: auto-replied` and consult or record the auto-reply
+cooldown. `false`, and omitting the field, leaves that header unset and leaves
+the cooldown table untouched.
+
+The cooldown runs after the identity and From-domain checks and before the
+hourly quota, and only when `autoReply` is `true`. The key is the sender
+identity × each recipient. `AUTO_REPLY_COOLDOWN_SEC` defaults to **300**
+seconds. `0` disables the cooldown (a `true` send still sets the header). A
+non-integer, negative, NaN, or value above 86400 falls back to 300; a value
+above 86400 also logs one config warning. If any recipient is still cooling
+down, the whole send is rejected — nothing is partially delivered, SMTP is not
+attempted, and no hourly `SEND_RATE_LIMIT` quota is charged:
+
+```
+429 {"error":"auto_reply_cooldown","retryAfterSec":300}
+```
+
+`retryAfterSec` is the largest remaining wait among the blocked recipients,
+rounded up to whole seconds, at least 1. The body is `error` and
+`retryAfterSec`. This route does not send a `Retry-After` header. While SMTP
+has not returned, the same pairs stay reserved, so another `autoReply: true`
+send that hits one of them gets this 429 too. A peer response — the message
+accepted, or an error reply — starts the cooldown from that moment. An
+hourly-quota rejection, or a failure that never reached the SMTP server,
+releases the reservation and does not start the cooldown.
+
+The cooldown table holds at most 10000 sender × recipient pairs. When it is
+full, a new auto-reply is also rejected with the same `429`
+`auto_reply_cooldown`, and unexpired entries are not evicted.
 
 Each identity is limited to `SEND_RATE_LIMIT` messages per rolling hour
-(default 20). Over the limit:
+(default 20, `0` disables), including auto-replies. The cooldown check runs
+first. Over the limit:
 
 ```
 429 {"error":"rate_limited","limit":20,"retryAfterSec":1234}
 ```
+
+The seconds are only in the JSON body, same as `auto_reply_cooldown`.
+
+On startup the API rebuilds both windows from `send-log.jsonl`, so a restart
+keeps them. Replay counts `queued` rows plus failed rows the SMTP server
+answered (`failureKind: "smtp_response"`). Local failures that never reached
+the SMTP server (`failureKind: "local"` — connection refused, timeout, and
+authentication failures that got no reply), older failed rows with no
+`failureKind`, and `rate_limited` rows do not count. A send whose log line was
+lost is not counted. The hourly window is the last hour. When a counted row
+has an admission time `rateLimitAt`, replay uses that; otherwise it uses
+`sentAt`. The cooldown replay uses `sentAt`, and only rows with
+`autoReply: true` that are still inside `AUTO_REPLY_COOLDOWN_SEC`.
 
 `queued:true` means the mailserver accepted it — not that the recipient's provider
 did. Deliverability is your infrastructure's job; see
@@ -371,6 +419,35 @@ Approval task validation errors:
 - `400 {"error":"approval_expiry_too_far"}`: `expiresAt` is more than 30 days in the future.
 - `400 {"error":"approval_action_too_large"}`: Serialized `action` JSON exceeds 65,536 bytes.
 - `400 {"error":"approval_action_too_deep"}`: `action` nesting depth exceeds 10.
+
+Wait-path failure codes:
+
+| Stage | Status | `body` | Meaning |
+|---|---|---|---|
+| Not created, no task ID returned | `502` | `{error:"smtp_error"}` (no `taskId`) | SMTP or validation failed on the create path — **no task ID is returned**; an ID-less error is *not* proof the message was never accepted (see the note below) |
+| Created, journal error | `503` | `{error:"lease_journal_*", taskId, created:true}` | Task **exists**; the lease journal is unavailable |
+| Created, other wait-stage error | `502` | `{error:"wait_failed", taskId, created:true}` | Task **exists**; the wait did not complete |
+| Wait slots full | `429` | `{error:"too_many_waits", retryAfterSec, taskId}` | Task **exists**; read it later with `GET /v1/tasks/:id` (MCP `task_get`) |
+
+Monitoring note: on a `502`, the presence or absence of `taskId` is what distinguishes
+pre-creation from post-creation failures (no new metric or log field is added). An error
+without a `taskId` is **not** proof that SMTP never accepted the task: reconcile your task
+list before attempting another create (the API deliberately performs no automatic POST retry).
+
+Lease and state mutation fallback:
+
+| Stage | Status | `body` | Meaning |
+|---|---|---|---|
+| `POST /v1/tasks/:id/{claim,lease,release,claim-lost,decision,state}` and the console task-mutation path, when a failure is not mapped to a domain error | `502` | `{error:"task_operation_failed"}` (no `taskId`) | These paths **do deliver mail during the write stage** (lease-journal delivery, approval-terminal delivery, remind, update notification), so an SMTP delivery failure is **one possible cause** — but the same code also covers unmapped/internal failures. The previous `smtp_error` label attributed all of them to SMTP alone. Mapped domain errors keep their own codes and statuses. |
+
+Monitoring note: this fallback carries **no** `taskId`, so on these routes the pre/post-create `taskId` test above does not apply; the server-side `console.warn` on the mutate paths is the primary attribution aid — **except** on `/lease` (renew) and `/release`, which log only static messages without the underlying exception, so for those two routes the response alone cannot distinguish an SMTP failure from an internal one.
+
+Two mutation errors that are mapped rather than falling back (listed for completeness):
+
+| Stage | Status | `body` | Meaning |
+|---|---|---|---|
+| Lease operation while the lease feature is disabled | `409` | `{error:"task_leases_disabled"}` | Same code and status as the route-level guard; the service layer raises the same code |
+| Approval decision whose generated decision event disagrees with the stored approval record | `409` | `{error:"invalid_approval_decision_event"}` | Server-side consistency check on the decision event the server builds (digest taken from the stored approval, reviewer from the authenticated actor, decision from the request); a mismatch is an internal invariant failure, not a client-supplied field error |
 
 ## `GET /v1/tasks?state=`
 
@@ -746,12 +823,44 @@ Valid destination quick reference:
 Target URLs are evaluated against a three-tier validation ladder before acceptance:
 1. **Protocol and syntax constraints**: Destination URLs must be valid URLs (max 2048 characters) without query strings (`?`), fragments (`#`), or user credentials (`user:pass@`). The port must be explicitly listed in `WEBHOOK_ALLOWED_PORTS` (default `443` only). The hostname must be a DNS hostname; IP literals are forbidden unless private targets are enabled.
 2. **Private target authorization**: Targeting private IP addresses (RFC 1918, CGNAT `100.64.0.0/10`, loopback, or IPv6 ULA `fd00::/8`) requires server configuration `WEBHOOK_ALLOW_PRIVATE_TARGETS=true` **and** `OAE_PUBLIC_EDGE=false` (when `OAE_PUBLIC_EDGE=true`, private targets are disabled server-wide regardless of `WEBHOOK_ALLOW_PRIVATE_TARGETS`). Furthermore, private-target subscriptions must be created or updated with an **admin key** (identity callers attempting to target private addresses receive `400 {"error":"webhook_target_forbidden"}`).
-3. **HTTP scheme constraints**: The `http:` scheme is permitted **only** when private targets are allowed as above, and requires **every** resolved IP address of the target hostname to be private or loopback. If any resolved IP is public, the endpoint is rejected with `webhook_target_forbidden`.
+3. **HTTP scheme constraints**: The `http:` scheme is permitted **only** when private targets are allowed as above, and requires **every** resolved IP address of the target hostname to be private or loopback. If any resolved IP is public, the response is `400 {"error":"webhook_target_forbidden"}` with no `details`.
 
-Validation errors:
-- `400 {"error":"invalid_request","details":[...]}`: Payload schema validation failed before destination resolution (for example, malformed URL syntax, URL length exceeding 2048 characters, or missing required fields).
-- `400 {"error":"invalid_webhook_url"}`: URL resolution failed after passing schema validation (unsupported scheme, userinfo, query string, fragment, port not in `WEBHOOK_ALLOWED_PORTS`, or DNS lookup failure).
-- `400 {"error":"webhook_target_forbidden"}`: Target IP address violates SSRF policy, or an unprivileged identity attempted to configure a private network target, or an HTTP endpoint resolved to non-private addresses.
+URL rejection values:
+
+A destination that fails these checks returns only `400 {"error":"invalid_webhook_url"}` or `400 {"error":"webhook_target_forbidden"}`. The twelve reasons below are internal causes. They are not `error` values. A response never puts one of those reason names in the `error` field. When `details` is present it is a string naming one allowlisted cause, not a second error code. The other causes are written to the server log only, and the body then has no `details`.
+
+#### `invalid_webhook_url` with `details`
+
+The body is `{"error":"invalid_webhook_url","details":"<reason>"}`.
+
+- `malformed_url`
+- `unsupported_protocol`
+- `http_requires_private_targets`
+- `userinfo_forbidden`
+- `query_string_forbidden`
+- `fragment_forbidden`
+- `port_not_allowed`
+- `ip_literal_forbidden`
+
+#### `invalid_webhook_url` without `details`
+
+The body is `{"error":"invalid_webhook_url"}`.
+
+- `dns_empty`
+- `dns_lookup_failed`
+
+#### `webhook_target_forbidden` without `details`
+
+The body is `{"error":"webhook_target_forbidden"}`.
+
+- `ssrf_blocked_ip`
+- `http_target_must_be_private`
+
+An identity token whose destination resolves to a private address also receives `400 {"error":"webhook_target_forbidden"}` with no `details`. That is the admin-key requirement, and it does not add another reason name.
+
+Schema failures stay separate:
+
+- `400 {"error":"invalid_request","details":[...]}`: Create and update bodies are strict. This error means the JSON shape was rejected before the destination checks: an unknown field, a URL longer than 2048 characters, a missing field, or an event name other than `mail.received` or `approval.requested`. A destination that fails the checks above is not this error. `details` here is the schema issue list, not one of the twelve reasons.
 
 Note: The creation response (and rotation response) is the only place where the plaintext signing `secret` is returned automatically without an explicit secret request. Authorized callers (admin or the identity creator for `metadata` scope) can retrieve the secret at any time via `GET /v1/webhooks/:id/secret`. List and detail queries return only `secretPrefix`.
 
@@ -806,7 +915,7 @@ curl -X POST $API/v1/webhooks/whk_01h7x8a... \
 
 | Field | Type | Notes |
 |---|---|---|
-| `url` | string? | New destination URL (max 2048 chars; subject to the same protocol, port, syntax, and IP constraints as creation). |
+| `url` | string? | New destination URL (max 2048 chars; same checks as creation). Omitting `url` leaves the destination unchanged. A present `url` that differs from the saved one, including an empty string, is checked again. |
 | `events` | string[]? | Non-empty array of unique event names: `mail.received`, `approval.requested`. |
 | `contentScope` | string? | `'metadata'` or `'preview'`. Changing to `'preview'` requires an admin key. |
 | `description` | string? | Optional description (max 1000 chars). |
@@ -881,11 +990,11 @@ curl -X POST $API/v1/webhooks/whk_01h7x8a.../test --config -
 # → 200 {"deliveryId":"dlv_01h...","outcome":"success","status":200,"reason":null}
 ```
 
-The test delivery sends a `webhook.ping` event with `data.trigger: "test"`. Ping attempts are capped at `MAX_PING_ATTEMPTS` attempts (default 3, scheduled at base offsets: immediate, +5s, +5m). Retry times are jittered by up to ±10% of the gap between consecutive offsets, and a valid `Retry-After` on a `429` response can delay the next attempt further. Test probes are rate-limited by `WEBHOOK_RATE_TEST_PER_MIN` (default 3 requests per minute per caller; returns `429 {"error":"rate_limited","retryAfterSec":...}` when exceeded).
+The test delivery sends a `webhook.ping` event with `data.trigger: "test"`. Ping attempts are capped at `MAX_PING_ATTEMPTS` attempts (default 3, scheduled at base offsets: immediate, +5s, +5m). Retry times are jittered by up to ±10% of the gap between consecutive offsets, and a valid `Retry-After` on a `429` response can delay the next attempt further. Test probes are rate-limited by `WEBHOOK_RATE_TEST_PER_MIN` (default 3 requests per minute per caller; returns `429 {"error":"rate_limited","retryAfterSec":...}` when exceeded). If the probe started while the subscription was `enabled`, and the subscription is disabled before that retryable failure is recorded, the failure count does not increase and a second disable record is not written. That attempt is stored as a permanent failure with reason `webhook_disabled`. If the probe started while the subscription was `unverified`, a disable during the attempt does not increase the failure count or write a second disable record, and this attempt's result stays `retryable`. Staying `retryable` does not promise a further retry or another HTTP request.
 
 ## `POST /v1/webhooks/:id/disable`
 
-Manually pause an enabled webhook subscription. Pausing a subscription cancels queued pending deliveries in storage and prevents future retries. In-flight HTTP attempts already underway are not aborted and may still reach the receiver, but their results will not trigger further retries.
+Manually pause a webhook subscription that is `enabled` or `unverified`. A subscription that is already `disabled` is left unchanged. Pausing cancels deliveries already queued. An HTTP attempt already underway is not aborted and may still reach the receiver. Its recorded result does not by itself promise another HTTP request.
 
 Requires an admin key or the creating identity. OAuth tokens are forbidden (`403`).
 
@@ -1055,7 +1164,7 @@ Outbound webhook delivery HTTP POST requests carry a JSON body consisting of fiv
 
 The webhook subsystem dispatches event types defined by `WebhookEventType`:
 
-1. `mail.received`: Dispatched when incoming mail arrives at a managed mailbox over IMAP. The `data` object includes `object` (`"mail"`), `address`, `messageId`, `cursor`, `uid`, `uidValidity` (nullable), `receivedAt`, `from` (`{ address }`, or `{ address, name }` when the sender display name is present), `to`, `cc`, `subject`, `sizeBytes`, `hasAttachments`, `unread`, `containsSecurityCode`, and `containsLink`. When `contentScope: "preview"` is enabled (admin only), `textPreview`, `securityCodes`, and `links` are included when present.
+1. `mail.received`: Dispatched when incoming mail arrives at a managed mailbox over IMAP. The `data` object includes `object` (`"mail"`), `address`, `messageId`, `cursor`, `uid`, `uidValidity` (nullable), `receivedAt`, `from` (`{ address }`, or `{ address, name }` when the sender display name is present), `to`, `cc`, `subject`, `sizeBytes`, `hasAttachments`, `unread`, `containsSecurityCode`, `containsLink`, and `autoSubmitted`. `autoSubmitted` is always present for both `metadata` and `preview`. It is `null` when the message has no Auto-Submitted header, and otherwise one of `no`, `auto-generated`, `auto-replied`, or `other`. The raw header is not copied. A manual replay and a pending delivery restored after a restart both take this classification from the message read at that time. When `contentScope: "preview"` is enabled (admin only), `textPreview`, `securityCodes`, and `links` are included when present.
 2. `approval.requested`: Dispatched when a task with `kind: "approval"` is submitted targeting the reviewer identity. The `data` object includes `object` (`"approval"`), `taskId`, `taskState` (`"input-required"`), `from`, `to`, `reviewer`, `subject`, `createdAt`, `expiresAt`, `expiresInSec` (nullable), `digest`, `actionType`, and `actionName`. When `contentScope: "preview"` is enabled (admin only), `actionArguments` is included subject to size and depth bounds; default `metadata` subscriptions do not include it.
 3. `webhook.ping`: Diagnostic ping sent when creating a subscription, re-enabling a disabled subscription, changing its destination URL, or executing a manual test probe (`trigger: "creation"` or `trigger: "test"`). Changing the URL of a subscription that remains disabled (manually paused, `disabledReason: "manual"`) leaves it disabled and does not send a ping. The `data` object includes `object` (`"webhook"`), `webhookId`, and `trigger`.
 
@@ -1069,7 +1178,7 @@ Delivery outcomes determine whether failures are retried automatically:
 - **Permanent failures (no retry)**: HTTP `3xx` redirects (`redirect_forbidden`), responses exceeding `WEBHOOK_RESPONSE_MAX_BYTES` (`response_too_large`), and client errors (HTTP `4xx` responses, including `400`, `401`, `403`, and `404`, excluding `408` and `429`) are classified as `permanent` failures. They are recorded directly to dead-letter storage and are not retried automatically.
 - **Idempotency requirement**: Because retry attempts and manual redeliveries dispatch with the original stable top-level event `id`, receivers **must deduplicate deliveries idempotently by this `id`**.
 
-- **Retry horizon and attempts**: Non-ping events are attempted up to `MAX_RETRY_SCHEDULE_ATTEMPTS` (default `11` attempts, governed by `WEBHOOK_MAX_ATTEMPTS`) spanning a 72-hour horizon (`RETRY_HORIZON_SEC = 259200`). The 11th attempt is pinned to the horizon boundary itself, and a job waking after that boundary is recorded as `retry_horizon_exceeded` without an HTTP delivery. After a process restart, pending deliveries are re-evaluated against the horizon using the original event's generation time; in particular, a manual redelivery of an event generated more than 72 hours earlier is recorded as `retry_horizon_exceeded` without an HTTP delivery.
+- **Retry horizon and attempts**: Non-ping events are attempted up to `MAX_RETRY_SCHEDULE_ATTEMPTS` (default `11` attempts, governed by `WEBHOOK_MAX_ATTEMPTS`) across a 72-hour horizon (`RETRY_HORIZON_SEC = 259200`). The horizon compares the attempt's scheduled time with that run's first-attempt time. A scheduled time strictly after first-attempt plus 72 hours is recorded as `retry_horizon_exceeded` and is not sent. A scheduled time exactly on the 72-hour boundary, including attempt 11, is not rejected by the first horizon check, even if the worker wakes later. Passing that check does not promise an HTTP delivery. A disabled subscription, the concurrency limit, or the delivery rate limit can still block the request. A manual redelivery starts a new delivery run. Its 72-hour clock starts when that replay is accepted, and the event `id` stays the same. A pending delivery restored after a restart keeps the run's first-attempt time from the earliest attempt-1 log row, not the event `createdAt`. If that run has no attempt-1 row, the newest log row's time is used. The restored schedule is the time already stored for that pending row. An overdue stored schedule that is queued keeps its stored time and waits zero time, so it becomes eligible immediately. Becoming eligible does not promise an HTTP delivery. The attempt still goes through the normal checks that run before a request, including a disabled subscription and the concurrency limit. A stored schedule past the horizon is recorded as `retry_horizon_exceeded` without an HTTP delivery.
 - **Cumulative attempt offsets**:
   - Attempt 1: Immediate (`0s`)
   - Attempt 2: `+5s`
@@ -1081,7 +1190,7 @@ Delivery outcomes determine whether failures are retried automatically:
   - Attempt 8: `+20h` (`72,000s`)
   - Attempt 9: `+34h` (`122,400s`)
   - Attempt 10: `+48h` (`172,800s`)
-  - Attempt 11: `+72h` (`259,200s`, pinned at the horizon boundary; normally not delivered — see the retry-horizon note above)
+  - Attempt 11: `+72h` (`259,200s`, pinned at the horizon boundary; a time exactly on that boundary is not rejected by the first horizon check)
 - **Ping cap**: `webhook.ping` deliveries are capped at `MAX_PING_ATTEMPTS` attempts (default `3`: immediate, +5s, +5m).
 - **Jitter**: Each attempt's cumulative offset is shifted by **±10% non-cumulative jitter** of that step's nominal gap (`gap * (rand() * 0.2 - 0.1)`); adjacent attempts jitter independently, so the interval between two consecutive attempts can deviate from its nominal length by more than ±10%. Attempt 11 is pinned to exactly +72h unjittered.
 - **HTTP 429 Retry-After**: If the remote server returns HTTP `429` with a valid `Retry-After` header between 1 and 3600 seconds, the delivery engine respects the delay and clamps the next attempt into the schedule. (The retry scheduled by a manual test probe (`POST /v1/webhooks/:id/test`) is an exception: it uses the base ping offsets and does not apply `Retry-After`.)
@@ -1115,7 +1224,7 @@ Delivery outcomes determine whether failures are retried automatically:
 > **Layer:** Normative — generated from, and cited against, the implementation.
 
 - **Payload ceiling**: Outbound webhook request bodies are capped at `WEBHOOK_PAYLOAD_MAX_BYTES` (default **16,384 bytes** / 16 KiB). If a payload exceeds this limit, fields are shed in deterministic order per event type before failing closed (`payload_too_large`):
-  - **`mail.received`**: In `preview` scope, drops `links` → `securityCodes` → `textPreview`; then across both scopes empties `cc` (`[]`) → `to` (`[]`) → `subject` (`""`) → drops `from.name`.
+  - **`mail.received`**: In `preview` scope, drops `links` → `securityCodes` → `textPreview`; then across both scopes empties `cc` (`[]`) → `to` (`[]`) → `subject` (`""`) → drops `from.name`. `autoSubmitted` is not dropped.
   - **`approval.requested`**: In `preview` scope, drops `actionArguments` first (dropped whole); then across both scopes empties `subject` (`""`).
   - If the envelope still exceeds the limit after shedding droppable fields, delivery fails closed.
 - **Approval argument bounds**: In `approval.requested` events, action arguments are bounded by `WEBHOOK_APPROVAL_ARGS_MAX_BYTES` (default **4,096 bytes**) and maximum JSON nesting depth `WEBHOOK_APPROVAL_ARGS_MAX_DEPTH` (default **4**).
@@ -1132,5 +1241,5 @@ Delivery outcomes determine whether failures are retried automatically:
 | `401` | Missing/invalid bearer token |
 | `403` | Valid token, disallowed action (identity token outside its scope, non-identity `from`, non-admin managing identities) |
 | `408` | `wait` timed out |
-| `429` | Send or message-list rate limit hit — back off `retryAfterSec` |
+| `429` | Rate limit hit — send (`rate_limited` or `auto_reply_cooldown`), message-list, or task-wait slots; back off `retryAfterSec` |
 | `5xx` | Mailserver unreachable or internal error — check `docker compose logs api` |
