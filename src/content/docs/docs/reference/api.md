@@ -226,6 +226,8 @@ The response carries an integer `Retry-After` header with the same value.
   reads are not covered by this bucket, and multiple instances do not share it —
   the deployment contract assumes a single instance.
 - **Independent.** It does not change the existing send, MCP, or wait buckets.
+  The restart reset above is only this list budget. The hourly send window is
+  rebuilt from `send-log.jsonl` on startup; see `POST /v1/send`.
 
 ## `GET /v1/messages/:id?address=x@y`
 
@@ -316,17 +318,63 @@ curl -X POST $API/v1/send \
 | Field | Type | Notes |
 |---|---|---|
 | `from` | string | An existing identity (required) |
-| `to` | string | Recipient (required) |
+| `to` | string \| string[] | One recipient, or a list of recipients (required) |
 | `subject` | string | Required |
 | `text` | string | Plain-text body (required) |
 | `html` | string? | Optional HTML alternative |
+| `autoReply` | boolean? | Optional. Only `true` sets `Auto-Submitted: auto-replied` and uses the cooldown below |
+
+`autoReply` has to be a boolean when it is present. Only `true` makes the
+server set `Auto-Submitted: auto-replied` and consult or record the auto-reply
+cooldown. `false`, and omitting the field, leaves that header unset and leaves
+the cooldown table untouched.
+
+The cooldown runs after the identity and From-domain checks and before the
+hourly quota, and only when `autoReply` is `true`. The key is the sender
+identity × each recipient. `AUTO_REPLY_COOLDOWN_SEC` defaults to **300**
+seconds. `0` disables the cooldown (a `true` send still sets the header). A
+non-integer, negative, NaN, or value above 86400 falls back to 300; a value
+above 86400 also logs one config warning. If any recipient is still cooling
+down, the whole send is rejected — nothing is partially delivered, SMTP is not
+attempted, and no hourly `SEND_RATE_LIMIT` quota is charged:
+
+```
+429 {"error":"auto_reply_cooldown","retryAfterSec":300}
+```
+
+`retryAfterSec` is the largest remaining wait among the blocked recipients,
+rounded up to whole seconds, at least 1. The body is `error` and
+`retryAfterSec`. This route does not send a `Retry-After` header. While SMTP
+has not returned, the same pairs stay reserved, so another `autoReply: true`
+send that hits one of them gets this 429 too. A peer response — the message
+accepted, or an error reply — starts the cooldown from that moment. An
+hourly-quota rejection, or a failure that never reached the SMTP server,
+releases the reservation and does not start the cooldown.
+
+The cooldown table holds at most 10000 sender × recipient pairs. When it is
+full, a new auto-reply is also rejected with the same `429`
+`auto_reply_cooldown`, and unexpired entries are not evicted.
 
 Each identity is limited to `SEND_RATE_LIMIT` messages per rolling hour
-(default 20). Over the limit:
+(default 20, `0` disables), including auto-replies. The cooldown check runs
+first. Over the limit:
 
 ```
 429 {"error":"rate_limited","limit":20,"retryAfterSec":1234}
 ```
+
+The seconds are only in the JSON body, same as `auto_reply_cooldown`.
+
+On startup the API rebuilds both windows from `send-log.jsonl`, so a restart
+keeps them. Replay counts `queued` rows plus failed rows the SMTP server
+answered (`failureKind: "smtp_response"`). Local failures that never reached
+the SMTP server (`failureKind: "local"` — connection refused, timeout, and
+authentication failures that got no reply), older failed rows with no
+`failureKind`, and `rate_limited` rows do not count. A send whose log line was
+lost is not counted. The hourly window is the last hour. When a counted row
+has an admission time `rateLimitAt`, replay uses that; otherwise it uses
+`sentAt`. The cooldown replay uses `sentAt`, and only rows with
+`autoReply: true` that are still inside `AUTO_REPLY_COOLDOWN_SEC`.
 
 `queued:true` means the mailserver accepted it — not that the recipient's provider
 did. Deliverability is your infrastructure's job; see
@@ -1193,5 +1241,5 @@ Delivery outcomes determine whether failures are retried automatically:
 | `401` | Missing/invalid bearer token |
 | `403` | Valid token, disallowed action (identity token outside its scope, non-identity `from`, non-admin managing identities) |
 | `408` | `wait` timed out |
-| `429` | Rate limit hit — send, message-list, or task-wait slots; back off `retryAfterSec` |
+| `429` | Rate limit hit — send (`rate_limited` or `auto_reply_cooldown`), message-list, or task-wait slots; back off `retryAfterSec` |
 | `5xx` | Mailserver unreachable or internal error — check `docker compose logs api` |
