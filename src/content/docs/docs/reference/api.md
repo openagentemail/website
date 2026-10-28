@@ -381,9 +381,14 @@ write the two hashes into the send log. The message itself is still logged.
 The fingerprint is the sha256 of the canonical JSON of the validated body.
 `to` becomes an array and keeps its order; it is not sorted. Object keys are
 sorted lexicographically. Address case stays as the client sent it, because
-the send path does not rewrite fields that already passed validation. Optional
-body fields added later are part of the fingerprint. Changing only the case of
-`from` on the same identity changes the fingerprint and returns
+the send path does not rewrite fields that already passed validation. Validated
+`inReplyTo` and `references` stay as sent in the body used for the fingerprint
+(`requestHash`); deduping `references` and appending `inReplyTo` happen only
+when writing headers, not in the fingerprinted array. The same key and the same
+threading parameters replay inside the retention window; changing only
+`inReplyTo` or `references` returns `422 {"error":"idempotency_key_reused"}`.
+Optional body fields added later are part of the fingerprint. Changing only
+the case of `from` on the same identity changes the fingerprint and returns
 `422 {"error":"idempotency_key_reused"}`. Retry by replaying the body unchanged.
 
 This runs after body validation and the identity / From checks, and before the

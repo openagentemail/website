@@ -262,7 +262,7 @@
   },
   {
     "page": "docs/reference/api/index.html",
-    "bodySha256": "e646f4514073ef16883f75c18e4f42dc2de5e409697438f171a1dcce4665ef0f",
+    "bodySha256": "d6b1b12f54fb189d760d6aae0247295c4ed6955c4147a6f36f0b357ebec27022",
     "headNormSha256": "4fc4485409eb4093cf13a0fef519e650ea827a787b205ec967e8f232b7e5f674",
     "rulesSha256": "d4f6c0de909ffe19bf1d5efe49a6bf52b5784179c1db2a6f92e8ac66d1d94a86",
     "stylesheets": [
@@ -273,7 +273,7 @@
   },
   {
     "page": "docs/reference/mcp-clients/index.html",
-    "bodySha256": "596f86ea1de47867a1e97db8d5b2d71e073a3a5f3cad3ad8076f2463e3bbd16c",
+    "bodySha256": "4727deb7e1d4d519e764f9584237f957260af9c1bb976dfe95946d5eadd358ca",
     "headNormSha256": "3db30d3e7513d4e443bf462e0e1d39aac64ae1f27e9400ee816ac2b2a7d585ec",
     "rulesSha256": "d4f6c0de909ffe19bf1d5efe49a6bf52b5784179c1db2a6f92e8ac66d1d94a86",
     "stylesheets": [
