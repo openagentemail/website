@@ -250,7 +250,18 @@ best-effort extraction — the raw `text`/`html` are always there as fallback.
 `source` uses the same fail-closed stamp check as the list endpoint. Server-stamped
 task mail may also include `taskId` / `taskState`.
 
-`source` also appears on `POST /v1/messages/wait` (same detail shape). The
+`id` is the IMAP UID, not an RFC 5322 Message-ID. When a value passes the
+same check as `inReplyTo` on `POST /v1/send`, the detail also includes the
+fields below. A missing or invalid value omits that key. The inbox list and
+webhook payloads do not include these two fields.
+
+| Field | Type | Notes |
+|---|---|---|
+| `messageId` | string? | This message's own Message-ID, in angle brackets, for example `<id-left@id-right>`. At most 250 characters including the brackets. The left side is dot-atom-text; the right side is dot-atom-text or a domain literal in square brackets. Quotes, backslashes, commas, and whitespace are not accepted |
+| `references` | string[]? | This message's own `References` ids that pass the same check. Original order, first copy kept when deduped. More than 50 keeps the last 50. Omitted when none are valid. The message's own `messageId` and `In-Reply-To` are not copied into this array |
+
+`source` also appears on `POST /v1/messages/wait` (same detail shape, so
+`messageId` and `references` are included when present). The
 `POST /v1/messages/:id/seen` response is only `{id, seen}` — no `source`.
 
 ## `POST /v1/messages/:id/seen`
@@ -289,8 +300,8 @@ curl -X POST $API/v1/messages/wait \
 | `subjectContains` | string? | Case-insensitive substring match on the subject |
 | `timeoutSec` | number? | Default 60 (clamped by `MCP_MAX_WAIT_SECONDS`, range 1–600) |
 
-Success returns the same shape as `GET /v1/messages/:id` (including `otp` and
-`source`).
+Success returns the same shape as `GET /v1/messages/:id` (including `otp`,
+`source`, and, when present, `messageId` and `references`).
 On expiry:
 
 ```
@@ -303,34 +314,163 @@ Set your HTTP client timeout comfortably above `timeoutSec`.
 
 Send from an existing identity. `from` must be an identity you created —
 otherwise `403 {"error":"from is not a known identity"}`. Identity tokens may
-only send as themselves.
+only send as themselves. The JSON body stays strict: `headers` and any other
+unknown key are `400 {"error":"invalid_request"}`. The idempotency key is a
+request header, not a body field.
 
 ```bash
 printf 'header = "Authorization: Bearer %s"\n' "$KEY" | \
 curl -X POST $API/v1/send \
   -H "Content-Type: application/json" \
+  -H "Idempotency-Key: retry-hello-1" \
   --config - \
   -d '{"from":"fox-k7d2@example.com","to":"friend@example.org",
        "subject":"hello from an agent","text":"sent via openagent.email"}'
 # → 200 {"queued":true,"messageId":"<…@example.com>"}
 ```
 
+`Idempotency-Key` on that call is optional. Omit it, or send only whitespace,
+and the request is unchanged.
+
 | Field | Type | Notes |
 |---|---|---|
 | `from` | string | An existing identity (required) |
-| `to` | string \| string[] | One recipient, or a list of recipients (required) |
-| `subject` | string | Required |
+| `to` | string \| string[] | One address, or 1–50 addresses (required). Order is kept |
+| `subject` | string | Required, at most 998 characters. The server does not add `Re:` |
 | `text` | string | Plain-text body (required) |
 | `html` | string? | Optional HTML alternative |
 | `autoReply` | boolean? | Optional. Only `true` sets `Auto-Submitted: auto-replied` and uses the cooldown below |
+| `inReplyTo` | string? | Optional angle-bracket RFC 5322 Message-ID, for example `<id-left@id-right>`. At most 250 characters including the brackets. The left side is dot-atom-text; the right side is dot-atom-text or a domain literal in square brackets. Quotes, backslashes, commas, and whitespace are not accepted. When set, the server writes `In-Reply-To` and `References` |
+| `references` | string[]? | Optional, 1–50 ids in the same form. Must be sent with `inReplyTo`. Joined with a single space, at most 8000 characters. Deduped in the original order; `inReplyTo` is placed last when it is not already last. When this field is omitted, `References` is only `inReplyTo` |
+
+A Message-ID that fails that check is `400 {"error":"invalid_request"}`.
+
+### Replying in a thread
+
+You choose whether the subject should say `Re:`. Omitting both `inReplyTo`
+and `references` adds neither header. These fields do not read or write the
+auto-reply cooldown, and they do not change the hourly quota.
+
+`inReplyTo` is that angle-bracket Message-ID, not the IMAP UID. The `id` from
+`GET /v1/messages/:id` cannot be sent as `inReplyTo`.
+
+To reply to a message you received, pass that detail's `messageId` as
+`inReplyTo` and its `references`, if any, as `references`. The server still
+dedupes in the original order and appends `inReplyTo` to the end of
+`References`. Detail `references` are not trimmed to this route's
+8000-character join limit. If the list is too long, keep the last entries
+that fit. To reply to a message this server sent, use `messageId` from this
+response, or the same value on that row of `GET /v1/send/history`. It is
+already in angle brackets.
+
+### `Idempotency-Key`
+
+Missing, whitespace only, or empty after trim is the same as sending no
+header. After trim the value must be 1–128 printable ASCII characters (code
+points 0x20–0x7E). A space may appear in the middle. Control characters, DEL,
+and non-ASCII (including emoji) are `400 {"error":"invalid_request"}`.
+
+The key is scoped by sender identity: the whole `from` lower-cased, the same
+identity the hourly limit uses. The same key on two identities does not
+collide. Deleting an identity drops that address's in-memory entries. A new
+identity at the same address does not inherit the previous replay. If the
+identity is deleted after the reservation, or its `createdAt` now belongs to
+another generation, completion does not store an in-memory replay and does not
+write the two hashes into the send log. The message itself is still logged.
+
+The fingerprint is the sha256 of the canonical JSON of the validated body.
+`to` becomes an array and keeps its order; it is not sorted. Object keys are
+sorted lexicographically. Address case stays as the client sent it, because
+the send path does not rewrite fields that already passed validation. Validated
+`inReplyTo` and `references` stay as sent in the body used for the fingerprint
+(`requestHash`); deduping `references` and appending `inReplyTo` happen only
+when writing headers, not in the fingerprinted array. The same key and the same
+threading parameters replay inside the retention window; changing only
+`inReplyTo` or `references` returns `422 {"error":"idempotency_key_reused"}`.
+Optional body fields added later are part of the fingerprint. Changing only
+the case of `from` on the same identity changes the fingerprint and returns
+`422 {"error":"idempotency_key_reused"}`. Retry by replaying the body unchanged.
+
+This runs after body validation and the identity / From checks, and before the
+auto-reply cooldown and the hourly quota. The reservation is taken
+synchronously, before any await:
+
+- Same fingerprint, already finished inside 24 hours: the original status and
+  JSON come back, with response header `Idempotent-Replayed: true`. Nothing is
+  sent again, `SEND_RATE_LIMIT` is not charged, the cooldown is not touched,
+  and `send-log.jsonl` is not appended.
+- Same key, different fingerprint, whether the first call finished or is still
+  sending: `422 {"error":"idempotency_key_reused"}`.
+- Same key and the same fingerprint, still sending: `409 {"error":"idempotency_in_flight","retryAfterSec":1}`.
+  One key does not produce two SMTP sends.
+- Stored as completed: a 200, and a 502 the SMTP peer already answered
+  (`failureKind` `"smtp_response"`). A 502 is also stored when Nodemailer's
+  `error.command` is `DATA`, `BDAT`, or later (the body may already have been
+  written) and there is no SMTP reply code. That case is still a local
+  failure: the hourly quota and the auto-reply cooldown are refunded, the log
+  `failureKind` stays `"local"`, and `rateLimitAt` is not written. The 200
+  body is `{"queued":true,"messageId":"…"}` and may include `id`. The 502 body
+  is `{"error":"smtp_error"}` and may include `id`.
+- The key is released, so the same request can be retried, when the result is
+  the cooldown, the hourly quota, or another 4xx/429 after the reservation, or
+  a connection failure that never reached DATA (`failureKind` `"local"`, and
+  the two hashes are not written). Those responses are not cached.
+- The memory table holds at most 10,000 entries
+  (`SEND_IDEMPOTENCY_TTL_SEC` = 86400). Expired completed entries are dropped
+  first. If it is still full, the oldest completed entry is evicted for this
+  request only. In-flight reservations are not evicted. If this request is
+  then rejected or the key is released, the evicted entry is put back. The
+  eviction stays only when this request is recorded as completed. If every
+  entry is in flight: `429 {"error":"idempotency_table_full","retryAfterSec":1}`.
+  These responses do not send a `Retry-After` header.
+- If `send-log.jsonl` could not be read at startup, or replaying the quota,
+  the cooldown, or idempotency threw: a request with `Idempotency-Key` returns
+  `503 {"error":"idempotency_unavailable"}` before a reservation. It does not
+  take a cooldown slot, does not charge the hourly quota, and does not call
+  SMTP. A request without the key is unchanged. The next successful replay
+  turns keyed sends back on. MCP `mail_send` uses this same route.
+
+On startup, finished entries are rebuilt from `send-log.jsonl` together with
+the cooldown and the hourly quota. Only rows inside the 24-hour window that
+carry both `idempotencyKeyHash` and `requestHash` are used: `queued` rows,
+failed rows with `failureKind: "smtp_response"`, and `failureKind: "local"`
+rows that also carry both hashes (an uncertain failure during DATA). A
+`sentAt` in the future is ignored. A row that is exactly expired (`sentAt` +
+86400 seconds `<= now`) does not count. A row older than that address's
+current identity `createdAt` does not count. If the identity store cannot be
+read, idempotency rows are not rebuilt; the quota and the cooldown still
+replay. If that read throws after SMTP has already accepted the message, the
+response that was actually returned is stored as final and the reservation is
+not released, so the same key does not send again. Rows without the two hashes
+are ignored. The log stores the sha256 hex of the key (`idempotencyKeyHash`),
+not the raw key. `requestHash` is the fingerprint above. A 200 is restored
+from the row's `messageId` and `id`. If `messageId` is not a string, that row
+is not restored. A 502 is restored as `{"error":"smtp_error","id":"…"}` when
+`id` was stored. Connection failures before DATA, and quota rejections, do not
+write the two hashes, so a restart does not block a retry. A send whose log
+line was lost cannot be restored. An in-flight reservation that dies with the
+process is not restored.
+
+When `send-log.jsonl` grows past 10,000 lines or 8MB, other old lines are
+dropped first. Rows still inside the 24-hour window with both hashes are kept
+in preference, at most 10,000, newest first. Hashed rows outside the window
+are not kept specially. If those rows themselves still exceed the byte cap,
+the oldest of them are dropped.
+
+MCP `mail_send` takes an optional string `idempotencyKey` under the same
+rule: 1–128 printable ASCII characters (0x20–0x7E) after trim. Whitespace-only
+fails MCP validation and is not treated as an omitted key. A blank REST header
+is still treated as no key. The client puts a key that passed validation on
+this same header, not in the body.
 
 `autoReply` has to be a boolean when it is present. Only `true` makes the
 server set `Auto-Submitted: auto-replied` and consult or record the auto-reply
 cooldown. `false`, and omitting the field, leaves that header unset and leaves
 the cooldown table untouched.
 
-The cooldown runs after the identity and From-domain checks and before the
-hourly quota, and only when `autoReply` is `true`. The key is the sender
+The cooldown runs after the identity and From-domain checks and after the
+idempotency handling above, and before the hourly quota, and only when
+`autoReply` is `true`. The key is the sender
 identity × each recipient. `AUTO_REPLY_COOLDOWN_SEC` defaults to **300**
 seconds. `0` disables the cooldown (a `true` send still sets the header). A
 non-integer, negative, NaN, or value above 86400 falls back to 300; a value
@@ -348,7 +488,8 @@ rounded up to whole seconds, at least 1. The body is `error` and
 has not returned, the same pairs stay reserved, so another `autoReply: true`
 send that hits one of them gets this 429 too. A peer response — the message
 accepted, or an error reply — starts the cooldown from that moment. An
-hourly-quota rejection, or a failure that never reached the SMTP server,
+hourly-quota rejection, or a local failure (`failureKind: "local"`, including
+a connection failure before DATA and an uncertain DATA/BDAT failure),
 releases the reservation and does not start the cooldown.
 
 The cooldown table holds at most 10000 sender × recipient pairs. When it is
@@ -356,8 +497,9 @@ full, a new auto-reply is also rejected with the same `429`
 `auto_reply_cooldown`, and unexpired entries are not evicted.
 
 Each identity is limited to `SEND_RATE_LIMIT` messages per rolling hour
-(default 20, `0` disables), including auto-replies. The cooldown check runs
-first. Over the limit:
+(default 20, `0` disables), including auto-replies. Idempotency runs first,
+then the cooldown, then the quota. A replay does not charge the quota. Over
+the limit:
 
 ```
 429 {"error":"rate_limited","limit":20,"retryAfterSec":1234}
@@ -365,13 +507,15 @@ first. Over the limit:
 
 The seconds are only in the JSON body, same as `auto_reply_cooldown`.
 
-On startup the API rebuilds both windows from `send-log.jsonl`, so a restart
-keeps them. Replay counts `queued` rows plus failed rows the SMTP server
-answered (`failureKind: "smtp_response"`). Local failures that never reached
-the SMTP server (`failureKind: "local"` — connection refused, timeout, and
-authentication failures that got no reply), older failed rows with no
-`failureKind`, and `rate_limited` rows do not count. A send whose log line was
-lost is not counted. The hourly window is the last hour. When a counted row
+On startup the API rebuilds the cooldown and the hourly window from
+`send-log.jsonl`, so a restart keeps them. Replay counts `queued` rows plus
+failed rows the SMTP server answered (`failureKind: "smtp_response"`). Local
+failures (`failureKind: "local"`) do not count toward either window, including
+connection failures before DATA and DATA/BDAT failures that stay `"local"`.
+Older failed rows with no `failureKind`, and `rate_limited` rows, do not
+count. A send whose log line was lost is not counted. Idempotency replay is
+separate and can restore a hashed `"local"` DATA-stage row, as described
+above. The hourly window is the last hour. When a counted row
 has an admission time `rateLimitAt`, replay uses that; otherwise it uses
 `sentAt`. The cooldown replay uses `sentAt`, and only rows with
 `autoReply: true` that are still inside `AUTO_REPLY_COOLDOWN_SEC`.
